@@ -9,6 +9,7 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -673,6 +674,18 @@ def test_create_prompt_for_failed_tests_longrepr() -> None:
 @patch("src.code_checker_pytest.run_tests")
 def test_check_code_with_pytest(mock_run_tests: MagicMock) -> None:
     """Test the full check_code_with_pytest function."""
+    # Create a mock Summary instance for our mock report
+    mock_summary = MagicMock()
+    mock_summary.collected = 2
+    mock_summary.total = 2
+    mock_summary.passed = 2
+    mock_summary.failed = 0
+    mock_summary.error = 0
+    mock_summary.skipped = 0
+    mock_summary.xfailed = 0
+    mock_summary.xpassed = 0
+    mock_summary.deselected = 0
+
     # Mock the run_tests function to return a test report
     mock_report = PytestReport(
         created=1678972345.123,
@@ -680,17 +693,7 @@ def test_check_code_with_pytest(mock_run_tests: MagicMock) -> None:
         exitcode=0,
         root="/path/to/project",
         environment={"Python": "3.9.0"},
-        summary=MagicMock(
-            collected=2,
-            total=2,
-            passed=2,
-            failed=0,
-            error=0,
-            skipped=0,
-            xfailed=0,
-            xpassed=0,
-            deselected=0,
-        ),
+        summary=mock_summary,
     )
     mock_run_tests.return_value = mock_report
 

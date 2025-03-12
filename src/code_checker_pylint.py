@@ -472,7 +472,7 @@ def get_prompt_for_unknown_pylint_code(
     query = f"""pylint found some issues related to code {code} / symbol {symbol}.
     
     Please do two things:
-    1. Please provide 1 direct instruction on how to fix pylint code "{code}" ( {symbol} ) in the general comment of the response.
+    1. Please provide 1 direct instruction on how to fix pylint code "{code}" ({symbol}) in the general comment of the response.
     
     2. Please apply that instruction   
     Please consider especially the following locations in the source code:
