@@ -2,7 +2,6 @@
 Tests for the code_checker_pytest implementation.
 """
 
-import json
 import os
 import shutil
 
@@ -10,7 +9,6 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, cast
 from unittest.mock import MagicMock, patch
 
 import pytest

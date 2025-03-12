@@ -1,16 +1,13 @@
-import logging
 import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Generator, Optional, Set
+from typing import Generator, Set
 
 import pytest
 
 from src.code_checker_pylint import (
     PylintCategory,
-    PylintMessage,
-    PylintResult,
     filter_pylint_codes_by_category,
     get_pylint_results,
 )
