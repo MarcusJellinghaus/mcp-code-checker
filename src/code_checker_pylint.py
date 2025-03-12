@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 class PylintMessageType(Enum):
     """Categories for Pylint message types."""
+
     CONVENTION = "convention"
     REFACTOR = "refactor"
     WARNING = "warning"
@@ -22,6 +23,7 @@ class PylintMessageType(Enum):
 
 class PylintMessage(NamedTuple):
     """Represents a single Pylint message."""
+
     type: str
     module: str
     obj: str
@@ -36,6 +38,7 @@ class PylintMessage(NamedTuple):
 
 class PylintResult(NamedTuple):
     """Represents the overall result of a Pylint run."""
+
     return_code: int
     messages: List[PylintMessage]
     error: Optional[str] = None  # Capture any execution errors
@@ -45,9 +48,13 @@ class PylintResult(NamedTuple):
         """Returns a set of all unique message IDs."""
         return {message.message_id for message in self.messages}
 
-    def get_messages_filtered_by_message_id(self, message_id: str) -> List[PylintMessage]:
+    def get_messages_filtered_by_message_id(
+        self, message_id: str
+    ) -> List[PylintMessage]:
         """Returns a list of messages filtered by the given message ID."""
-        return [message for message in self.messages if message.message_id == message_id]
+        return [
+            message for message in self.messages if message.message_id == message_id
+        ]
 
 
 # For backward compatibility
@@ -57,24 +64,24 @@ PylintCategory = PylintMessageType
 def normalize_path(path: str, base_dir: str) -> str:
     """
     Normalize a path relative to the base directory.
-    
+
     Args:
         path: The path to normalize
         base_dir: The base directory to make the path relative to
-        
+
     Returns:
         Normalized path
     """
     # Replace backslashes with platform-specific separator
     normalized_path = path.replace("\\", os.path.sep).replace("/", os.path.sep)
-    
+
     # Make path relative to base_dir if it starts with base_dir
     if normalized_path.startswith(base_dir):
         prefix = base_dir
         if not prefix.endswith(os.path.sep):
             prefix += os.path.sep
         normalized_path = normalized_path.replace(prefix, "", 1)
-        
+
     return normalized_path
 
 
@@ -136,8 +143,11 @@ def get_pylint_results(
         raise FileNotFoundError(f"Project directory not found: {project_dir}")
 
     # Convert disable_codes to a tuple for cache key
-    cache_key = (project_dir, tuple(sorted(disable_codes)) if disable_codes else tuple())
-    
+    cache_key = (
+        project_dir,
+        tuple(sorted(disable_codes)) if disable_codes else tuple(),
+    )
+
     # Check cache
     if use_cache and cache_key in _pylint_cache:
         cached_result, timestamp = _pylint_cache[cache_key]
@@ -194,7 +204,8 @@ def get_pylint_results(
             error_message = (
                 f"Failed to parse Pylint JSON output: {e}. "
                 f"First 100 chars of output: {raw_output[:100]}..."
-                if len(raw_output) > 100 else raw_output
+                if len(raw_output) > 100
+                else raw_output
             )
             result = PylintResult(
                 return_code=process.returncode,
@@ -210,47 +221,47 @@ def get_pylint_results(
         result = PylintResult(
             return_code=process.returncode, messages=messages, raw_output=raw_output
         )
-        
+
         # Cache the result
         if use_cache:
             _pylint_cache[cache_key] = (result, time.time())
-            
+
         return result
 
     except Exception as e:
         result = PylintResult(
-            return_code=1, 
-            messages=[], 
-            error=f"Error running pylint: {str(e)}", 
-            raw_output=None
+            return_code=1,
+            messages=[],
+            error=f"Error running pylint: {str(e)}",
+            raw_output=None,
         )
         return result
 
 
 def get_pylint_results_as_str(
-    result: PylintResult, 
-    remove_project_dir: str, 
-    verbosity: int = 1
+    result: PylintResult, remove_project_dir: str, verbosity: int = 1
 ) -> str:
     """
     Render Pylint results in a user-friendly format as string.
-    
+
     Args:
         result: The PylintResult to format.
         remove_project_dir: The project directory path to remove from file paths.
         verbosity: Level of detail (0=minimal, 1=normal, 2=detailed).
-        
+
     Returns:
         A formatted string representation of the pylint results.
     """
     list_result: List[str] = []
-    
+
     if result.error:
         list_result.append(f"Pylint Error: {result.error}")
         if result.raw_output and verbosity >= 1:
             list_result.append("Raw output from pylint:")
             result_raw_output = result.raw_output
-            result_raw_output = result_raw_output.replace(remove_project_dir + os.path.sep, "")
+            result_raw_output = result_raw_output.replace(
+                remove_project_dir + os.path.sep, ""
+            )
             list_result.append(result_raw_output)
     elif result.return_code == 0:
         list_result.append("Pylint found no issues.")
@@ -259,10 +270,10 @@ def get_pylint_results_as_str(
             list_result.append(f"Pylint found {len(result.messages)} issues:")
         else:
             list_result.append("Pylint found the following issues:")
-            
+
         for message in result.messages:
             message_path = normalize_path(message.path, remove_project_dir)
-            
+
             if verbosity == 0:
                 # Minimal output
                 list_result.append(f"{message_path}:{message.line}: {message.symbol}")
@@ -280,7 +291,7 @@ def get_pylint_results_as_str(
                     f"Type: {message.type}, Symbol: {message.symbol}, ID: {message.message_id}\n"
                     f"Message: {message.message}\n"
                 )
-                
+
     str_result = "\n".join(list_result)
     return str_result
 
@@ -320,7 +331,7 @@ def get_direct_instruction_for_pylint_code(code: str) -> Optional[str]:
         "E0213": "Ensure the first parameter of instance methods in a class is named 'self'. This parameter represents the instance of the class and is automatically passed when calling the method on an instance.",  # no-self-argument
         "E1123": "Make sure to only use keyword arguments that are defined in the function or method definition you're calling.",  # unexpected-keyword-argument
     }
-    
+
     return instructions.get(code)
 
 
@@ -332,13 +343,13 @@ def get_pylint_prompt(
 ) -> Optional[str]:
     """
     Generate a prompt for fixing pylint issues based on the analysis of a project.
-    
+
     Args:
         project_dir: The path to the project directory to analyze.
         categories: Set of specific pylint categories to filter by.
         pytest_project_marker: Optional marker to identify pytest projects.
         default_categories: Default categories to use if none provided.
-        
+
     Returns:
         A prompt string with issue details and instructions, or None if no issues were found.
     """
@@ -364,7 +375,7 @@ def get_pylint_prompt(
         "W0611",  # unused-import
         "W1514",  # unspecified-encoding
     ]
-    
+
     pylint_results = get_pylint_results(project_dir, disable_codes=disable_codes)
 
     codes = pylint_results.get_message_ids()
@@ -386,28 +397,26 @@ def get_pylint_prompt(
 
 
 def get_prompt_for_known_pylint_code(
-    code: str, 
-    project_dir: str, 
-    pylint_results: PylintResult
+    code: str, project_dir: str, pylint_results: PylintResult
 ) -> Optional[str]:
     """
     Generate a prompt for a known pylint code with instructions and details.
-    
+
     Args:
         code: The pylint code (e.g., "E0602")
         project_dir: The project directory path
         pylint_results: The pylint analysis results
-        
+
     Returns:
         A formatted prompt string or None if no instruction is found for the code
     """
     instruction = get_direct_instruction_for_pylint_code(code)
     if not instruction:
         return None
-        
+
     pylint_results_filtered = pylint_results.get_messages_filtered_by_message_id(code)
     details_lines = []
-    
+
     for message in pylint_results_filtered:
         path = normalize_path(message.path, project_dir)
         details_line = f"""{{
@@ -420,7 +429,7 @@ def get_prompt_for_known_pylint_code(
     
     }},"""
         details_lines.append(details_line)
-        
+
     query = f"""pylint found some issues related to code {code}.
     {instruction}
     Please consider especially the following locations in the source code:
@@ -429,18 +438,16 @@ def get_prompt_for_known_pylint_code(
 
 
 def get_prompt_for_unknown_pylint_code(
-    code: str, 
-    project_dir: str, 
-    pylint_results: PylintResult
+    code: str, project_dir: str, pylint_results: PylintResult
 ) -> str:
     """
     Generate a prompt for an unknown pylint code with issue details.
-    
+
     Args:
         code: The pylint code (e.g., "E0602")
         project_dir: The project directory path
         pylint_results: The pylint analysis results
-        
+
     Returns:
         A formatted prompt string requesting instructions for this code
     """
@@ -462,7 +469,7 @@ def get_prompt_for_unknown_pylint_code(
 
     }},"""
         details_lines.append(details_line)
-        
+
     query = f"""pylint found some issues related to code {code} / symbol {symbol}.
     
     Please do two things:

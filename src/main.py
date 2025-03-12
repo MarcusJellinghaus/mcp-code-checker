@@ -47,7 +47,9 @@ def main() -> None:
         )
         sys.exit(1)
 
-    logger.info(f"Starting MCP Code Checker server with project directory: {project_dir}")
+    logger.info(
+        f"Starting MCP Code Checker server with project directory: {project_dir}"
+    )
 
     # Create and run the server
     server = create_server(project_dir)

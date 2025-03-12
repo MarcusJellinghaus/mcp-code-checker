@@ -8,12 +8,13 @@ import logging
 import os
 import subprocess
 import sys
-from typing import Dict, List, Optional, Any
-
-logger = logging.getLogger(__name__)
 
 # Import dataclasses for the results module
 from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
+
 
 
 # Results data classes
@@ -175,7 +176,9 @@ def parse_test_stage(stage_data: Dict[str, Any]) -> TestStage:
 
     log = None
     if "log" in stage_data and stage_data["log"]:
-        log_records = [LogRecord(**log_record_data) for log_record_data in stage_data["log"]]
+        log_records = [
+            LogRecord(**log_record_data) for log_record_data in stage_data["log"]
+        ]
         log = Log(logs=log_records)
 
     return TestStage(
@@ -193,7 +196,7 @@ def parse_test_stage(stage_data: Dict[str, Any]) -> TestStage:
 def parse_pytest_report(json_data: str) -> PytestReport:
     """
     Parse a JSON string into a PytestReport object.
-    
+
     Args:
         json_data: JSON string from pytest json report
 
@@ -201,6 +204,7 @@ def parse_pytest_report(json_data: str) -> PytestReport:
         PytestReport object with test results
     """
     import json
+
     data = json.loads(json_data)
 
     summary = Summary(**data["summary"])
@@ -269,14 +273,14 @@ def parse_pytest_report(json_data: str) -> PytestReport:
 def run_tests(project_dir: str, test_folder: str) -> PytestReport:
     """
     Run pytest tests in the specified project directory and test folder and returns the results.
-    
+
     Args:
         project_dir: The path to the project directory
         test_folder: The path to the folder containing the tests relative to the project directory
-        
+
     Returns:
         PytestReport: An object containing the results of the test session
-        
+
     Raises:
         Exception: If pytest is not installed or if an error occurs during test execution
     """
@@ -288,7 +292,7 @@ def run_tests(project_dir: str, test_folder: str) -> PytestReport:
             subprocess.run(
                 [sys.executable, "-m", "pip", "install", "pytest-json-report"],
                 check=True,
-                capture_output=True
+                capture_output=True,
             )
             # Retry importing pytest
             import pytest
@@ -328,11 +332,15 @@ def run_tests(project_dir: str, test_folder: str) -> PytestReport:
         if process.returncode == 1:
             if not os.path.isfile(os.path.join(project_dir, pytest_result_file)):
                 print(process.stdout)
-                raise Exception("Test Collection Errors: Pytest failed to collect tests.")
+                raise Exception(
+                    "Test Collection Errors: Pytest failed to collect tests."
+                )
         elif process.returncode == 2:
             if not os.path.isfile(os.path.join(project_dir, pytest_result_file)):
                 print(process.stdout)
-                raise Exception("Test Collection Errors: Pytest failed to collect tests.")
+                raise Exception(
+                    "Test Collection Errors: Pytest failed to collect tests."
+                )
         elif process.returncode == 3:
             print(process.stdout)
             raise Exception("Internal Error: Pytest encountered an internal error.")
@@ -368,11 +376,11 @@ def create_prompt_for_failed_tests(
 ) -> Optional[str]:
     """
     Creates a prompt for an LLM based on the failed tests from a test session result.
-    
+
     Args:
         test_session_result: The test session result to analyze
         max_number_of_tests_reported: Maximum number of tests to include in the prompt
-        
+
     Returns:
         A prompt string, or None if no tests failed
     """
@@ -386,7 +394,9 @@ def create_prompt_for_failed_tests(
             if collector.outcome == "failed"
         ]
     if len(failed_collectors) > 0:
-        prompt_parts.append("The following collectors failed during the test session:\n")
+        prompt_parts.append(
+            "The following collectors failed during the test session:\n"
+        )
     for failed_collector in failed_collectors:
         prompt_parts.append(
             f"Collector ID: {failed_collector.nodeid} - outcome {failed_collector.outcome}\n"
@@ -401,7 +411,9 @@ def create_prompt_for_failed_tests(
     failed_tests = []
     if test_session_result.tests:
         failed_tests = [
-            test for test in test_session_result.tests if test.outcome in ["failed", "error"]
+            test
+            for test in test_session_result.tests
+            if test.outcome in ["failed", "error"]
         ]
 
     test_count = 0
@@ -414,7 +426,9 @@ def create_prompt_for_failed_tests(
         if test.call and test.call.traceback:
             prompt_parts.append("  Traceback:\n")
             for entry in test.call.traceback:
-                prompt_parts.append(f"   - {entry.path}:{entry.lineno} - {entry.message}\n")
+                prompt_parts.append(
+                    f"   - {entry.path}:{entry.lineno} - {entry.message}\n"
+                )
         if test.call and test.call.stdout:
             prompt_parts.append(f"  Stdout:\n```\n{test.call.stdout}\n```\n")
         if test.call and test.call.stderr:
@@ -428,22 +442,36 @@ def create_prompt_for_failed_tests(
                 prompt_parts.append(
                     f"  Test Setup Crash Error Message: {test.setup.crash.message}\n"
                 )
-                prompt_parts.append(f"  Test Setup Crash Error Path: {test.setup.crash.path}\n")
-                prompt_parts.append(f"  Setup Crash Error Line: {test.setup.crash.lineno}\n")
+                prompt_parts.append(
+                    f"  Test Setup Crash Error Path: {test.setup.crash.path}\n"
+                )
+                prompt_parts.append(
+                    f"  Setup Crash Error Line: {test.setup.crash.lineno}\n"
+                )
             if test.setup.traceback:
                 prompt_parts.append("  Test Setup Traceback:\n")
                 for entry in test.setup.traceback:
-                    prompt_parts.append(f"   - {entry.path}:{entry.lineno} - {entry.message}\n")
+                    prompt_parts.append(
+                        f"   - {entry.path}:{entry.lineno} - {entry.message}\n"
+                    )
             if test.setup.stdout:
-                prompt_parts.append(f"  Test Setup Stdout:\n```\n{test.setup.stdout}\n```\n")
+                prompt_parts.append(
+                    f"  Test Setup Stdout:\n```\n{test.setup.stdout}\n```\n"
+                )
             if test.setup.stderr:
-                prompt_parts.append(f"  Test Setup Stderr:\n```\n{test.setup.stderr}\n```\n")
+                prompt_parts.append(
+                    f"  Test Setup Stderr:\n```\n{test.setup.stderr}\n```\n"
+                )
             if test.setup.longrepr:
-                prompt_parts.append(f"  Test Setup Longrepr:\n```\n{test.setup.longrepr}\n```\n")
+                prompt_parts.append(
+                    f"  Test Setup Longrepr:\n```\n{test.setup.longrepr}\n```\n"
+                )
             if test.setup.traceback and len(test.setup.traceback) > 0:
                 prompt_parts.append("  Test Setup Traceback:\n")
                 for entry in test.setup.traceback:
-                    prompt_parts.append(f"   - {entry.path}:{entry.lineno} - {entry.message}\n")
+                    prompt_parts.append(
+                        f"   - {entry.path}:{entry.lineno} - {entry.message}\n"
+                    )
 
         prompt_parts.append("\n")
 
@@ -468,18 +496,20 @@ def create_prompt_for_failed_tests(
 def get_test_summary(test_session_result: PytestReport) -> str:
     """
     Generate a human-readable summary of the test results.
-    
+
     Args:
         test_session_result: The test session result to summarize
-        
+
     Returns:
         A string with the test summary
     """
     summary = test_session_result.summary
-    
+
     parts = []
-    parts.append(f"Collected {summary.collected} tests in {test_session_result.duration:.2f} seconds")
-    
+    parts.append(
+        f"Collected {summary.collected} tests in {test_session_result.duration:.2f} seconds"
+    )
+
     if summary.passed:
         parts.append(f"✅ Passed: {summary.passed}")
     if summary.failed:
@@ -492,40 +522,40 @@ def get_test_summary(test_session_result: PytestReport) -> str:
         parts.append(f"🔶 Expected failures: {summary.xfailed}")
     if summary.xpassed:
         parts.append(f"🔶 Unexpected passes: {summary.xpassed}")
-    
+
     return " | ".join(parts)
 
 
-def check_code_with_pytest(project_dir: str, test_folder: str = "tests") -> Dict[str, Any]:
+def check_code_with_pytest(
+    project_dir: str, test_folder: str = "tests"
+) -> Dict[str, Any]:
     """
     Run pytest on the specified project and return results.
-    
+
     Args:
         project_dir: Path to the project directory
         test_folder: Path to the test folder (relative to project_dir)
-        
+
     Returns:
         Dictionary with test results
     """
     try:
         test_results = run_tests(project_dir, test_folder)
-        
+
         summary = get_test_summary(test_results)
-        
+
         failed_tests_prompt = None
-        if (test_results.summary.failed and test_results.summary.failed > 0) or \
-           (test_results.summary.error and test_results.summary.error > 0):
+        if (test_results.summary.failed and test_results.summary.failed > 0) or (
+            test_results.summary.error and test_results.summary.error > 0
+        ):
             failed_tests_prompt = create_prompt_for_failed_tests(test_results)
-            
+
         return {
             "success": True,
             "summary": summary,
             "failed_tests_prompt": failed_tests_prompt,
-            "test_results": test_results
+            "test_results": test_results,
         }
-    
+
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}

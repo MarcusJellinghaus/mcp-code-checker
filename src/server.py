@@ -14,21 +14,21 @@ logger = logging.getLogger(__name__)
 
 class CodeCheckerServer:
     """MCP server for code checking functionality."""
-    
+
     def __init__(self, project_dir: Path):
         """
         Initialize the server with the project directory.
-        
+
         Args:
             project_dir: Path to the project directory to check
         """
         self.project_dir = project_dir
         self.mcp = FastMCP("Code Checker Service")
         self._register_tools()
-    
+
     def _register_tools(self) -> None:
         """Register all tools with the MCP server."""
-        
+
         @self.mcp.tool()
         async def run_pylint_check() -> str:
             """
@@ -38,11 +38,15 @@ class CodeCheckerServer:
                 A string containing either pylint results or a prompt for an LLM to interpret
             """
             try:
-                logger.info(f"Running pylint check on project directory: {self.project_dir}")
-                
+                logger.info(
+                    f"Running pylint check on project directory: {self.project_dir}"
+                )
+
                 # TODO: Replace with actual implementation
-                result = "Pylint check completed. No issues found that require attention."
-                
+                result = (
+                    "Pylint check completed. No issues found that require attention."
+                )
+
                 return result
             except Exception as e:
                 logger.error(f"Error running pylint check: {str(e)}")
@@ -57,16 +61,18 @@ class CodeCheckerServer:
                 A string containing either pytest results or a prompt for an LLM to interpret
             """
             try:
-                logger.info(f"Running pytest check on project directory: {self.project_dir}")
-                
+                logger.info(
+                    f"Running pytest check on project directory: {self.project_dir}"
+                )
+
                 # TODO: Replace with actual implementation
                 result = "Pytest check completed. All tests passed successfully."
-                
+
                 return result
             except Exception as e:
                 logger.error(f"Error running pytest check: {str(e)}")
                 raise
-                
+
         @self.mcp.tool()
         async def run_all_checks() -> str:
             """
@@ -76,8 +82,10 @@ class CodeCheckerServer:
                 A string containing results from all checks and/or LLM prompts
             """
             try:
-                logger.info(f"Running all code checks on project directory: {self.project_dir}")
-                
+                logger.info(
+                    f"Running all code checks on project directory: {self.project_dir}"
+                )
+
                 # TODO: Replace with actual implementation
                 # In the real implementation, this would call the other check functions
                 # and combine their results
@@ -86,12 +94,12 @@ class CodeCheckerServer:
                     "1. Pylint: No issues found that require attention.\n"
                     "2. Pytest: All tests passed successfully."
                 )
-                
+
                 return result
             except Exception as e:
                 logger.error(f"Error running all code checks: {str(e)}")
                 raise
-    
+
     def run(self) -> None:
         """Run the MCP server."""
         self.mcp.run()
@@ -100,10 +108,10 @@ class CodeCheckerServer:
 def create_server(project_dir: Path) -> CodeCheckerServer:
     """
     Create a new CodeCheckerServer instance.
-    
+
     Args:
         project_dir: Path to the project directory to check
-        
+
     Returns:
         A new CodeCheckerServer instance
     """
