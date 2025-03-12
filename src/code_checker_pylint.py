@@ -1,16 +1,27 @@
+import json
 import logging
 import os
 import subprocess
 import sys
-from enum import Enum
-from typing import NamedTuple, Optional, Set
+import time
+from enum import Enum, auto
+from functools import lru_cache
+from typing import Dict, List, NamedTuple, Optional, Set, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
 
+class PylintMessageType(Enum):
+    """Categories for Pylint message types."""
+    CONVENTION = "convention"
+    REFACTOR = "refactor"
+    WARNING = "warning"
+    ERROR = "error"
+    FATAL = "fatal"
+
+
 class PylintMessage(NamedTuple):
     """Represents a single Pylint message."""
-
     type: str
     module: str
     obj: str
@@ -25,51 +36,68 @@ class PylintMessage(NamedTuple):
 
 class PylintResult(NamedTuple):
     """Represents the overall result of a Pylint run."""
-
     return_code: int
-    messages: list[PylintMessage]
+    messages: List[PylintMessage]
     error: Optional[str] = None  # Capture any execution errors
     raw_output: Optional[str] = None  # Capture raw output from pylint
 
-    def get_message_ids(self) -> set[str]:
+    def get_message_ids(self) -> Set[str]:
         """Returns a set of all unique message IDs."""
         return {message.message_id for message in self.messages}
 
-    def get_messages_filtered_by_message_id(self, message_id: str) -> list[PylintMessage]:
+    def get_messages_filtered_by_message_id(self, message_id: str) -> List[PylintMessage]:
         """Returns a list of messages filtered by the given message ID."""
         return [message for message in self.messages if message.message_id == message_id]
 
 
-# actually, this seems to be the PylintMessage.type - could be refactored
-class PylintCategory(Enum):
-    """Categories for Pylint codes."""
+# For backward compatibility
+PylintCategory = PylintMessageType
 
-    CONVENTION = "convention"
-    REFACTOR = "refactor"
-    WARNING = "warning"
-    ERROR = "error"
-    FATAL = "fatal"
+
+def normalize_path(path: str, base_dir: str) -> str:
+    """
+    Normalize a path relative to the base directory.
+    
+    Args:
+        path: The path to normalize
+        base_dir: The base directory to make the path relative to
+        
+    Returns:
+        Normalized path
+    """
+    # Replace backslashes with platform-specific separator
+    normalized_path = path.replace("\\", os.path.sep).replace("/", os.path.sep)
+    
+    # Make path relative to base_dir if it starts with base_dir
+    if normalized_path.startswith(base_dir):
+        prefix = base_dir
+        if not prefix.endswith(os.path.sep):
+            prefix += os.path.sep
+        normalized_path = normalized_path.replace(prefix, "", 1)
+        
+    return normalized_path
 
 
 def filter_pylint_codes_by_category(
     pylint_codes: Set[str],
-    categories: Set[PylintCategory],
+    categories: Set[PylintMessageType],
 ) -> Set[str]:
-    """Filters Pylint codes based on the specified categories.
+    """
+    Filters Pylint codes based on the specified categories.
 
     Args:
         pylint_codes: A set of Pylint codes (e.g., {"C0301", "R0201", "W0613", "E0602", "F0001"}).
-        categories: A set of PylintCategory enums to filter by (e.g., {PylintCategory.ERROR, PylintCategory.FATAL}).
+        categories: A set of PylintMessageType enums to filter by (e.g., {PylintMessageType.ERROR, PylintMessageType.FATAL}).
 
     Returns:
         A set of Pylint codes that match the specified categories.
     """
     category_prefixes = {
-        PylintCategory.CONVENTION: "C",
-        PylintCategory.REFACTOR: "R",
-        PylintCategory.WARNING: "W",
-        PylintCategory.ERROR: "E",
-        PylintCategory.FATAL: "F",
+        PylintMessageType.CONVENTION: "C",
+        PylintMessageType.REFACTOR: "R",
+        PylintMessageType.WARNING: "W",
+        PylintMessageType.ERROR: "E",
+        PylintMessageType.FATAL: "F",
     }
     filtered_codes: Set[str] = set()
     for code in pylint_codes:
@@ -80,15 +108,23 @@ def filter_pylint_codes_by_category(
     return filtered_codes
 
 
+# Cache to store recent pylint results
+_pylint_cache: Dict[Tuple[str, Tuple[str, ...]], Tuple[PylintResult, float]] = {}
+_CACHE_TIMEOUT = 300  # 5 minutes
+
+
 def get_pylint_results(
     project_dir: str,
-    disable_codes: list[str] | None = None,
+    disable_codes: Optional[List[str]] = None,
+    use_cache: bool = True,
 ) -> PylintResult:
-    """Runs pylint on the specified project directory and returns the results.
+    """
+    Runs pylint on the specified project directory and returns the results.
 
     Args:
         project_dir: The path to the project directory.
-        disable_codes: the codes that are not
+        disable_codes: List of pylint codes to disable during analysis.
+        use_cache: Whether to use cached results if available and recent.
 
     Returns:
         A PylintResult object containing the results of the pylint run.
@@ -96,9 +132,18 @@ def get_pylint_results(
     Raises:
         FileNotFoundError: If the project directory does not exist.
     """
-
     if not os.path.isdir(project_dir):
         raise FileNotFoundError(f"Project directory not found: {project_dir}")
+
+    # Convert disable_codes to a tuple for cache key
+    cache_key = (project_dir, tuple(sorted(disable_codes)) if disable_codes else tuple())
+    
+    # Check cache
+    if use_cache and cache_key in _pylint_cache:
+        cached_result, timestamp = _pylint_cache[cache_key]
+        if time.time() - timestamp < _CACHE_TIMEOUT:
+            logger.debug("Using cached pylint results")
+            return cached_result
 
     try:
         # Determine the Python executable from the current environment
@@ -119,7 +164,7 @@ def get_pylint_results(
             pylint_command.append("tests")
 
         # Run pylint and capture its output
-        logger.debug(" ".join(pylint_command))
+        logger.debug(f"Running pylint command: {' '.join(pylint_command)}")
         process = subprocess.run(
             pylint_command, cwd=project_dir, capture_output=True, text=True, check=False
         )
@@ -127,9 +172,7 @@ def get_pylint_results(
         raw_output = process.stdout
 
         # Parse pylint output from JSON, if available
-        messages: list[PylintMessage] = []
-
-        import json
+        messages: List[PylintMessage] = []
 
         try:
             pylint_output = json.loads(process.stdout)
@@ -148,51 +191,101 @@ def get_pylint_results(
                     )
                 )
         except json.JSONDecodeError as e:
-            return PylintResult(
+            error_message = (
+                f"Failed to parse Pylint JSON output: {e}. "
+                f"First 100 chars of output: {raw_output[:100]}..."
+                if len(raw_output) > 100 else raw_output
+            )
+            result = PylintResult(
                 return_code=process.returncode,
                 messages=[],
-                error=f"Pylint output parsing failed: {e}",
+                error=error_message,
                 raw_output=raw_output,
             )
+            # Cache the result
+            if use_cache:
+                _pylint_cache[cache_key] = (result, time.time())
+            return result
 
-        return PylintResult(
+        result = PylintResult(
             return_code=process.returncode, messages=messages, raw_output=raw_output
         )
+        
+        # Cache the result
+        if use_cache:
+            _pylint_cache[cache_key] = (result, time.time())
+            
+        return result
 
     except Exception as e:
-        return PylintResult(return_code=1, messages=[], error=str(e), raw_output=None)
+        result = PylintResult(
+            return_code=1, 
+            messages=[], 
+            error=f"Error running pylint: {str(e)}", 
+            raw_output=None
+        )
+        return result
 
 
-def get_pylint_results_as_str(result: PylintResult, remove_project_dir: str) -> str:
-    """Render Pylint results in a user-friendly format as str."""
-    list_result: list[str] = []
+def get_pylint_results_as_str(
+    result: PylintResult, 
+    remove_project_dir: str, 
+    verbosity: int = 1
+) -> str:
+    """
+    Render Pylint results in a user-friendly format as string.
+    
+    Args:
+        result: The PylintResult to format.
+        remove_project_dir: The project directory path to remove from file paths.
+        verbosity: Level of detail (0=minimal, 1=normal, 2=detailed).
+        
+    Returns:
+        A formatted string representation of the pylint results.
+    """
+    list_result: List[str] = []
+    
     if result.error:
         list_result.append(f"Pylint Error: {result.error}")
-        if result.raw_output:
+        if result.raw_output and verbosity >= 1:
             list_result.append("Raw output from pylint:")
             result_raw_output = result.raw_output
-            result_raw_output = result_raw_output.replace(remove_project_dir + "\\", "")
+            result_raw_output = result_raw_output.replace(remove_project_dir + os.path.sep, "")
             list_result.append(result_raw_output)
     elif result.return_code == 0:
         list_result.append("Pylint found no issues.")
     else:
-        list_result.append("Pylint found the following issues:")
+        if verbosity >= 2:
+            list_result.append(f"Pylint found {len(result.messages)} issues:")
+        else:
+            list_result.append("Pylint found the following issues:")
+            
         for message in result.messages:
-            message_path = message.path
-            message_path = message_path.replace(remove_project_dir + "\\", "")
-            list_result.append(
-                f"{message_path}:{message.line}:{message.column}: {message.symbol} "
-                f"({message.message_id}) {message.message}"
-            )
+            message_path = normalize_path(message.path, remove_project_dir)
+            
+            if verbosity == 0:
+                # Minimal output
+                list_result.append(f"{message_path}:{message.line}: {message.symbol}")
+            elif verbosity == 1:
+                # Normal output
+                list_result.append(
+                    f"{message_path}:{message.line}:{message.column}: {message.symbol} "
+                    f"({message.message_id}) {message.message}"
+                )
+            else:
+                # Detailed output
+                list_result.append(
+                    f"File: {message_path}\n"
+                    f"Line: {message.line}, Column: {message.column}\n"
+                    f"Type: {message.type}, Symbol: {message.symbol}, ID: {message.message_id}\n"
+                    f"Message: {message.message}\n"
+                )
+                
     str_result = "\n".join(list_result)
     return str_result
 
 
-# prompt:
-# Please provide 1 direct instruction for pylint code "E1120" ( no-value-for-parameter  )
-
-
-def get_direct_instruction_for_pylint_code(code: str) -> str | None:
+def get_direct_instruction_for_pylint_code(code: str) -> Optional[str]:
     """
     Provides a direct instruction for a given Pylint code.
 
@@ -202,68 +295,59 @@ def get_direct_instruction_for_pylint_code(code: str) -> str | None:
     Returns:
         A direct instruction string or None if the code is not recognized.
     """
-    if code == "R0902":  # too-many-instance-attributes
-        return "Refactor the class by breaking it into smaller classes or using data structures to reduce the number of instance attributes."
-    elif code == "C0411":  # wrong-import-order
-        return "Organize your imports into three groups: standard library imports, third-party library imports, and local application/project imports, separated by blank lines, with each group sorted alphabetically."
-    elif code == "W0612":  # unused-variable
-        return "Either use the variable or remove the variable assignment if it is not needed."
-    elif code == "W0621":  # redefined-outer-name
-        return "Avoid shadowing variables from outer scopes."
-    elif code == "W0311":  # bad-indentation
-        return "Ensure consistent indentation using 4 spaces for each level of nesting."
-    elif code == "W0718":  # broad-exception-caught
-        return "Explicitly catch only the specific exceptions you expect and handle them appropriately, rather than using a bare `except:` clause."
-    elif code == "E0601":  # used-before-assignment
-        return "Ensure a variable is assigned a value before it is used within its scope."
-    elif code == "E0602":  # undefined-variable
-        return "Before using a variable, ensure it is either defined within the current scope (e.g., function, class, or global) or imported correctly from a module."
-    elif code == "E1120":  # no-value-for-parameter
-        return "Provide a value for each parameter in the function call that doesn't have a default value."
-    elif code == "E0401":  # import-error
-        return "Verify that the module or package you are trying to import is installed and accessible in your Python environment, and that the import statement matches its name and location."
-    elif code == "E0611":  # no-name-in-module
-        return "Verify that the name you are trying to import (e.g., function, class, variable) actually exists within the specified module or submodule and that the spelling is correct."
-    elif code == "W4903":  # deprecated-argument
-        return "Replace the deprecated argument with its recommended alternative; consult the documentation for the function or method to identify the correct replacement."
-    elif code == "W1203":  # logging-fstring-interpolation
-        return "Use string formatting with the `%` operator or `.format()` method when passing variables to logging functions instead of f-strings; for example, `logging.info('Value: %s', my_variable)` or `logging.info('Value: {}'.format(my_variable))`"
-    elif code == "W0613":  # unused-argument
-        return "Remove the unused argument from the function definition if it is not needed, or if it is needed for compatibility or future use, use `_` as the argument's name to indicate it's intentionally unused, or use it within the function logic."
-    elif code == "C0415":  # import-outside-toplevel
-        return "Move the import statement to the beginning of the file, outside of any conditional blocks, functions, or classes; all imports should be at the top of the file."
-    elif code == "E0704":  # misplaced-bare-raise
-        return "Ensure that a `raise` statement without an exception object or exception type only appears inside an `except` block; it should re-raise the exception that was caught, not be used outside of an exception handling context."
-    elif code == "E0001":  # syntax-error
-        return "Carefully review the indicated line (and potentially nearby lines) for syntax errors such as typos, mismatched parentheses/brackets/quotes, invalid operators, or incorrect use of keywords; consult the Python syntax rules to correct the issue."
-    elif code == "R0911":  # too-many-return-statements
-        return "Refactor the function to reduce the number of return statements, potentially by simplifying the logic or using helper functions."
-    elif code == "W0707":  # raise-missing-from
-        return "When raising a new exception inside an except block, use raise ... from original_exception to preserve the original exception's traceback."
-    elif code == "E1125":  # missing-kwoa
-        return "Fix the function call by using keyword arguments for parameters that are defined as keyword-only in the function signature. Use the parameter name as a keyword when passing the value."
-    elif code == "E1101":  # no-member
-        return "Define the missing attribute or method directly in the class declaration. If the attribute or method should be inherited from a parent class, ensure that the parent class is correctly specified in the class definition."
-    elif code == "E0213":  # no-self-argument
-        return "Ensure the first parameter of instance methods in a class is named 'self'. This parameter represents the instance of the class and is automatically passed when calling the method on an instance."
-    elif code == "E1123":  # unexpected-keyword-argument
-        return "Make sure to only use keyword arguments that are defined in the function or method definition you're calling."
-    else:
-        return None
+    instructions = {
+        "R0902": "Refactor the class by breaking it into smaller classes or using data structures to reduce the number of instance attributes.",  # too-many-instance-attributes
+        "C0411": "Organize your imports into three groups: standard library imports, third-party library imports, and local application/project imports, separated by blank lines, with each group sorted alphabetically.",  # wrong-import-order
+        "W0612": "Either use the variable or remove the variable assignment if it is not needed.",  # unused-variable
+        "W0621": "Avoid shadowing variables from outer scopes.",  # redefined-outer-name
+        "W0311": "Ensure consistent indentation using 4 spaces for each level of nesting.",  # bad-indentation
+        "W0718": "Explicitly catch only the specific exceptions you expect and handle them appropriately, rather than using a bare `except:` clause.",  # broad-exception-caught
+        "E0601": "Ensure a variable is assigned a value before it is used within its scope.",  # used-before-assignment
+        "E0602": "Before using a variable, ensure it is either defined within the current scope (e.g., function, class, or global) or imported correctly from a module.",  # undefined-variable
+        "E1120": "Provide a value for each parameter in the function call that doesn't have a default value.",  # no-value-for-parameter
+        "E0401": "Verify that the module or package you are trying to import is installed and accessible in your Python environment, and that the import statement matches its name and location.",  # import-error
+        "E0611": "Verify that the name you are trying to import (e.g., function, class, variable) actually exists within the specified module or submodule and that the spelling is correct.",  # no-name-in-module
+        "W4903": "Replace the deprecated argument with its recommended alternative; consult the documentation for the function or method to identify the correct replacement.",  # deprecated-argument
+        "W1203": "Use string formatting with the `%` operator or `.format()` method when passing variables to logging functions instead of f-strings; for example, `logging.info('Value: %s', my_variable)` or `logging.info('Value: {}'.format(my_variable))`",  # logging-fstring-interpolation
+        "W0613": "Remove the unused argument from the function definition if it is not needed, or if it is needed for compatibility or future use, use `_` as the argument's name to indicate it's intentionally unused, or use it within the function logic.",  # unused-argument
+        "C0415": "Move the import statement to the beginning of the file, outside of any conditional blocks, functions, or classes; all imports should be at the top of the file.",  # import-outside-toplevel
+        "E0704": "Ensure that a `raise` statement without an exception object or exception type only appears inside an `except` block; it should re-raise the exception that was caught, not be used outside of an exception handling context.",  # misplaced-bare-raise
+        "E0001": "Carefully review the indicated line (and potentially nearby lines) for syntax errors such as typos, mismatched parentheses/brackets/quotes, invalid operators, or incorrect use of keywords; consult the Python syntax rules to correct the issue.",  # syntax-error
+        "R0911": "Refactor the function to reduce the number of return statements, potentially by simplifying the logic or using helper functions.",  # too-many-return-statements
+        "W0707": "When raising a new exception inside an except block, use raise ... from original_exception to preserve the original exception's traceback.",  # raise-missing-from
+        "E1125": "Fix the function call by using keyword arguments for parameters that are defined as keyword-only in the function signature. Use the parameter name as a keyword when passing the value.",  # missing-kwoa
+        "E1101": "Define the missing attribute or method directly in the class declaration. If the attribute or method should be inherited from a parent class, ensure that the parent class is correctly specified in the class definition.",  # no-member
+        "E0213": "Ensure the first parameter of instance methods in a class is named 'self'. This parameter represents the instance of the class and is automatically passed when calling the method on an instance.",  # no-self-argument
+        "E1123": "Make sure to only use keyword arguments that are defined in the function or method definition you're calling.",  # unexpected-keyword-argument
+    }
+    
+    return instructions.get(code)
 
 
 def get_pylint_prompt(
     project_dir: str,
-    categories: Set[PylintCategory] | None = None,
-    pytest_project_marker: str | None = None,
-) -> str | None:
-    # prompt within existing chat where all python files are known
-    # enhancement ideas
-    # - check for errors, check later for warnings
-    # - extend get_direct_instruction_for_pylint_code() dynamically, store instructions
-
+    categories: Optional[Set[PylintMessageType]] = None,
+    pytest_project_marker: Optional[str] = None,
+    default_categories: Optional[Set[PylintMessageType]] = None,
+) -> Optional[str]:
+    """
+    Generate a prompt for fixing pylint issues based on the analysis of a project.
+    
+    Args:
+        project_dir: The path to the project directory to analyze.
+        categories: Set of specific pylint categories to filter by.
+        pytest_project_marker: Optional marker to identify pytest projects.
+        default_categories: Default categories to use if none provided.
+        
+    Returns:
+        A prompt string with issue details and instructions, or None if no issues were found.
+    """
     if categories is None:
-        categories = set()
+        if default_categories is not None:
+            categories = default_categories
+        else:
+            # Default to error categories if nothing specified
+            categories = {PylintMessageType.ERROR, PylintMessageType.FATAL}
 
     disable_codes = [
         # not required for now
@@ -280,6 +364,7 @@ def get_pylint_prompt(
         "W0611",  # unused-import
         "W1514",  # unspecified-encoding
     ]
+    
     pylint_results = get_pylint_results(project_dir, disable_codes=disable_codes)
 
     codes = pylint_results.get_message_ids()
@@ -300,14 +385,31 @@ def get_pylint_prompt(
         return None
 
 
-def get_prompt_for_known_pylint_code(code, project_dir, pylint_results):
+def get_prompt_for_known_pylint_code(
+    code: str, 
+    project_dir: str, 
+    pylint_results: PylintResult
+) -> Optional[str]:
+    """
+    Generate a prompt for a known pylint code with instructions and details.
+    
+    Args:
+        code: The pylint code (e.g., "E0602")
+        project_dir: The project directory path
+        pylint_results: The pylint analysis results
+        
+    Returns:
+        A formatted prompt string or None if no instruction is found for the code
+    """
     instruction = get_direct_instruction_for_pylint_code(code)
+    if not instruction:
+        return None
+        
     pylint_results_filtered = pylint_results.get_messages_filtered_by_message_id(code)
     details_lines = []
+    
     for message in pylint_results_filtered:
-        message: PylintMessage
-        path = message.path
-        path = path.replace(project_dir + "\\", "")
+        path = normalize_path(message.path, project_dir)
         details_line = f"""{{
         "module": "{message.module}",
         "obj": "{message.obj}",
@@ -317,12 +419,8 @@ def get_prompt_for_known_pylint_code(code, project_dir, pylint_results):
         "message": "{message.message}",
     
     }},"""
-
-        #   "type": "{message.type}",
-        #   "symbol": "{message.symbol}",
-        #   "message-id": "{message.message_id}"
-
         details_lines.append(details_line)
+        
     query = f"""pylint found some issues related to code {code}.
     {instruction}
     Please consider especially the following locations in the source code:
@@ -330,7 +428,22 @@ def get_prompt_for_known_pylint_code(code, project_dir, pylint_results):
     return query
 
 
-def get_prompt_for_unknown_pylint_code(code, project_dir, pylint_results):
+def get_prompt_for_unknown_pylint_code(
+    code: str, 
+    project_dir: str, 
+    pylint_results: PylintResult
+) -> str:
+    """
+    Generate a prompt for an unknown pylint code with issue details.
+    
+    Args:
+        code: The pylint code (e.g., "E0602")
+        project_dir: The project directory path
+        pylint_results: The pylint analysis results
+        
+    Returns:
+        A formatted prompt string requesting instructions for this code
+    """
     pylint_results_filtered = pylint_results.get_messages_filtered_by_message_id(code)
 
     first_result = next(iter(pylint_results_filtered))
@@ -338,9 +451,7 @@ def get_prompt_for_unknown_pylint_code(code, project_dir, pylint_results):
 
     details_lines = []
     for message in pylint_results_filtered:
-        message: PylintMessage
-        path = message.path
-        path = path.replace(project_dir + "\\", "")
+        path = normalize_path(message.path, project_dir)
         details_line = f"""{{
         "module": "{message.module}",
         "obj": "{message.obj}",
@@ -350,12 +461,8 @@ def get_prompt_for_unknown_pylint_code(code, project_dir, pylint_results):
         "message": "{message.message}",
 
     }},"""
-
-        #   "type": "{message.type}",
-        #   "symbol": "{message.symbol}",
-        #   "message-id": "{message.message_id}"
-
         details_lines.append(details_line)
+        
     query = f"""pylint found some issues related to code {code} / symbol {symbol}.
     
     Please do two things:
