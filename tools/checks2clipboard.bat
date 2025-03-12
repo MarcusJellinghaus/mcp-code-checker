@@ -42,6 +42,8 @@ if %MYPY_EXIT_CODE% neq 0 (
         echo   3. Optional/None handling errors
         echo   4. Function return type mismatches
         echo - Ensure all code follows strict typing standards
+        echo - special cases:
+        echo   - in the case of `@pytest.fixture`, if necessary `# type: ignore[misc]` could be added
         echo.
         type checks_output.txt
     ) > checks_clipboard.txt
