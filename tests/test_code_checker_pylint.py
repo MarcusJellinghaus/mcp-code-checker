@@ -2,7 +2,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Generator, Set
+from typing import Generator, Set, cast
 
 import pytest
 
@@ -38,9 +38,7 @@ def create_default_project(
     if provide_config_module:
         write_file(os.path.join(project_dir, "src", "config.py"), "DEBUG = True\n")
 
-
-# Apply proper type annotation for the fixture by creating a typed fixture decorator
-@pytest.fixture(scope="function")
+@pytest.fixture  # type: ignore[misc]
 def temp_project_dir() -> Generator[Path, None, None]:
     """Creates a temporary project directory for testing, cleaning it up after the test."""
     temp_dir = Path(tempfile.mkdtemp())

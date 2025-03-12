@@ -60,14 +60,10 @@ warn_unused_configs = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true
-disallow_untyped_decorators = true
+# disallow_untyped_decorators = false  # can create issues with pytest fixtures
 no_implicit_optional = true
 strict_optional = true
 mypy_path = "stubs"
-
-[[tool.mypy.overrides]]
-module = ["numpy.*", "pandas.*"]
-ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = ["pytest.*"]
