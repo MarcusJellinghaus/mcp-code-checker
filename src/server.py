@@ -2,19 +2,21 @@
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
 # Type stub for mcp.server.fastmcp
 from typing import Callable, Protocol, TypeVar
 
-T = TypeVar('T')
+T = TypeVar("T")
+
 
 class ToolDecorator(Protocol):
     def __call__(self, func: Callable[..., T]) -> Callable[..., T]: ...
 
+
 class FastMCPProtocol(Protocol):
     def tool(self) -> ToolDecorator: ...
     def run(self) -> None: ...
+
 
 # Configure logging
 logging.basicConfig(
@@ -36,11 +38,13 @@ class CodeCheckerServer:
         self.project_dir = project_dir
         # We cannot import the actual FastMCP for type checking
         from mcp.server.fastmcp import FastMCP
+
         self.mcp: FastMCPProtocol = FastMCP("Code Checker Service")
         self._register_tools()
 
     def _register_tools(self) -> None:
         """Register all tools with the MCP server."""
+
         # Using type annotations directly on the decorated functions
         # to address the "Untyped decorator makes function untyped" issue
         @self.mcp.tool()

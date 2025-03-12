@@ -9,7 +9,6 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple, cast
 from unittest.mock import MagicMock, patch
 
 import pytest

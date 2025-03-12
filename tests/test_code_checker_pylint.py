@@ -2,7 +2,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Generator, Set, cast
+from typing import Generator, Set
 
 import pytest
 

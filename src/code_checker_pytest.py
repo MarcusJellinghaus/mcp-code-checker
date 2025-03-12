@@ -8,10 +8,10 @@ import logging
 import os
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional, Union, cast
 
 # Import dataclasses for the results module
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -283,6 +283,7 @@ def run_tests(project_dir: str, test_folder: str) -> PytestReport:
     Raises:
         Exception: If pytest is not installed or if an error occurs during test execution
     """
+
     # Define pytest type to avoid import-not-found error
     class PytestModule:
         @staticmethod
