@@ -9,6 +9,7 @@ from pathlib import Path
 import json
 import pytest
 from unittest.mock import patch, MagicMock
+from typing import Optional, Any, List, Dict, cast, Generator
 
 # Add source directory to path
 import sys
@@ -199,7 +200,7 @@ def _cleanup_test_project(test_dir: Path) -> None:
     """Removes the sample test project after the test."""
     shutil.rmtree(test_dir)
 
-def test_parse_report():
+def test_parse_report() -> None:
     """Test that pytest JSON report is correctly parsed into a PytestReport object."""
     report = parse_pytest_report(SAMPLE_JSON)
     
@@ -210,27 +211,36 @@ def test_parse_report():
     assert report.summary.passed == 2
     assert report.summary.failed == 3
 
+    assert report.collectors is not None
     assert len(report.collectors) == 3
     assert report.collectors[0].nodeid == ""
     assert report.collectors[1].nodeid == "test_foo.py"
     assert report.collectors[2].nodeid == "test_bar.py"
 
+    assert report.tests is not None
     assert len(report.tests) == 2
     assert report.tests[0].nodeid == "test_foo.py::test_fail"
     assert report.tests[1].nodeid == "test_bar.py::test_error"
+    
+    assert report.tests[0].call is not None
     assert report.tests[0].call.duration > 0
     assert report.tests[0].call.outcome == "failed"
+    
+    assert report.tests[0].call.crash is not None
     assert (
         report.tests[0].call.crash.message
         == "TypeError: unsupported operand type(s) for -: 'int' and 'NoneType'"
     )
+    
+    assert report.tests[0].call.traceback is not None
     assert len(report.tests[0].call.traceback) == 4
     assert report.tests[0].call.traceback[0].message == ""
 
+    assert report.warnings is not None
     assert len(report.warnings) == 1
     assert report.warnings[0].nodeid == "test_foo.py::TestFoo"
 
-def test_parse_report_no_collectors():
+def test_parse_report_no_collectors() -> None:
     """Test parsing a report without collectors."""
     json_no_collectors = """
     {
@@ -273,7 +283,7 @@ def test_parse_report_no_collectors():
     assert isinstance(report, PytestReport)
     assert report.collectors is None
 
-def test_parse_report_no_tests():
+def test_parse_report_no_tests() -> None:
     """Test parsing a report without tests."""
     json_no_tests = """
     {
@@ -316,7 +326,7 @@ def test_parse_report_no_tests():
     assert isinstance(report, PytestReport)
     assert report.tests is None
 
-def test_parse_report_with_log():
+def test_parse_report_with_log() -> None:
     """Test parsing a report with log entries."""
     json_with_log = """
     {
@@ -430,10 +440,14 @@ def test_parse_report_with_log():
     """
     report = parse_pytest_report(json_with_log)
     assert isinstance(report, PytestReport)
+    assert report.tests is not None
     assert len(report.tests) == 1
+    assert report.tests[0].call is not None
+    assert report.tests[0].call.log is not None
+    assert report.tests[0].call.log.logs is not None
     assert report.tests[0].call.log.logs[0].msg == "This is a warning."
 
-def test_run_tests():
+def test_run_tests() -> None:
     """Integration test for run_tests function with a sample project."""
     with tempfile.TemporaryDirectory() as tmpdir:
         test_dir = Path(tmpdir)
@@ -450,6 +464,9 @@ def test_run_tests():
             assert result.summary.failed == 1
             assert result.summary.collected == 2
 
+            # Make sure tests are not None before accessing
+            assert result.tests is not None
+
             # Find the passing and failing tests
             passing_test = next(
                 (t for t in result.tests if t.nodeid.endswith("::test_passing")), None
@@ -461,18 +478,20 @@ def test_run_tests():
             # Assert the passing test
             assert passing_test is not None
             assert passing_test.outcome == "passed"
+            assert passing_test.call is not None
             assert passing_test.call.outcome == "passed"
 
             # Assert the failing test
             assert failing_test is not None
             assert failing_test.outcome == "failed"
+            assert failing_test.call is not None
             assert failing_test.call.outcome == "failed"
             assert failing_test.call.crash is not None
             assert "assert 1 == 2" in failing_test.call.crash.message
         finally:
             _cleanup_test_project(test_dir)
 
-def test_run_tests_no_tests_found():
+def test_run_tests_no_tests_found() -> None:
     """Test the run_tests function when no tests are found."""
     with tempfile.TemporaryDirectory() as tmpdir:
         test_dir = Path(tmpdir)
@@ -492,7 +511,7 @@ def test_run_tests_no_tests_found():
         finally:
             _cleanup_test_project(test_dir)
 
-def test_create_prompt_no_failed_tests():
+def test_create_prompt_no_failed_tests() -> None:
     """Test creating a prompt when there are no failed tests."""
     json_no_failed_tests = """
     {
@@ -531,17 +550,23 @@ def test_create_prompt_no_failed_tests():
     prompt = create_prompt_for_failed_tests(report)
     assert prompt is None
 
-def test_create_prompt_for_failed_tests():
+def test_create_prompt_for_failed_tests() -> None:
     """Test creating a prompt for failed tests."""
     report = parse_pytest_report(SAMPLE_JSON)
     prompt = create_prompt_for_failed_tests(report)
     assert prompt is not None
     assert "The following tests failed during the test session:" in prompt
     assert "Test ID: test_foo.py::test_fail" in prompt
+    
+    # Safely check for attributes with None checks
+    assert report.tests is not None
+    assert report.tests[0].call is not None
+    assert report.tests[0].call.crash is not None
     assert (
         "Error Message: TypeError: unsupported operand type(s) for -: 'int' and 'NoneType'"
         in prompt
     )
+    
     assert "Stdout:" in prompt
     assert "Stderr:" in prompt
     assert "Traceback:" in prompt
@@ -551,7 +576,7 @@ def test_create_prompt_for_failed_tests():
         in prompt
     )
 
-def test_create_prompt_for_failed_tests_longrepr():
+def test_create_prompt_for_failed_tests_longrepr() -> None:
     """Test creating a prompt for failed tests with longrepr."""
     json_with_longrepr_tests = """
   {
@@ -633,7 +658,7 @@ def test_create_prompt_for_failed_tests_longrepr():
     assert "def test_fail_nested():" in prompt
 
 @patch('src.code_checker_pytest.run_tests')
-def test_check_code_with_pytest(mock_run_tests):
+def test_check_code_with_pytest(mock_run_tests: MagicMock) -> None:
     """Test the full check_code_with_pytest function."""
     # Mock the run_tests function to return a test report
     mock_report = PytestReport(

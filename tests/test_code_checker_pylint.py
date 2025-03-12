@@ -3,7 +3,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Set
+from typing import Set, Optional, Generator
 
 import pytest
 
@@ -16,18 +16,18 @@ from src.code_checker_pylint import (
 )
 
 # Helper functions needed for tests
-def write_file(file_path, content):
+def write_file(file_path: str, content: str) -> None:
     """Write content to a file."""
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     with open(file_path, 'w') as f:
         f.write(content)
 
-def read_file(file_path):
+def read_file(file_path: str) -> str:
     """Read content from a file."""
     with open(file_path, 'r') as f:
         return f.read()
 
-def create_default_project(project_dir, provide_config_module=False):
+def create_default_project(project_dir: str, provide_config_module: bool = False) -> None:
     """Create a basic Python project structure."""
     os.makedirs(os.path.join(project_dir, "src"), exist_ok=True)
     os.makedirs(os.path.join(project_dir, "tests"), exist_ok=True)
@@ -38,7 +38,7 @@ def create_default_project(project_dir, provide_config_module=False):
 
 
 @pytest.fixture(scope="function")
-def temp_project_dir():
+def temp_project_dir() -> Generator[Path, None, None]:
     """Creates a temporary project directory for testing, cleaning it up after the test."""
     temp_dir = Path(tempfile.mkdtemp())
     create_default_project(str(temp_dir), provide_config_module=False)
@@ -103,37 +103,37 @@ def test_get_pylint_results_empty_file(temp_project_dir: Path) -> None:
 
 
 class TestFilterPylintCodesByCategory:
-    def test_filter_by_single_category(self):
+    def test_filter_by_single_category(self) -> None:
         pylint_codes: Set[str] = {"C0301", "R0201", "W0613", "E0602", "F0001"}
         categories: Set[PylintCategory] = {PylintCategory.ERROR}
         expected_codes: Set[str] = {"E0602"}
         assert filter_pylint_codes_by_category(pylint_codes, categories) == expected_codes
 
-    def test_filter_by_multiple_categories(self):
+    def test_filter_by_multiple_categories(self) -> None:
         pylint_codes: Set[str] = {"C0301", "R0201", "W0613", "E0602", "F0001"}
         categories: Set[PylintCategory] = {PylintCategory.ERROR, PylintCategory.FATAL}
         expected_codes: Set[str] = {"E0602", "F0001"}
         assert filter_pylint_codes_by_category(pylint_codes, categories) == expected_codes
 
-    def test_filter_with_no_matching_category(self):
+    def test_filter_with_no_matching_category(self) -> None:
         pylint_codes: Set[str] = {"C0301", "R0201", "W0613", "E0602", "F0001"}
         categories: Set[PylintCategory] = {PylintCategory.CONVENTION}
         expected_codes: Set[str] = {"C0301"}
         assert filter_pylint_codes_by_category(pylint_codes, categories) == expected_codes
 
-    def test_filter_with_empty_pylint_codes(self):
+    def test_filter_with_empty_pylint_codes(self) -> None:
         pylint_codes: Set[str] = set()
         categories: Set[PylintCategory] = {PylintCategory.ERROR, PylintCategory.FATAL}
         expected_codes: Set[str] = set()
         assert filter_pylint_codes_by_category(pylint_codes, categories) == expected_codes
 
-    def test_filter_with_empty_categories(self):
+    def test_filter_with_empty_categories(self) -> None:
         pylint_codes: Set[str] = {"C0301", "R0201", "W0613", "E0602", "F0001"}
         categories: Set[PylintCategory] = set()
         expected_codes: Set[str] = set()
         assert filter_pylint_codes_by_category(pylint_codes, categories) == expected_codes
 
-    def test_filter_with_all_categories(self):
+    def test_filter_with_all_categories(self) -> None:
         pylint_codes: Set[str] = {"C0301", "R0201", "W0613", "E0602", "F0001"}
         categories: Set[PylintCategory] = {
             PylintCategory.CONVENTION,
