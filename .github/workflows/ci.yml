@@ -11,7 +11,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false  # This allows the workflow to continue even if one of the checks fails
+      fail-fast: false  # This allows all matrix jobs to complete even if one fails
       matrix:
         python-version: [3.11]
 
@@ -30,34 +30,75 @@ jobs:
         python -m pip install .[dev]
         
     - name: Check formatting with black
-      continue-on-error: true  # Allow the workflow to continue even if this step fails
-      run: |
-        black --check src tests
+      id: black
+      run: black --check src tests
+      continue-on-error: true
         
     - name: Check imports with isort
-      continue-on-error: true  # Allow the workflow to continue even if this step fails
-      run: |
-        isort --check --profile=black --float-to-top src tests
+      id: isort
+      run: isort --check --profile=black --float-to-top src tests
+      continue-on-error: true
         
     - name: Check for errors with pylint
-      continue-on-error: true  # Allow the workflow to continue even if this step fails
-      run: |
-        pylint -E ./src ./tests
+      id: pylint
+      run: pylint -E ./src ./tests
+      continue-on-error: true
         
     - name: Run tests
-      continue-on-error: true  # Allow the workflow to continue even if this step fails
-      run: |
-        pytest tests
+      id: pytest
+      run: pytest tests
+      continue-on-error: true
         
     - name: Check type hints with mypy
-      continue-on-error: true  # Allow the workflow to continue even if this step fails
-      run: |
-        mypy --strict src tests  # Added mypy with strict mode to ensure proper type hints
+      id: mypy
+      run: mypy --strict src tests
+      continue-on-error: true
       
     - name: Summarize results
+      if: always()
       run: |
-        echo "CI checks completed. Please review the logs for any errors or warnings."
-        if [ ${{ job.status }} != 'success' ]; then
-          echo "Some checks have failed, but the pipeline completed to show all results."
+        echo "CI checks completed. Review logs for any errors or warnings."
+        
+        # Check each step's status and report
+        FAILED=false
+        
+        if [[ "${{ steps.black.outcome }}" == "failure" ]]; then
+          echo "❌ Black formatting check failed"
+          FAILED=true
+        else
+          echo "✅ Black formatting check passed"
+        fi
+        
+        if [[ "${{ steps.isort.outcome }}" == "failure" ]]; then
+          echo "❌ isort import check failed"
+          FAILED=true
+        else
+          echo "✅ isort import check passed"
+        fi
+        
+        if [[ "${{ steps.pylint.outcome }}" == "failure" ]]; then
+          echo "❌ pylint error check failed"
+          FAILED=true
+        else
+          echo "✅ pylint error check passed"
+        fi
+        
+        if [[ "${{ steps.pytest.outcome }}" == "failure" ]]; then
+          echo "❌ pytest tests failed"
+          FAILED=true
+        else
+          echo "✅ pytest tests passed"
+        fi
+        
+        if [[ "${{ steps.mypy.outcome }}" == "failure" ]]; then
+          echo "❌ mypy type checking failed"
+          FAILED=true
+        else
+          echo "✅ mypy type checking passed"
+        fi
+        
+        # Exit with error if any check failed
+        if [[ "$FAILED" == "true" ]]; then
+          echo "Some checks have failed. Please fix the issues."
           exit 1
         fi
