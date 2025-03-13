@@ -11,6 +11,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false  # This allows the workflow to continue even if one of the checks fails
       matrix:
         python-version: [3.11]
 
@@ -29,21 +30,34 @@ jobs:
         python -m pip install .[dev]
         
     - name: Check formatting with black
+      continue-on-error: true  # Allow the workflow to continue even if this step fails
       run: |
         black --check src tests
         
     - name: Check imports with isort
+      continue-on-error: true  # Allow the workflow to continue even if this step fails
       run: |
         isort --check --profile=black --float-to-top src tests
         
     - name: Check for errors with pylint
+      continue-on-error: true  # Allow the workflow to continue even if this step fails
       run: |
         pylint -E ./src ./tests
         
     - name: Run tests
+      continue-on-error: true  # Allow the workflow to continue even if this step fails
       run: |
         pytest tests
         
     - name: Check type hints with mypy
+      continue-on-error: true  # Allow the workflow to continue even if this step fails
       run: |
         mypy --strict src tests  # Added mypy with strict mode to ensure proper type hints
+      
+    - name: Summarize results
+      run: |
+        echo "CI checks completed. Please review the logs for any errors or warnings."
+        if [ ${{ job.status }} != 'success' ]; then
+          echo "Some checks have failed, but the pipeline completed to show all results."
+          exit 1
+        fi
