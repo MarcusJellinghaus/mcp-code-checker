@@ -10,18 +10,13 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    continue-on-error: true  # The job will continue even if steps fail
-    strategy:
-      matrix:
-        python-version: [3.11]
-
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: 3.11
         
     - name: Install dependencies
       run: |
@@ -30,44 +25,40 @@ jobs:
         python -m pip install .[dev]
         
     - name: Check formatting with black
+      id: black
       run: black --check src tests
+      continue-on-error: true
         
     - name: Check imports with isort
+      id: isort
       run: isort --check --profile=black --float-to-top src tests
+      continue-on-error: true
         
     - name: Check for errors with pylint
+      id: pylint
       run: pylint -E ./src ./tests
+      continue-on-error: true
         
     - name: Run tests
+      id: pytest
       run: pytest tests
+      continue-on-error: true
         
     - name: Check type hints with mypy
+      id: mypy
       run: mypy --strict src tests
+      continue-on-error: true
       
     - name: Summarize results
       if: always()
       run: |
         echo "CI checks completed. Review logs for any errors or warnings."
         
-        # Get the overall job status
-        if [[ "${{ job.status }}" == "failure" ]]; then
-          echo "Some checks failed. Please fix the issues before merging."
-          exit 1  # This won't stop the workflow since the job has continue-on-error
-        else
-          echo "All checks passed!"
-        fi
-
-  # Add a final job that depends on the test job
-  status:
-    needs: test
-    if: always()  # Run even if test job fails
-    runs-on: ubuntu-latest
-    steps:
-    - name: Check overall status
-      run: |
-        if [[ "${{ needs.test.result }}" == "failure" ]]; then
-          echo "Some checks failed. Please fix the issues before merging."
-          exit 1  # This will make the workflow fail if any check failed
-        else
-          echo "All checks passed!"
-        fi
+        ERROR=0
+        [[ "${{ steps.black.outcome }}" == "failure" ]] && { echo "❌ Black formatting check failed"; ERROR=1; } || echo "✅ Black formatting check passed"
+        [[ "${{ steps.isort.outcome }}" == "failure" ]] && { echo "❌ isort import check failed"; ERROR=1; } || echo "✅ isort import check passed"
+        [[ "${{ steps.pylint.outcome }}" == "failure" ]] && { echo "❌ pylint error check failed"; ERROR=1; } || echo "✅ pylint error check passed"
+        [[ "${{ steps.pytest.outcome }}" == "failure" ]] && { echo "❌ pytest tests failed"; ERROR=1; } || echo "✅ pytest tests passed"
+        [[ "${{ steps.mypy.outcome }}" == "failure" ]] && { echo "❌ mypy type checking failed"; ERROR=1; } || echo "✅ mypy type checking passed"
+        
+        exit $ERROR
