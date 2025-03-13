@@ -2,7 +2,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Generator, Set, cast
+from typing import Generator, Set
 
 import pytest
 
@@ -37,6 +37,7 @@ def create_default_project(
     write_file(os.path.join(project_dir, "tests", "__init__.py"), "")
     if provide_config_module:
         write_file(os.path.join(project_dir, "src", "config.py"), "DEBUG = True\n")
+
 
 @pytest.fixture  # type: ignore[misc]
 def temp_project_dir() -> Generator[Path, None, None]:
