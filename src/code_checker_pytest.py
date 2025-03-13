@@ -269,13 +269,24 @@ def parse_pytest_report(json_data: str) -> PytestReport:
     )
 
 
-def run_tests(project_dir: str, test_folder: str) -> PytestReport:
+def run_tests(
+    project_dir: str,
+    test_folder: str,
+    python_executable: Optional[str] = None,
+    markers: Optional[List[str]] = None,
+    verbosity: int = 1,
+    extra_args: Optional[List[str]] = None,
+) -> PytestReport:
     """
     Run pytest tests in the specified project directory and test folder and returns the results.
 
     Args:
         project_dir: The path to the project directory
         test_folder: The path to the folder containing the tests relative to the project directory
+        python_executable: Optional path to Python interpreter to use. Defaults to sys.executable if not provided
+        markers: Optional list of pytest markers to filter tests
+        verbosity: Integer for pytest verbosity level (0-3). Default is 1
+        extra_args: Optional list of additional pytest arguments
 
     Returns:
         PytestReport: An object containing the results of the test session
@@ -308,7 +319,9 @@ def run_tests(project_dir: str, test_folder: str) -> PytestReport:
             )
 
     pytest_result_file = "pytest_result.json"
-    python_executable = sys.executable
+
+    # Use provided Python executable or fall back to the current one
+    py_executable = python_executable if python_executable else sys.executable
 
     # Remove any existing report file
     if os.path.isfile(os.path.join(project_dir, pytest_result_file)):
@@ -316,16 +329,41 @@ def run_tests(project_dir: str, test_folder: str) -> PytestReport:
 
     # Construct the pytest command
     command = [
-        python_executable,
+        py_executable,
         "-m",
         "pytest",
-        "--verbose",
-        "--rootdir",
-        project_dir,
-        "--json-report",
-        f"--json-report-file={pytest_result_file}",
-        os.path.join(project_dir, test_folder),
     ]
+
+    # Add verbosity flags based on level
+    if verbosity > 0:
+        verbosity_flag = "-" + "v" * min(verbosity, 3)  # -v, -vv, or -vvv
+        command.append(verbosity_flag)
+
+    # Add markers if provided
+    if markers and len(markers) > 0:
+        if len(markers) == 1:
+            command.extend(["-m", markers[0]])
+        else:
+            # Combine multiple markers with "and"
+            command.extend(["-m", " and ".join(markers)])
+
+    # Add rootdir and json-report options
+    command.extend(
+        [
+            "--rootdir",
+            project_dir,
+            "--json-report",
+            f"--json-report-file={pytest_result_file}",
+        ]
+    )
+
+    # Add any extra arguments
+    if extra_args:
+        command.extend(extra_args)
+
+    # Add the test folder path
+    command.append(os.path.join(project_dir, test_folder))
+
     logger.debug(f"Running command: {' '.join(command)}")
 
     try:
@@ -532,7 +570,12 @@ def get_test_summary(test_session_result: PytestReport) -> str:
 
 
 def check_code_with_pytest(
-    project_dir: str, test_folder: str = "tests"
+    project_dir: str,
+    test_folder: str = "tests",
+    python_executable: Optional[str] = None,
+    markers: Optional[List[str]] = None,
+    verbosity: int = 1,
+    extra_args: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Run pytest on the specified project and return results.
@@ -540,12 +583,18 @@ def check_code_with_pytest(
     Args:
         project_dir: Path to the project directory
         test_folder: Path to the test folder (relative to project_dir)
+        python_executable: Optional path to Python interpreter to use
+        markers: Optional list of pytest markers to filter tests
+        verbosity: Integer for pytest verbosity level (0-3)
+        extra_args: Optional list of additional pytest arguments
 
     Returns:
         Dictionary with test results
     """
     try:
-        test_results = run_tests(project_dir, test_folder)
+        test_results = run_tests(
+            project_dir, test_folder, python_executable, markers, verbosity, extra_args
+        )
 
         summary = get_test_summary(test_results)
 
