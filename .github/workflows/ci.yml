@@ -8,57 +8,68 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  setup:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+          python -m pip install .[dev]
+      - name: Cache project
+        uses: actions/cache@v3
+        with:
+          path: .
+          key: ${{ runner.os }}-project-${{ github.sha }}
+
+  checks:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - name: black
+            command: black --check src tests
+          - name: isort
+            command: isort --check --profile=black --float-to-top src tests
+          - name: pylint
+            command: pylint -E ./src ./tests
+          - name: pytest
+            command: pytest tests
+          - name: mypy
+            command: mypy --strict src tests
     
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
-        
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install .
-        python -m pip install .[dev]
-        
-    - name: Check formatting with black
-      id: black
-      run: black --check src tests
-      continue-on-error: true
-        
-    - name: Check imports with isort
-      id: isort
-      run: isort --check --profile=black --float-to-top src tests
-      continue-on-error: true
-        
-    - name: Check for errors with pylint
-      id: pylint
-      run: pylint -E ./src ./tests
-      continue-on-error: true
-        
-    - name: Run tests
-      id: pytest
-      run: pytest tests
-      continue-on-error: true
-        
-    - name: Check type hints with mypy
-      id: mypy
-      run: mypy --strict src tests
-      continue-on-error: true
+    steps:
+      - name: Get cached project
+        uses: actions/cache@v3
+        with:
+          path: .
+          key: ${{ runner.os }}-project-${{ github.sha }}
       
-    - name: Summarize results
-      if: always()
-      run: |
-        echo "CI checks completed. Review logs for any errors or warnings."
-        
-        ERROR=0
-        [[ "${{ steps.black.outcome }}" == "failure" ]] && { echo "❌ Black formatting check failed"; ERROR=1; } || echo "✅ Black formatting check passed"
-        [[ "${{ steps.isort.outcome }}" == "failure" ]] && { echo "❌ isort import check failed"; ERROR=1; } || echo "✅ isort import check passed"
-        [[ "${{ steps.pylint.outcome }}" == "failure" ]] && { echo "❌ pylint error check failed"; ERROR=1; } || echo "✅ pylint error check passed"
-        [[ "${{ steps.pytest.outcome }}" == "failure" ]] && { echo "❌ pytest tests failed"; ERROR=1; } || echo "✅ pytest tests passed"
-        [[ "${{ steps.mypy.outcome }}" == "failure" ]] && { echo "❌ mypy type checking failed"; ERROR=1; } || echo "✅ mypy type checking passed"
-        
-        exit $ERROR
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+      
+      - name: Run ${{ matrix.check.name }}
+        run: ${{ matrix.check.command }}
+
+  summary:
+    needs: checks
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          if [[ "${{ needs.checks.result }}" == "success" ]]; then
+            echo "✅ All checks passed!"
+          else
+            echo "❌ Some checks failed. Please review the logs for details."
+            exit 1
+          fi
