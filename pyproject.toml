@@ -6,7 +6,7 @@ authors = [
 ]
 description = "An MCP server for running code checks (pylint and pytest)"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 license = {text = "MIT"}
 keywords = ["mcp", "server", "code-checker", "pylint", "pytest", "claude", "ai", "assistant"]
 classifiers = [
