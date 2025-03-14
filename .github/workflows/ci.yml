@@ -36,7 +36,36 @@ jobs:
         
     - name: Check for errors with pylint
       id: pylint
-      run: pylint -E ./src ./tests
+      run: |
+        # Run pylint and output to both file and stdout
+        python -m pylint -E --output-format=json ./src ./tests | tee pylint_results.json || true
+        
+        # Create GitHub annotations for pylint errors
+        if [ -s pylint_results.json ]; then
+          echo "Parsing pylint results for annotations..."
+          python -c '
+          import json
+          import os
+          
+          # Parse JSON pylint output
+          with open("pylint_results.json", "r") as f:
+              pylint_results = json.load(f)
+          
+          # Create GitHub annotations for each issue
+          for issue in pylint_results:
+              file_path = issue.get("path", "")
+              line = issue.get("line", 1)
+              column = issue.get("column", 1)
+              message = issue.get("message", "")
+              symbol = issue.get("symbol", "")
+              message_id = issue.get("message-id", "")
+              
+              # Format for GitHub annotation
+              print(f"::error file={file_path},line={line},col={column}::Pylint {message_id} ({symbol}): {message}")
+          ' || echo "Error creating pylint annotations"
+        else
+          echo "No pylint issues to annotate"
+        fi
       continue-on-error: true
         
     - name: Run tests
@@ -46,7 +75,36 @@ jobs:
         
     - name: Check type hints with mypy
       id: mypy
-      run: mypy --strict src tests
+      run: |
+        # Run mypy with output to file
+        python -m mypy --strict src tests --show-column-numbers --no-error-summary > mypy_results.txt || true
+        
+        # Create GitHub annotations for mypy errors
+        if [ -s mypy_results.txt ]; then
+          echo "Parsing mypy results for annotations..."
+          python -c '
+          import re
+          import os
+          
+          # Parse mypy output
+          with open("mypy_results.txt", "r") as f:
+              mypy_lines = f.readlines()
+          
+          # Regex to extract file, line, column, and message
+          pattern = r"^(.+?):(\d+):(\d+): (\w+): (.+)$"
+          
+          for line in mypy_lines:
+              match = re.match(pattern, line.strip())
+              if match:
+                  file_path, line_num, col_num, error_type, message = match.groups()
+                  
+                  # Format for GitHub annotation
+                  annotation_level = "error" if error_type == "error" else "warning"
+                  print(f"::{annotation_level} file={file_path},line={line_num},col={col_num}::Mypy {error_type}: {message}")
+          ' || echo "Error creating mypy annotations"
+        else
+          echo "No mypy issues to annotate"
+        fi
       continue-on-error: true
       
     - name: Summarize results
