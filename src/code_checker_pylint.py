@@ -418,16 +418,17 @@ def get_prompt_for_known_pylint_code(
 
     for message in pylint_results_filtered:
         path = normalize_path(message.path, project_dir)
-        details_line = f"""{{
-        "module": "{message.module}",
-        "obj": "{message.obj}",
-        "line": {message.line},
-        "column": {message.column},
-        "path": "{path}",
-        "message": "{message.message}",
-    
-    }},"""
-        details_lines.append(details_line)
+        # Create a dictionary and dump the entire structure
+        issue_dict = {
+            "module": message.module,
+            "obj": message.obj,
+            "line": message.line,
+            "column": message.column,
+            "path": path,
+            "message": message.message,
+        }
+        # Get JSON string for the whole object and add comma for the list format
+        details_lines.append(json.dumps(issue_dict, indent=4) + ",")
 
     query = f"""pylint found some issues related to code {code}.
     {instruction}
@@ -458,16 +459,17 @@ def get_prompt_for_unknown_pylint_code(
     details_lines = []
     for message in pylint_results_filtered:
         path = normalize_path(message.path, project_dir)
-        details_line = f"""{{
-        "module": "{message.module}",
-        "obj": "{message.obj}",
-        "line": {message.line},
-        "column": {message.column},
-        "path": "{path}",
-        "message": "{message.message}",
-
-    }},"""
-        details_lines.append(details_line)
+        # Create a dictionary and dump the entire structure
+        issue_dict = {
+            "module": message.module,
+            "obj": message.obj,
+            "line": message.line,
+            "column": message.column,
+            "path": path,
+            "message": message.message,
+        }
+        # Get JSON string for the whole object and add comma for the list format
+        details_lines.append(json.dumps(issue_dict, indent=4) + ",")
 
     query = f"""pylint found some issues related to code {code} / symbol {symbol}.
     
