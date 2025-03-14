@@ -430,10 +430,11 @@ def get_prompt_for_known_pylint_code(
         # Get JSON string for the whole object and add comma for the list format
         details_lines.append(json.dumps(issue_dict, indent=4) + ",")
 
+    details_str = "\n".join(details_lines)
     query = f"""pylint found some issues related to code {code}.
     {instruction}
     Please consider especially the following locations in the source code:
-    {'\n'.join(details_lines)}"""
+    {details_str}"""
     return query
 
 
@@ -470,7 +471,10 @@ def get_prompt_for_unknown_pylint_code(
         }
         # Get JSON string for the whole object and add comma for the list format
         details_lines.append(json.dumps(issue_dict, indent=4) + ",")
-
+    
+    # Store the entire details section in a variable first
+    details_str = "\n".join(details_lines)
+    
     query = f"""pylint found some issues related to code {code} / symbol {symbol}.
     
     Please do two things:
@@ -478,5 +482,5 @@ def get_prompt_for_unknown_pylint_code(
     
     2. Please apply that instruction   
     Please consider especially the following locations in the source code:
-    {'\n'.join(details_lines)}"""
+    {details_str}"""
     return query
