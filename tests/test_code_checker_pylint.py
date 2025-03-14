@@ -39,7 +39,7 @@ def create_default_project(
         write_file(os.path.join(project_dir, "src", "config.py"), "DEBUG = True\n")
 
 
-@pytest.fixture  # type: ignore[misc]
+@pytest.fixture  # type: ignore[misc]  # type: ignore[unused-ignore]  # confusion with fixture and between different python versions
 def temp_project_dir() -> Generator[Path, None, None]:
     """Creates a temporary project directory for testing, cleaning it up after the test."""
     temp_dir = Path(tempfile.mkdtemp())

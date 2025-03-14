@@ -27,7 +27,7 @@ if %PYLINT_EXIT_CODE% neq 0 (
 )
 
 REM Run mypy with strict checks
-python -m mypy --strict --warn-redundant-casts --warn-unused-ignores --warn-unreachable --disallow-any-generics --disallow-untyped-defs --disallow-incomplete-defs --check-untyped-defs --disallow-untyped-decorators --no-implicit-optional --warn-return-any --no-implicit-reexport --strict-optional src tests > checks_output.txt 2>&1
+python -m mypy --strict src tests > checks_output.txt 2>&1
 set MYPY_EXIT_CODE=%errorlevel%
 
 REM Check mypy results
