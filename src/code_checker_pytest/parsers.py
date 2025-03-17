@@ -3,21 +3,30 @@ Functions for parsing pytest test results and output.
 """
 
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from .models import (
-    Collector, CollectorResult, Crash, Log, LogRecord, PytestReport,
-    Summary, Test, TestStage, TracebackEntry, Warning
+    Collector,
+    CollectorResult,
+    Crash,
+    Log,
+    LogRecord,
+    PytestReport,
+    Summary,
+    Test,
+    TestStage,
+    TracebackEntry,
+    Warning,
 )
 
 
 def parse_test_stage(stage_data: Dict[str, Any]) -> TestStage:
     """
     Parse test stage data from the pytest JSON report.
-    
+
     Args:
         stage_data: Dictionary containing test stage data from JSON
-        
+
     Returns:
         TestStage object populated with data from JSON
     """
