@@ -2,14 +2,11 @@
 Tests for the code_checker_pytest reporting functionality.
 """
 
-
 from src.code_checker_pytest import (
-    PytestReport,
     create_prompt_for_failed_tests,
     get_test_summary,
-    parse_pytest_report
+    parse_pytest_report,
 )
-
 from tests.test_code_checker.test_code_checker_pytest_common import SAMPLE_JSON
 
 
@@ -166,7 +163,7 @@ def test_get_test_summary() -> None:
     """Test generating a human-readable summary of test results."""
     report = parse_pytest_report(SAMPLE_JSON)
     summary = get_test_summary(report)
-    
+
     assert "Collected 10 tests in 0.12 seconds" in summary
     assert "✅ Passed: 2" in summary
     assert "❌ Failed: 3" in summary
@@ -194,7 +191,7 @@ def test_get_test_summary_minimal() -> None:
     """
     report = parse_pytest_report(json_minimal)
     summary = get_test_summary(report)
-    
+
     assert "Collected 5 tests in 0.12 seconds" in summary
     assert "✅ Passed: 5" in summary
     assert "❌ Failed:" not in summary

@@ -10,7 +10,7 @@ import sys
 import tempfile
 from typing import Any, Dict, List, Optional
 
-from .models import EnvironmentContext, ErrorContext, PytestReport
+from .models import PytestReport
 from .parsers import parse_pytest_report
 from .reporting import create_prompt_for_failed_tests, get_test_summary
 from .utils import collect_environment_info, create_error_context, read_file
@@ -141,7 +141,7 @@ def run_tests(
         try:
             # Print command for debugging
             print(f"Running command: {' '.join(command)}")
-            
+
             # Run with timeout to prevent hanging
             try:
                 process = subprocess.run(
@@ -151,7 +151,7 @@ def run_tests(
                     check=False,
                     cwd=project_dir,
                     env=env,
-                    timeout=30  # 30 second timeout
+                    timeout=30,  # 30 second timeout
                 )
                 print(f"Command completed with return code: {process.returncode}")
             except subprocess.TimeoutExpired as e:
@@ -162,17 +162,22 @@ def run_tests(
             error_output = process.stderr
             combined_output = f"{output}\n{error_output}"
             logger.debug(output)
-            
+
             # Check if plugin is missing
-            if "no plugin named 'json-report'" in combined_output.lower() or "no module named 'pytest_json_report'" in combined_output.lower():
-                print("pytest-json-report plugin not found, attempting to install it...")
+            if (
+                "no plugin named 'json-report'" in combined_output.lower()
+                or "no module named 'pytest_json_report'" in combined_output.lower()
+            ):
+                print(
+                    "pytest-json-report plugin not found, attempting to install it..."
+                )
                 try:
                     install_result = subprocess.run(
                         [py_executable, "-m", "pip", "install", "pytest-json-report"],
                         check=True,
                         capture_output=True,
                         text=True,
-                        timeout=60  # Give it time to install
+                        timeout=60,  # Give it time to install
                     )
                     print("Installed pytest-json-report, retrying...")
                     # Retry the command
@@ -183,33 +188,41 @@ def run_tests(
                         check=False,
                         cwd=project_dir,
                         env=env,
-                        timeout=30
+                        timeout=30,
                     )
                     output = process.stdout
                     error_output = process.stderr
                     combined_output = f"{output}\n{error_output}"
                 except subprocess.CalledProcessError as install_error:
                     print(f"Failed to install pytest-json-report: {install_error}")
-                    raise Exception("Failed to install the required pytest-json-report plugin")
+                    raise Exception(
+                        "Failed to install the required pytest-json-report plugin"
+                    )
                 except subprocess.TimeoutExpired:
                     print("Installation or retry timed out")
-                    raise Exception("Timed out while installing pytest-json-report or retrying the test")
+                    raise Exception(
+                        "Timed out while installing pytest-json-report or retrying the test"
+                    )
 
             # Check specifically for 'no tests found' case
             if "collected 0 items" in combined_output or process.returncode == 5:
                 print("No tests found, raising specific exception")
                 raise Exception("No Tests Found: Pytest did not find any tests to run.")
-                
+
             # Create error context if needed
             error_context = None
             if process.returncode != 0:
-                error_context = create_error_context(process.returncode, combined_output)
+                error_context = create_error_context(
+                    process.returncode, combined_output
+                )
 
             # Handle collection errors based on continue_on_collection_errors setting
             report_exists = os.path.isfile(temp_report_file)
             if (process.returncode in [1, 2, 5]) and not report_exists:
-                error_details = error_context.error_message if error_context else combined_output
-                
+                error_details = (
+                    error_context.error_message if error_context else combined_output
+                )
+
                 if continue_on_collection_errors:
                     # Log warning but continue execution
                     logger.warning(
@@ -223,7 +236,7 @@ def run_tests(
                         f"Test Collection Errors: {error_context.exit_code_meaning if error_context else 'Pytest failed to collect tests'}. "
                         f"Suggestion: {error_context.suggestion if error_context else 'Check test file naming and imports'}"
                     )
-            
+
             # Handle other error cases
             elif process.returncode == 3:
                 print(combined_output)
@@ -249,12 +262,14 @@ def run_tests(
                     f"Plugin Error: {error_context.exit_code_meaning if error_context else f'Pytest plugin returned exit code {process.returncode}'}. "
                     f"Suggestion: {error_context.suggestion if error_context else 'Check plugin documentation'}"
                 )
-            
+
             # Final check to ensure we have a report file
             if not report_exists:
                 print(combined_output)
                 if "collected 0 items" in combined_output:
-                    raise Exception("No Tests Found: Pytest did not find any tests to run.")
+                    raise Exception(
+                        "No Tests Found: Pytest did not find any tests to run."
+                    )
                 else:
                     raise Exception(
                         "Test execution completed but no report file was generated. "
@@ -263,11 +278,11 @@ def run_tests(
 
             file_contents = read_file(temp_report_file)
             parsed_results = parse_pytest_report(file_contents)
-            
+
             # Add environment and error context to the results
             parsed_results.environment_context = environment_context
             parsed_results.error_context = error_context
-            
+
             return parsed_results
 
         except Exception as e:
@@ -355,7 +370,7 @@ def check_code_with_pytest(
                 "system_info": {
                     "cpu": test_results.environment_context.cpu_info,
                     "memory": test_results.environment_context.memory_info,
-                }
+                },
             }
 
         error_info = None

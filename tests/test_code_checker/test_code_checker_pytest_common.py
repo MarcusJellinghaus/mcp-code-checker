@@ -5,7 +5,6 @@ Common test utilities and constants for code_checker_pytest tests.
 import os
 import shutil
 import sys
-import tempfile
 from pathlib import Path
 
 # Add source directory to path

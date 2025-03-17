@@ -7,7 +7,7 @@ import os
 import platform
 import subprocess
 import sys
-from typing import Dict, List, Optional, Tuple
+from typing import List, Tuple
 
 from .models import EnvironmentContext, ErrorContext
 
@@ -109,7 +109,7 @@ def collect_environment_info(command: List[str]) -> EnvironmentContext:
     """
     # Get Python version information
     python_version = f"{platform.python_implementation()} {platform.python_version()}"
-    
+
     # Get pytest version
     try:
         pytest_version_output = subprocess.run(
@@ -121,10 +121,10 @@ def collect_environment_info(command: List[str]) -> EnvironmentContext:
         pytest_version = pytest_version_output.stdout.strip()
     except Exception:
         pytest_version = "Unknown"
-    
+
     # Platform information
     platform_info = f"{platform.system()} {platform.release()} {platform.machine()}"
-    
+
     # Get installed packages
     installed_packages = []
     try:
@@ -149,10 +149,12 @@ def collect_environment_info(command: List[str]) -> EnvironmentContext:
             capture_output=True,
             text=True,
             check=False,
-            timeout=10  # 10 second timeout
+            timeout=10,  # 10 second timeout
         )
-        print(f"Plugins info command completed with return code: {pytest_plugins_output.returncode}")
-        
+        print(
+            f"Plugins info command completed with return code: {pytest_plugins_output.returncode}"
+        )
+
         # Extract plugin names from output
         for line in pytest_plugins_output.stderr.split("\n"):
             if "pluginmanager" in line and "registered" in line:
@@ -166,7 +168,7 @@ def collect_environment_info(command: List[str]) -> EnvironmentContext:
     except Exception as e:
         print(f"Error getting pytest plugins: {e}")
         # Silently fail if plugin discovery fails
-    
+
     # CPU information (if available)
     cpu_info = None
     try:
@@ -197,7 +199,7 @@ def collect_environment_info(command: List[str]) -> EnvironmentContext:
                     cpu_info = lines[1].strip()
     except Exception:
         pass  # Silently fail if CPU info cannot be obtained
-        
+
     # Memory information (if available)
     memory_info = None
     try:
@@ -230,7 +232,7 @@ def collect_environment_info(command: List[str]) -> EnvironmentContext:
                     memory_info = f"Total Memory: {memory_bytes // (1024**3)} GB"
     except Exception:
         pass  # Silently fail if memory info cannot be obtained
-    
+
     return EnvironmentContext(
         python_version=python_version,
         pytest_version=pytest_version,
@@ -247,23 +249,23 @@ def collect_environment_info(command: List[str]) -> EnvironmentContext:
 def create_error_context(exit_code: int, error_message: str) -> ErrorContext:
     """
     Create a detailed error context object with exit code interpretation.
-    
+
     Args:
         exit_code: Pytest exit code
         error_message: Error message from pytest execution
-    
+
     Returns:
         ErrorContext object with detailed error information
     """
     exit_code_meaning, suggestion = get_pytest_exit_code_info(exit_code)
-    
+
     # Extract traceback if available
     traceback = None
     if "Traceback" in error_message:
         traceback_parts = error_message.split("Traceback (most recent call last):")
         if len(traceback_parts) > 1:
             traceback = "Traceback (most recent call last):" + traceback_parts[1]
-    
+
     # Extract collection errors if present
     collection_errors = None
     if "FAILED TO COLLECT" in error_message:
@@ -275,12 +277,14 @@ def create_error_context(exit_code: int, error_message: str) -> ErrorContext:
                 collection_error_lines.append(line)
             elif in_collection_error and line.strip():
                 collection_error_lines.append(line)
-            elif in_collection_error and not line.strip():  # Empty line ends the section
+            elif (
+                in_collection_error and not line.strip()
+            ):  # Empty line ends the section
                 in_collection_error = False
-                
+
         if collection_error_lines:
             collection_errors = collection_error_lines
-    
+
     return ErrorContext(
         exit_code=exit_code,
         exit_code_meaning=exit_code_meaning,
