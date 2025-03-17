@@ -670,7 +670,7 @@ def test_create_prompt_for_failed_tests_longrepr() -> None:
     assert "def test_fail_nested():" in prompt
 
 
-@patch("src.code_checker_pytest.run_tests")
+@patch("src.code_checker_pytest.runners.run_tests")
 def test_check_code_with_pytest(mock_run_tests: MagicMock) -> None:
     """Test the full check_code_with_pytest function."""
     # Create a mock Summary instance for our mock report
