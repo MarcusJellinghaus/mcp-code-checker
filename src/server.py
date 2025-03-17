@@ -60,10 +60,19 @@ class CodeCheckerServer:
                     f"Running pylint check on project directory: {self.project_dir}"
                 )
 
-                # TODO: Replace with actual implementation
-                result = (
-                    "Pylint check completed. No issues found that require attention."
-                )
+                # Import the code_checker_pylint module to run pylint checks
+                from src.code_checker_pylint import get_pylint_prompt
+
+                # Generate a prompt for pylint issues
+                pylint_prompt = get_pylint_prompt(str(self.project_dir))
+
+                # Format the results as a string
+                if pylint_prompt is None:
+                    result = "Pylint check completed. No issues found that require attention."
+                else:
+                    result = (
+                        f"Pylint found issues that need attention:\n\n{pylint_prompt}"
+                    )
 
                 return result
             except Exception as e:
@@ -83,8 +92,37 @@ class CodeCheckerServer:
                     f"Running pytest check on project directory: {self.project_dir}"
                 )
 
-                # TODO: Replace with actual implementation
-                result = "Pytest check completed. All tests passed successfully."
+                # Import the code_checker_pytest module to run pytest checks and generate prompts
+                from src.code_checker_pytest.reporting import (
+                    create_prompt_for_failed_tests,
+                )
+                from src.code_checker_pytest.runners import check_code_with_pytest
+
+                # Run pytest on the project directory
+                test_results = check_code_with_pytest(
+                    project_dir=str(self.project_dir),
+                    test_folder="tests",
+                    verbosity=2,
+                    continue_on_collection_errors=True,
+                )
+
+                if not test_results["success"]:
+                    result = f"Error running pytest: {test_results.get('error', 'Unknown error')}"
+                else:
+                    summary = test_results["summary"]
+
+                    if (
+                        summary.get("failed", 0) > 0 or summary.get("error", 0) > 0
+                    ) and test_results.get("test_results"):
+                        # Use create_prompt_for_failed_tests to generate a prompt for the failed tests
+                        failed_tests_prompt = create_prompt_for_failed_tests(
+                            test_results["test_results"]
+                        )
+                        result = f"Pytest found issues that need attention:\n\n{failed_tests_prompt}"
+                    else:
+                        result = (
+                            "Pytest check completed. All tests passed successfully."
+                        )
 
                 return result
             except Exception as e:
@@ -104,14 +142,61 @@ class CodeCheckerServer:
                     f"Running all code checks on project directory: {self.project_dir}"
                 )
 
-                # TODO: Replace with actual implementation
-                # In the real implementation, this would call the other check functions
-                # and combine their results
-                result = (
-                    "All code checks completed:\n\n"
-                    "1. Pylint: No issues found that require attention.\n"
-                    "2. Pytest: All tests passed successfully."
+                # Run pylint check to generate prompt
+                from src.code_checker_pylint import PylintMessageType, get_pylint_prompt
+
+                pylint_prompt = get_pylint_prompt(
+                    str(self.project_dir),
+                    categories={
+                        PylintMessageType.ERROR,
+                        PylintMessageType.FATAL,
+                        PylintMessageType.WARNING,
+                    },
                 )
+
+                # Run pytest check
+                from src.code_checker_pytest.reporting import (
+                    create_prompt_for_failed_tests,
+                )
+                from src.code_checker_pytest.runners import check_code_with_pytest
+
+                test_results = check_code_with_pytest(
+                    project_dir=str(self.project_dir),
+                    test_folder="tests",
+                    verbosity=1,
+                    continue_on_collection_errors=True,
+                )
+
+                # Generate prompt for failed tests if any
+                failed_tests_prompt = None
+                if test_results.get("success") and test_results.get("test_results"):
+                    if (
+                        test_results["summary"].get("failed", 0) > 0
+                        or test_results["summary"].get("error", 0) > 0
+                    ):
+                        failed_tests_prompt = create_prompt_for_failed_tests(
+                            test_results["test_results"]
+                        )
+
+                # Combine results
+                result = "All code checks completed:\n\n"
+
+                # Add pylint results
+                if pylint_prompt is None:
+                    result += "1. Pylint: No issues found that require attention.\n"
+                else:
+                    result += "1. Pylint found issues that need attention.\n"
+                    result += "   " + pylint_prompt.replace("\n", "\n   ") + "\n"
+
+                # Add pytest results
+                if not test_results.get("success"):
+                    result += f"2. Pytest check error: {test_results.get('error', 'Unknown error')}\n"
+                elif failed_tests_prompt is None:
+                    passed = test_results["summary"].get("passed", 0)
+                    result += f"2. Pytest: All {passed} tests passed successfully.\n"
+                else:
+                    result += "2. Pytest found issues that need attention.\n"
+                    result += "   " + failed_tests_prompt.replace("\n", "\n   ")
 
                 return result
             except Exception as e:

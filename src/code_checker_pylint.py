@@ -352,6 +352,9 @@ def get_pylint_prompt(
     Returns:
         A prompt string with issue details and instructions, or None if no issues were found.
     """
+    if pytest_project_marker is not None:
+        raise NotImplementedError
+
     if categories is None:
         if default_categories is not None:
             categories = default_categories
