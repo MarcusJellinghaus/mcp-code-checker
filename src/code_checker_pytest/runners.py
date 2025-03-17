@@ -61,7 +61,7 @@ def run_tests(
             def main(*args: Any, **kwargs: Any) -> Any: ...
 
         try:
-            import pytest as pytest_module  # Import pytest dynamically
+            import pytest as pytest_module  # noqa: F401  # Import pytest dynamically
         except ImportError:
             try:
                 # Check if pytest-json-report is installed
@@ -71,7 +71,7 @@ def run_tests(
                     capture_output=True,
                 )
                 # Retry importing pytest
-                import pytest as pytest_module  # Import pytest dynamically
+                import pytest as pytest_module  # noqa: F401  # Import pytest dynamically
             except (ImportError, subprocess.CalledProcessError):
                 raise Exception(
                     "pytest and/or pytest-json-report are not installed. "
