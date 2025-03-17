@@ -10,10 +10,10 @@ import sys
 import tempfile
 from typing import Any, Dict, List, Optional
 
-from .models import PytestReport
+from .models import EnvironmentContext, ErrorContext, PytestReport
 from .parsers import parse_pytest_report
 from .reporting import create_prompt_for_failed_tests, get_test_summary
-from .utils import read_file
+from .utils import collect_environment_info, create_error_context, read_file
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,7 @@ def run_tests(
     env_vars: Optional[Dict[str, str]] = None,
     venv_path: Optional[str] = None,
     keep_temp_files: bool = False,
+    continue_on_collection_errors: bool = False,
 ) -> PytestReport:
     """
     Run pytest tests in the specified project directory and test folder and returns the results.
@@ -42,6 +43,7 @@ def run_tests(
         env_vars: Optional dictionary of environment variables to set for the subprocess
         venv_path: Optional path to a virtual environment to activate
         keep_temp_files: Whether to keep temporary files after execution (for debugging)
+        continue_on_collection_errors: Whether to continue execution even if test collection fails
 
     Returns:
         PytestReport: An object containing the results of the test session
@@ -55,29 +57,6 @@ def run_tests(
     temp_report_file = os.path.join(temp_dir, "pytest_result.json")
 
     try:
-        # Define pytest type to avoid import-not-found error
-        class PytestModule:
-            @staticmethod
-            def main(*args: Any, **kwargs: Any) -> Any: ...
-
-        try:
-            import pytest as pytest_module  # noqa: F401  # Import pytest dynamically
-        except ImportError:
-            try:
-                # Check if pytest-json-report is installed
-                subprocess.run(
-                    [sys.executable, "-m", "pip", "install", "pytest-json-report"],
-                    check=True,
-                    capture_output=True,
-                )
-                # Retry importing pytest
-                import pytest as pytest_module  # noqa: F401  # Import pytest dynamically
-            except (ImportError, subprocess.CalledProcessError):
-                raise Exception(
-                    "pytest and/or pytest-json-report are not installed. "
-                    "Please install them using 'pip install pytest pytest-json-report'"
-                )
-
         # Determine Python executable
         py_executable = python_executable
 
@@ -156,53 +135,140 @@ def run_tests(
 
             env["PATH"] = f"{venv_bin}{os.pathsep}{env.get('PATH', '')}"
 
+        # Collect environment info before running the tests
+        environment_context = collect_environment_info(command)
+
         try:
-            process = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                check=False,
-                cwd=project_dir,
-                env=env,
-            )
-
-            # Handle different return codes
-            if process.returncode == 1:
-                if not os.path.isfile(temp_report_file):
-                    print(process.stdout)
-                    raise Exception(
-                        "Test Collection Errors: Pytest failed to collect tests."
-                    )
-            elif process.returncode == 2:
-                if not os.path.isfile(temp_report_file):
-                    print(process.stdout)
-                    raise Exception(
-                        "Test Collection Errors: Pytest failed to collect tests."
-                    )
-            elif process.returncode == 3:
-                print(process.stdout)
-                raise Exception("Internal Error: Pytest encountered an internal error.")
-            elif (
-                process.returncode == 4
-            ):  # can also happen if test folder does not exist
-                print(process.stdout)
-                raise Exception("Usage Error: Pytest was used incorrectly.")
-            elif process.returncode == 5:
-                print(process.stdout)
-                raise Exception("No Tests Found: Pytest did not find any tests to run.")
-            elif process.returncode != 0:
-                raise Exception(f"Unknown pytest return code: {process.returncode}")
-
-            if not os.path.isfile(temp_report_file):
-                print(process.stdout)
-                raise Exception(
-                    "Test execution completed but no report file was generated."
+            # Print command for debugging
+            print(f"Running command: {' '.join(command)}")
+            
+            # Run with timeout to prevent hanging
+            try:
+                process = subprocess.run(
+                    command,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    cwd=project_dir,
+                    env=env,
+                    timeout=30  # 30 second timeout
                 )
-
-            file_contents = read_file(temp_report_file)
+                print(f"Command completed with return code: {process.returncode}")
+            except subprocess.TimeoutExpired as e:
+                print(f"Command timed out after 30 seconds: {' '.join(command)}")
+                raise Exception(f"Subprocess timed out: {' '.join(command)}") from e
 
             output = process.stdout
+            error_output = process.stderr
+            combined_output = f"{output}\n{error_output}"
             logger.debug(output)
+            
+            # Check if plugin is missing
+            if "no plugin named 'json-report'" in combined_output.lower() or "no module named 'pytest_json_report'" in combined_output.lower():
+                print("pytest-json-report plugin not found, attempting to install it...")
+                try:
+                    install_result = subprocess.run(
+                        [py_executable, "-m", "pip", "install", "pytest-json-report"],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                        timeout=60  # Give it time to install
+                    )
+                    print("Installed pytest-json-report, retrying...")
+                    # Retry the command
+                    process = subprocess.run(
+                        command,
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                        cwd=project_dir,
+                        env=env,
+                        timeout=30
+                    )
+                    output = process.stdout
+                    error_output = process.stderr
+                    combined_output = f"{output}\n{error_output}"
+                except subprocess.CalledProcessError as install_error:
+                    print(f"Failed to install pytest-json-report: {install_error}")
+                    raise Exception("Failed to install the required pytest-json-report plugin")
+                except subprocess.TimeoutExpired:
+                    print("Installation or retry timed out")
+                    raise Exception("Timed out while installing pytest-json-report or retrying the test")
+
+            # Check specifically for 'no tests found' case
+            if "collected 0 items" in combined_output or process.returncode == 5:
+                print("No tests found, raising specific exception")
+                raise Exception("No Tests Found: Pytest did not find any tests to run.")
+                
+            # Create error context if needed
+            error_context = None
+            if process.returncode != 0:
+                error_context = create_error_context(process.returncode, combined_output)
+
+            # Handle collection errors based on continue_on_collection_errors setting
+            report_exists = os.path.isfile(temp_report_file)
+            if (process.returncode in [1, 2, 5]) and not report_exists:
+                error_details = error_context.error_message if error_context else combined_output
+                
+                if continue_on_collection_errors:
+                    # Log warning but continue execution
+                    logger.warning(
+                        f"Test collection error occurred (code {process.returncode}), "
+                        f"but continuing as requested: {error_details}"
+                    )
+                else:
+                    # Raise exception to stop execution
+                    print(combined_output)
+                    raise Exception(
+                        f"Test Collection Errors: {error_context.exit_code_meaning if error_context else 'Pytest failed to collect tests'}. "
+                        f"Suggestion: {error_context.suggestion if error_context else 'Check test file naming and imports'}"
+                    )
+            
+            # Handle other error cases
+            elif process.returncode == 3:
+                print(combined_output)
+                raise Exception(
+                    f"Internal Error: {error_context.exit_code_meaning if error_context else 'Pytest encountered an internal error'}. "
+                    f"Suggestion: {error_context.suggestion if error_context else 'Check pytest version compatibility'}"
+                )
+            elif process.returncode == 4:
+                print(combined_output)
+                raise Exception(
+                    f"Usage Error: {error_context.exit_code_meaning if error_context else 'Pytest was used incorrectly'}. "
+                    f"Suggestion: {error_context.suggestion if error_context else 'Verify command-line arguments'}"
+                )
+            elif process.returncode == 5 and report_exists:
+                # Continue if we have a report file but no tests were found
+                logger.warning(
+                    "No tests were found, but report file was generated. Continuing with processing."
+                )
+            elif process.returncode > 5:
+                # Handle plugin-specific exit codes
+                print(combined_output)
+                raise Exception(
+                    f"Plugin Error: {error_context.exit_code_meaning if error_context else f'Pytest plugin returned exit code {process.returncode}'}. "
+                    f"Suggestion: {error_context.suggestion if error_context else 'Check plugin documentation'}"
+                )
+            
+            # Final check to ensure we have a report file
+            if not report_exists:
+                print(combined_output)
+                if "collected 0 items" in combined_output:
+                    raise Exception("No Tests Found: Pytest did not find any tests to run.")
+                else:
+                    raise Exception(
+                        "Test execution completed but no report file was generated. "
+                        "Check for configuration errors in pytest.ini or pytest plugins."
+                    )
+
+            file_contents = read_file(temp_report_file)
+            parsed_results = parse_pytest_report(file_contents)
+            
+            # Add environment and error context to the results
+            parsed_results.environment_context = environment_context
+            parsed_results.error_context = error_context
+            
+            return parsed_results
 
         except Exception as e:
             command_line = " ".join(command)
@@ -212,9 +278,6 @@ def run_tests(
 - {command_line}"""
             )
             raise e
-
-        parsed_results = parse_pytest_report(file_contents)
-        return parsed_results
 
     except Exception as e:
         raise e
@@ -239,6 +302,7 @@ def check_code_with_pytest(
     env_vars: Optional[Dict[str, str]] = None,
     venv_path: Optional[str] = None,
     keep_temp_files: bool = False,
+    continue_on_collection_errors: bool = False,
 ) -> Dict[str, Any]:
     """
     Run pytest on the specified project and return results.
@@ -253,6 +317,7 @@ def check_code_with_pytest(
         env_vars: Optional dictionary of environment variables to set for the subprocess
         venv_path: Optional path to a virtual environment to activate
         keep_temp_files: Whether to keep temporary files after execution (for debugging)
+        continue_on_collection_errors: Whether to continue execution even if test collection fails
 
     Returns:
         Dictionary with test results
@@ -268,6 +333,7 @@ def check_code_with_pytest(
             env_vars,
             venv_path,
             keep_temp_files,
+            continue_on_collection_errors,
         )
 
         summary = get_test_summary(test_results)
@@ -278,11 +344,36 @@ def check_code_with_pytest(
         ):
             failed_tests_prompt = create_prompt_for_failed_tests(test_results)
 
+        environment_info = None
+        if test_results.environment_context:
+            environment_info = {
+                "python_version": test_results.environment_context.python_version,
+                "pytest_version": test_results.environment_context.pytest_version,
+                "platform": test_results.environment_context.platform_info,
+                "plugins": test_results.environment_context.loaded_plugins,
+                "working_directory": test_results.environment_context.working_directory,
+                "system_info": {
+                    "cpu": test_results.environment_context.cpu_info,
+                    "memory": test_results.environment_context.memory_info,
+                }
+            }
+
+        error_info = None
+        if test_results.error_context:
+            error_info = {
+                "exit_code": test_results.error_context.exit_code,
+                "meaning": test_results.error_context.exit_code_meaning,
+                "suggestion": test_results.error_context.suggestion,
+                "collection_errors": test_results.error_context.collection_errors,
+            }
+
         return {
             "success": True,
             "summary": summary,
             "failed_tests_prompt": failed_tests_prompt,
             "test_results": test_results,
+            "environment_info": environment_info,
+            "error_info": error_info,
         }
 
     except Exception as e:

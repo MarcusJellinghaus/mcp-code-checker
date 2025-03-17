@@ -117,6 +117,29 @@ class Warning:
 
 
 @dataclass
+class EnvironmentContext:
+    python_version: str
+    pytest_version: str
+    platform_info: str
+    installed_packages: List[Dict[str, str]]
+    loaded_plugins: List[str]
+    command_line: str
+    working_directory: str
+    cpu_info: Optional[str] = None
+    memory_info: Optional[str] = None
+
+
+@dataclass
+class ErrorContext:
+    exit_code: int
+    exit_code_meaning: str
+    error_message: str
+    suggestion: str
+    traceback: Optional[str] = None
+    collection_errors: Optional[List[str]] = None
+
+
+@dataclass
 class PytestReport:
     created: float
     duration: float
@@ -127,3 +150,5 @@ class PytestReport:
     collectors: Optional[List[Collector]] = None
     tests: Optional[List[Test]] = None
     warnings: Optional[List[Warning]] = None
+    environment_context: Optional[EnvironmentContext] = None
+    error_context: Optional[ErrorContext] = None
