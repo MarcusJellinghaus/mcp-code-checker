@@ -2,11 +2,6 @@
 Tests for the code_checker_pytest report parsing functionality.
 """
 
-import sys
-import os
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 from src.code_checker_pytest import (
     PytestReport,
     parse_pytest_report,

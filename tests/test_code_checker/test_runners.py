@@ -2,15 +2,13 @@
 Tests for the code_checker_pytest runner functionality.
 """
 
-import os
-import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 
 from src.code_checker_pytest import (
     PytestReport,
