@@ -150,7 +150,7 @@ class CodeCheckerServer:
                     categories={
                         PylintMessageType.ERROR,
                         PylintMessageType.FATAL,
-                        PylintMessageType.WARNING,
+                        # PylintMessageType.WARNING,
                     },
                 )
 
