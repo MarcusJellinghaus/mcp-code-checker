@@ -64,6 +64,48 @@ def test_run_tests() -> None:
             _cleanup_test_project(test_dir)
 
 
+def test_run_tests_with_custom_parameters() -> None:
+    """Test run_tests function with custom parameters."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        test_dir = Path(tmpdir)
+        _create_test_project(test_dir)
+
+        # Create a test with a custom marker
+        with open(test_dir / "tests" / "test_marked.py", "w") as f:
+            f.write(
+                """
+import pytest
+
+@pytest.mark.slow
+def test_slow():
+    assert True
+"""
+            )
+
+        try:
+            # Run tests with markers filter
+            result = run_tests(
+                str(test_dir), 
+                "tests", 
+                markers=["slow"], 
+                verbosity=3,
+                keep_temp_files=True
+            )
+            
+            assert isinstance(result, PytestReport)
+            
+            # Only the marked test should be run
+            assert result.summary.total == 1
+            assert result.summary.deselected == 2
+            assert result.summary.total == 1
+            assert result.summary.passed == 1
+            
+            # Check environment context was captured
+            assert result.environment_context is not None
+        finally:
+            _cleanup_test_project(test_dir)
+
+
 def test_run_tests_no_tests_found() -> None:
     """Test the run_tests function when no tests are found."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -121,6 +163,71 @@ def test_check_code_with_pytest(mock_run_tests: MagicMock) -> None:
     assert "✅ Passed: 2" in result["summary"]
     assert result["failed_tests_prompt"] is None
     assert result["test_results"] == mock_report
+
+
+@patch("src.code_checker_pytest.runners.run_tests")
+def test_check_code_with_pytest_with_custom_parameters(mock_run_tests: MagicMock) -> None:
+    """Test check_code_with_pytest with custom parameters."""
+    # Create a mock Summary with all necessary attributes
+    mock_summary = MagicMock()
+    mock_summary.collected = 1
+    mock_summary.total = 1
+    mock_summary.passed = 1
+    mock_summary.failed = 0
+    mock_summary.error = 0
+    mock_summary.skipped = 0
+    mock_summary.xfailed = 0
+    mock_summary.xpassed = 0
+    mock_summary.deselected = 0
+    
+    # Mock the run_tests function 
+    mock_report = PytestReport(
+        created=1678972345.123,
+        duration=0.5,
+        exitcode=0,
+        root="/path/to/project",
+        environment={"Python": "3.9.0"},
+        summary=mock_summary,
+    )
+    mock_run_tests.return_value = mock_report
+
+    # Set up mock report properties for a success result
+    mock_report.error_context = None
+    mock_report.tests = []
+    mock_run_tests.return_value = mock_report
+
+    # Custom parameters to test
+    custom_env = {"PYTHONPATH": "/custom/path"}
+    extra_args = ["--no-header"]
+    
+    # Call the function with custom parameters
+    result = check_code_with_pytest(
+        project_dir="/test/project",
+        test_folder="custom_tests",
+        markers=["slow"],
+        verbosity=3,
+        extra_args=extra_args,
+        env_vars=custom_env,
+        keep_temp_files=True,
+        continue_on_collection_errors=False
+    )
+
+    # Verify run_tests was called with the correct parameters
+    mock_run_tests.assert_called_once_with(
+        "/test/project",
+        "custom_tests",
+        None,  # python_executable
+        ["slow"],  # markers
+        3,  # verbosity
+        extra_args,
+        custom_env,
+        None,  # venv_path
+        True,  # keep_temp_files
+        False,  # continue_on_collection_errors
+    )
+    
+    # Verify result is correct
+    assert result["success"] is True
 
 
 @patch("src.code_checker_pytest.runners.run_tests")

@@ -21,6 +21,22 @@ By connecting your AI assistant to your code checking tools, you can transform y
 - `run_pytest_check`: Run pytest on the project code and generate smart prompts for LLMs
 - `run_all_checks`: Run all code checks (pylint and pytest) and generate combined results
 
+### Pytest Parameters
+
+Both `run_pytest_check` and `run_all_checks` expose the following parameters for customization:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `test_folder` | string | "tests" | Path to the test folder relative to project directory |
+| `markers` | list | None | Optional list of pytest markers to filter tests |
+| `verbosity` | integer | 2 (run_pytest_check), 1 (run_all_checks) | Pytest verbosity level (0-3) |
+| `extra_args` | list | None | Optional list of additional pytest arguments |
+| `env_vars` | dictionary | None | Optional environment variables for the subprocess |
+| `keep_temp_files` | boolean | False | Whether to keep temporary files after execution |
+| `continue_on_collection_errors` | boolean | True | Whether to continue on collection errors |
+| `python_executable` | string | None | Path to Python interpreter to use for running tests |
+| `venv_path` | string | None | Path to virtual environment to activate for running tests |
+
 ## Installation
 
 ```bash
@@ -39,10 +55,15 @@ pip install -e .
 ## Running the Server
 
 ```bash
-python -m src.main --project-dir /path/to/project
+python -m src.main --project-dir /path/to/project [--python-executable /path/to/python] [--venv-path /path/to/venv]
 ```
 
 The server uses FastMCP for operation. The project directory parameter (`--project-dir`) is **required** for security reasons. All code checking operations will be restricted to this directory.
+
+Additional parameters:
+
+- `--python-executable`: Optional path to Python interpreter to use for running tests
+- `--venv-path`: Optional path to virtual environment to activate for running tests
 
 ## Using with Claude Desktop App
 
@@ -62,7 +83,11 @@ To enable Claude to use this code checking server for analyzing files in your lo
             "args": [                
                 "C:\\path\\to\\mcp_code_checker\\src\\main.py",
                 "--project-dir",
-                "C:\\path\\to\\your\\project"
+                "C:\\path\\to\\your\\project",
+            "--python-executable",
+            "C:\\path\\to\\python.exe",
+            "--venv-path",
+            "C:\\path\\to\\venv"
             ],
             "env": {
                 "PYTHONPATH": "C:\\path\\to\\mcp_code_checker\\"
@@ -123,11 +148,13 @@ The server exposes the following MCP tools:
 - Runs pytest on the project code and generates smart prompts for LLMs
 - Returns: A string containing either pytest results or a prompt for an LLM to interpret
 - Identifies failing tests and provides detailed information about test failures
+- Customizable with parameters for test selection, environment, and verbosity
 
 ### Run All Checks
 - Runs all code checks (pylint and pytest) and generates combined results
 - Returns: A string containing results from all checks and/or LLM prompts
 - Provides a comprehensive analysis of code quality in a single operation
+- Supports the same pytest customization parameters as Run Pytest Check
 
 ## Security Features
 

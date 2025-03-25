@@ -24,6 +24,16 @@ def parse_args() -> argparse.Namespace:
         required=True,
         help="Base directory for code checking operations (required)",
     )
+    parser.add_argument(
+        "--python-executable",
+        type=str,
+        help="Path to Python interpreter to use for running tests",
+    )
+    parser.add_argument(
+        "--venv-path",
+        type=str,
+        help="Path to virtual environment to activate for running tests",
+    )
     return parser.parse_args()
 
 
@@ -52,7 +62,11 @@ def main() -> None:
     )
 
     # Create and run the server
-    server = create_server(project_dir)
+    server = create_server(
+        project_dir,
+        python_executable=args.python_executable,
+        venv_path=args.venv_path
+    )
     server.run()
 
 
