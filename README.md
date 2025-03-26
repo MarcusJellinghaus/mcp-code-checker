@@ -21,6 +21,20 @@ By connecting your AI assistant to your code checking tools, you can transform y
 - `run_pytest_check`: Run pytest on the project code and generate smart prompts for LLMs
 - `run_all_checks`: Run all code checks (pylint and pytest) and generate combined results
 
+### Pylint Parameters
+
+The pylint tools expose the following parameters for customization:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `disable_codes` | list | None | List of pylint error codes to disable during analysis |
+
+Additionally, `run_all_checks` exposes:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `categories` | set | ERROR, FATAL | Set of pylint message categories to include (convention, refactor, warning, error, fatal) |
+
 ### Pytest Parameters
 
 Both `run_pytest_check` and `run_all_checks` expose the following parameters for customization:
@@ -143,6 +157,7 @@ The server exposes the following MCP tools:
 - Runs pylint on the project code and generates smart prompts for LLMs
 - Returns: A string containing either pylint results or a prompt for an LLM to interpret
 - Helps identify code quality issues, style problems, and potential bugs
+- Customizable with parameters for disabling specific pylint codes
 
 ### Run Pytest Check
 - Runs pytest on the project code and generates smart prompts for LLMs
@@ -154,7 +169,7 @@ The server exposes the following MCP tools:
 - Runs all code checks (pylint and pytest) and generates combined results
 - Returns: A string containing results from all checks and/or LLM prompts
 - Provides a comprehensive analysis of code quality in a single operation
-- Supports the same pytest customization parameters as Run Pytest Check
+- Supports customization parameters for both pylint and pytest
 
 ## Security Features
 

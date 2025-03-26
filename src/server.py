@@ -2,10 +2,9 @@
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
 
 # Type stub for mcp.server.fastmcp
-from typing import Callable, Protocol, TypeVar
+from typing import Callable, Dict, List, Optional, Protocol, Set, TypeVar
 
 T = TypeVar("T")
 
@@ -29,7 +28,12 @@ logger = logging.getLogger(__name__)
 class CodeCheckerServer:
     """MCP server for code checking functionality."""
 
-    def __init__(self, project_dir: Path, python_executable: Optional[str] = None, venv_path: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        project_dir: Path,
+        python_executable: Optional[str] = None,
+        venv_path: Optional[str] = None,
+    ) -> None:
         """
         Initialize the server with the project directory and Python configuration.
 
@@ -53,9 +57,12 @@ class CodeCheckerServer:
         # Using type annotations directly on the decorated functions
         # to address the "Untyped decorator makes function untyped" issue
         @self.mcp.tool()
-        async def run_pylint_check() -> str:
+        async def run_pylint_check(disable_codes: Optional[List[str]] = None) -> str:
             """
             Run pylint on the project code and generate smart prompts for LLMs.
+
+            Args:
+                disable_codes: Optional list of pylint error codes to disable during analysis
 
             Returns:
                 A string containing either pylint results or a prompt for an LLM to interpret
@@ -69,7 +76,11 @@ class CodeCheckerServer:
                 from src.code_checker_pylint import get_pylint_prompt
 
                 # Generate a prompt for pylint issues
-                pylint_prompt = get_pylint_prompt(str(self.project_dir))
+                pylint_prompt = get_pylint_prompt(
+                    str(self.project_dir),
+                    disable_codes=disable_codes,
+                    python_executable=self.python_executable,
+                )
 
                 # Format the results as a string
                 if pylint_prompt is None:
@@ -86,19 +97,19 @@ class CodeCheckerServer:
 
         @self.mcp.tool()
         async def run_pytest_check(
-            test_folder: str = "tests", 
-            markers: Optional[List[str]] = None, 
-            verbosity: int = 2, 
-            extra_args: Optional[List[str]] = None, 
-            env_vars: Optional[Dict[str, str]] = None, 
-            keep_temp_files: bool = False, 
+            test_folder: str = "tests",
+            markers: Optional[List[str]] = None,
+            verbosity: int = 2,
+            extra_args: Optional[List[str]] = None,
+            env_vars: Optional[Dict[str, str]] = None,
+            keep_temp_files: bool = False,
             continue_on_collection_errors: bool = True,
             python_executable: Optional[str] = None,
-            venv_path: Optional[str] = None
+            venv_path: Optional[str] = None,
         ) -> str:
             """
             Run pytest on the project code and generate smart prompts for LLMs.
-            
+
             Args:
                 test_folder: Path to the test folder (relative to project_dir), default "tests"
                 markers: Optional list of pytest markers to filter tests
@@ -125,9 +136,13 @@ class CodeCheckerServer:
                 from src.code_checker_pytest.runners import check_code_with_pytest
 
                 # Use function parameters if provided, otherwise fall back to server instance values
-                python_exec = python_executable if python_executable is not None else self.python_executable
+                python_exec = (
+                    python_executable
+                    if python_executable is not None
+                    else self.python_executable
+                )
                 venv = venv_path if venv_path is not None else self.venv_path
-                
+
                 # Run pytest on the project directory
                 test_results = check_code_with_pytest(
                     project_dir=str(self.project_dir),
@@ -167,19 +182,21 @@ class CodeCheckerServer:
 
         @self.mcp.tool()
         async def run_all_checks(
-            test_folder: str = "tests", 
-            markers: Optional[List[str]] = None, 
-            verbosity: int = 1, 
-            extra_args: Optional[List[str]] = None, 
-            env_vars: Optional[Dict[str, str]] = None, 
-            keep_temp_files: bool = False, 
+            test_folder: str = "tests",
+            markers: Optional[List[str]] = None,
+            verbosity: int = 1,
+            extra_args: Optional[List[str]] = None,
+            env_vars: Optional[Dict[str, str]] = None,
+            keep_temp_files: bool = False,
             continue_on_collection_errors: bool = True,
             python_executable: Optional[str] = None,
-            venv_path: Optional[str] = None
+            venv_path: Optional[str] = None,
+            disable_codes: Optional[List[str]] = None,
+            categories: Optional[Set[str]] = None,
         ) -> str:
             """
             Run all code checks (pylint and pytest) and generate combined results.
-            
+
             Args:
                 test_folder: Path to the test folder (relative to project_dir), default "tests"
                 markers: Optional list of pytest markers to filter tests
@@ -190,6 +207,8 @@ class CodeCheckerServer:
                 continue_on_collection_errors: Whether to continue on collection errors, default True
                 python_executable: Optional path to Python interpreter to use, overrides server setting
                 venv_path: Optional path to a virtual environment to activate, overrides server setting
+                disable_codes: Optional list of pylint error codes to disable during analysis
+                categories: Optional set of pylint message categories to include (error, warning, etc.)
 
             Returns:
                 A string containing results from all checks and/or LLM prompts
@@ -202,13 +221,33 @@ class CodeCheckerServer:
                 # Run pylint check to generate prompt
                 from src.code_checker_pylint import PylintMessageType, get_pylint_prompt
 
-                pylint_prompt = get_pylint_prompt(
-                    str(self.project_dir),
-                    categories={
+                # Use provided categories if available, otherwise use default (ERROR, FATAL)
+                if categories is None:
+                    pylint_categories = {
                         PylintMessageType.ERROR,
                         PylintMessageType.FATAL,
-                        # PylintMessageType.WARNING,
-                    },
+                    }
+                else:
+                    # Convert string categories to PylintMessageType enum values
+                    pylint_categories = set()
+                    for category in categories:
+                        try:
+                            pylint_categories.add(PylintMessageType(category.lower()))
+                        except ValueError:
+                            logger.warning(f"Unknown pylint category: {category}")
+
+                # Use function parameters if provided, otherwise fall back to server instance values
+                python_exec = (
+                    python_executable
+                    if python_executable is not None
+                    else self.python_executable
+                )
+
+                pylint_prompt = get_pylint_prompt(
+                    str(self.project_dir),
+                    categories=pylint_categories,
+                    disable_codes=disable_codes,
+                    python_executable=python_exec,
                 )
 
                 # Run pytest check
@@ -217,10 +256,8 @@ class CodeCheckerServer:
                 )
                 from src.code_checker_pytest.runners import check_code_with_pytest
 
-                # Use function parameters if provided, otherwise fall back to server instance values
-                python_exec = python_executable if python_executable is not None else self.python_executable
                 venv = venv_path if venv_path is not None else self.venv_path
-                
+
                 test_results = check_code_with_pytest(
                     project_dir=str(self.project_dir),
                     test_folder=test_folder,
@@ -275,7 +312,11 @@ class CodeCheckerServer:
         self.mcp.run()
 
 
-def create_server(project_dir: Path, python_executable: Optional[str] = None, venv_path: Optional[str] = None) -> CodeCheckerServer:
+def create_server(
+    project_dir: Path,
+    python_executable: Optional[str] = None,
+    venv_path: Optional[str] = None,
+) -> CodeCheckerServer:
     """
     Create a new CodeCheckerServer instance.
 

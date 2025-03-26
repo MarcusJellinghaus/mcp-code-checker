@@ -85,21 +85,21 @@ def test_slow():
         try:
             # Run tests with markers filter
             result = run_tests(
-                str(test_dir), 
-                "tests", 
-                markers=["slow"], 
+                str(test_dir),
+                "tests",
+                markers=["slow"],
                 verbosity=3,
-                keep_temp_files=True
+                keep_temp_files=True,
             )
-            
+
             assert isinstance(result, PytestReport)
-            
+
             # Only the marked test should be run
             assert result.summary.total == 1
             assert result.summary.deselected == 2
             assert result.summary.total == 1
             assert result.summary.passed == 1
-            
+
             # Check environment context was captured
             assert result.environment_context is not None
         finally:
@@ -166,7 +166,9 @@ def test_check_code_with_pytest(mock_run_tests: MagicMock) -> None:
 
 
 @patch("src.code_checker_pytest.runners.run_tests")
-def test_check_code_with_pytest_with_custom_parameters(mock_run_tests: MagicMock) -> None:
+def test_check_code_with_pytest_with_custom_parameters(
+    mock_run_tests: MagicMock,
+) -> None:
     """Test check_code_with_pytest with custom parameters."""
     # Create a mock Summary with all necessary attributes
     mock_summary = MagicMock()
@@ -179,8 +181,8 @@ def test_check_code_with_pytest_with_custom_parameters(mock_run_tests: MagicMock
     mock_summary.xfailed = 0
     mock_summary.xpassed = 0
     mock_summary.deselected = 0
-    
-    # Mock the run_tests function 
+
+    # Mock the run_tests function
     mock_report = PytestReport(
         created=1678972345.123,
         duration=0.5,
@@ -199,7 +201,7 @@ def test_check_code_with_pytest_with_custom_parameters(mock_run_tests: MagicMock
     # Custom parameters to test
     custom_env = {"PYTHONPATH": "/custom/path"}
     extra_args = ["--no-header"]
-    
+
     # Call the function with custom parameters
     result = check_code_with_pytest(
         project_dir="/test/project",
@@ -209,7 +211,7 @@ def test_check_code_with_pytest_with_custom_parameters(mock_run_tests: MagicMock
         extra_args=extra_args,
         env_vars=custom_env,
         keep_temp_files=True,
-        continue_on_collection_errors=False
+        continue_on_collection_errors=False,
     )
 
     # Verify run_tests was called with the correct parameters
@@ -225,7 +227,7 @@ def test_check_code_with_pytest_with_custom_parameters(mock_run_tests: MagicMock
         True,  # keep_temp_files
         False,  # continue_on_collection_errors
     )
-    
+
     # Verify result is correct
     assert result["success"] is True
 

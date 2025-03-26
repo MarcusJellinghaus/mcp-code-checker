@@ -8,8 +8,10 @@ import pytest
 
 from src.code_checker_pylint import (
     PylintCategory,
+    default_categories,
     filter_pylint_codes_by_category,
     get_pylint_results,
+    run_pylint_check,
 )
 
 
@@ -105,6 +107,37 @@ def test_get_pylint_results_empty_file(temp_project_dir: Path) -> None:
     assert result.return_code == 0
     assert len(result.messages) == 0
     assert result.error is None
+
+
+def test_run_pylint_check(temp_project_dir: Path) -> None:
+    """Tests the new run_pylint_check function."""
+    write_file(
+        os.path.join(temp_project_dir, "src", "test_module.py"),
+        "def hello():\n    print('hello')\n",
+    )
+
+    # Test with default parameters
+    result = run_pylint_check(str(temp_project_dir))
+    assert isinstance(result.return_code, int)
+    assert isinstance(result.messages, list)
+
+    # Test with categories parameter
+    result = run_pylint_check(
+        str(temp_project_dir), categories={PylintCategory.ERROR, PylintCategory.FATAL}
+    )
+    assert isinstance(result.return_code, int)
+
+    # Test with pytest_project_marker parameter
+    result = run_pylint_check(str(temp_project_dir), pytest_project_marker="test")
+    assert isinstance(result.return_code, int)
+
+
+def test_default_categories_from_init() -> None:
+    """Tests that default_categories is correctly exposed via __init__."""
+    assert default_categories is not None
+    assert isinstance(default_categories, set)
+    assert PylintCategory.ERROR in default_categories
+    assert PylintCategory.FATAL in default_categories
 
 
 class TestFilterPylintCodesByCategory:
