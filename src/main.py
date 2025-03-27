@@ -34,6 +34,17 @@ def parse_args() -> argparse.Namespace:
         type=str,
         help="Path to virtual environment to activate for running tests",
     )
+    parser.add_argument(
+        "--test-folder",
+        type=str,
+        default="tests",
+        help="Path to the test folder (relative to project_dir), default 'tests'",
+    )
+    parser.add_argument(
+        "--keep-temp-files",
+        action="store_true",
+        help="Keep temporary files after test execution",
+    )
     return parser.parse_args()
 
 
@@ -63,7 +74,11 @@ def main() -> None:
 
     # Create and run the server
     server = create_server(
-        project_dir, python_executable=args.python_executable, venv_path=args.venv_path
+        project_dir, 
+        python_executable=args.python_executable, 
+        venv_path=args.venv_path,
+        test_folder=args.test_folder,
+        keep_temp_files=args.keep_temp_files
     )
     server.run()
 

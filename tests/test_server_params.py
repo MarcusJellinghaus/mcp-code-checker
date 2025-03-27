@@ -20,7 +20,7 @@ def mock_project_dir() -> Path:
 async def test_run_pytest_check_parameters(
     mock_fastmcp: MagicMock, mock_check_pytest: MagicMock, mock_project_dir: Path
 ) -> None:
-    """Test that run_pytest_check exposes and passes all parameters correctly."""
+    """Test that run_pytest_check properly uses server parameters and passes parameters correctly."""
     from src.server import CodeCheckerServer
 
     # Setup mocks
@@ -34,34 +34,37 @@ async def test_run_pytest_check_parameters(
         "test_results": MagicMock(),
     }
 
-    # Create server
-    server = CodeCheckerServer(mock_project_dir)
+    # Create server with the static parameters
+    server = CodeCheckerServer(
+        mock_project_dir,
+        test_folder="custom_tests",
+        keep_temp_files=True
+    )
 
     # Get the run_pytest_check function (it's decorated by mock_tool)
     run_pytest_check = mock_tool.call_args_list[1][0][0]
 
-    # Call with custom parameters
+    # Call with only the dynamic parameters (without test_folder and keep_temp_files)
     await run_pytest_check(
-        test_folder="custom_tests",
         markers=["slow", "integration"],
         verbosity=3,
         extra_args=["--no-header"],
         env_vars={"TEST_ENV": "value"},
-        keep_temp_files=True,
         continue_on_collection_errors=False,
     )
 
     # Verify check_code_with_pytest was called with correct parameters
+    # test_folder and keep_temp_files should come from the server instance
     mock_check_pytest.assert_called_once_with(
         project_dir=str(mock_project_dir),
-        test_folder="custom_tests",
+        test_folder="custom_tests",  # From server constructor
         python_executable=None,
         markers=["slow", "integration"],
         verbosity=3,
         extra_args=["--no-header"],
         env_vars={"TEST_ENV": "value"},
         venv_path=None,
-        keep_temp_files=True,
+        keep_temp_files=True,  # From server constructor
         continue_on_collection_errors=False,
     )
 
@@ -76,7 +79,7 @@ async def test_run_all_checks_parameters(
     mock_pylint: MagicMock,
     mock_project_dir: Path,
 ) -> None:
-    """Test that run_all_checks exposes and passes all parameters correctly."""
+    """Test that run_all_checks properly uses server parameters and passes parameters correctly."""
     from src.server import CodeCheckerServer
 
     # Setup mocks
@@ -91,33 +94,38 @@ async def test_run_all_checks_parameters(
         "test_results": MagicMock(),
     }
 
-    # Create server
-    server = CodeCheckerServer(mock_project_dir)
+    # Create server with the static parameters
+    server = CodeCheckerServer(
+        mock_project_dir,
+        test_folder="custom_tests",
+        keep_temp_files=True
+    )
 
     # Get the run_all_checks function (it's decorated by mock_tool)
     run_all_checks = mock_tool.call_args_list[2][0][0]
 
-    # Call with custom parameters
+    # Call with only the dynamic parameters (without test_folder and keep_temp_files)
     await run_all_checks(
-        test_folder="custom_tests",
         markers=["slow", "integration"],
         verbosity=3,
         extra_args=["--no-header"],
         env_vars={"TEST_ENV": "value"},
-        keep_temp_files=True,
         continue_on_collection_errors=False,
+        disable_codes=["E1101"],
+        categories={"ERROR"}
     )
 
     # Verify check_code_with_pytest was called with correct parameters
+    # test_folder and keep_temp_files should come from the server instance
     mock_check_pytest.assert_called_once_with(
         project_dir=str(mock_project_dir),
-        test_folder="custom_tests",
+        test_folder="custom_tests",  # From server constructor
         python_executable=None,
         markers=["slow", "integration"],
         verbosity=3,
         extra_args=["--no-header"],
         env_vars={"TEST_ENV": "value"},
         venv_path=None,
-        keep_temp_files=True,
+        keep_temp_files=True,  # From server constructor
         continue_on_collection_errors=False,
     )

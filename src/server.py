@@ -33,6 +33,8 @@ class CodeCheckerServer:
         project_dir: Path,
         python_executable: Optional[str] = None,
         venv_path: Optional[str] = None,
+        test_folder: str = "tests",
+        keep_temp_files: bool = False,
     ) -> None:
         """
         Initialize the server with the project directory and Python configuration.
@@ -41,10 +43,14 @@ class CodeCheckerServer:
             project_dir: Path to the project directory to check
             python_executable: Optional path to Python interpreter to use
             venv_path: Optional path to a virtual environment to activate
+            test_folder: Path to the test folder (relative to project_dir)
+            keep_temp_files: Whether to keep temporary files after execution
         """
         self.project_dir = project_dir
         self.python_executable = python_executable
         self.venv_path = venv_path
+        self.test_folder = test_folder
+        self.keep_temp_files = keep_temp_files
         # We cannot import the actual FastMCP for type checking
         from mcp.server.fastmcp import FastMCP
 
@@ -97,29 +103,21 @@ class CodeCheckerServer:
 
         @self.mcp.tool()
         async def run_pytest_check(
-            test_folder: str = "tests",
             markers: Optional[List[str]] = None,
             verbosity: int = 2,
             extra_args: Optional[List[str]] = None,
             env_vars: Optional[Dict[str, str]] = None,
-            keep_temp_files: bool = False,
             continue_on_collection_errors: bool = True,
-            python_executable: Optional[str] = None,
-            venv_path: Optional[str] = None,
         ) -> str:
             """
             Run pytest on the project code and generate smart prompts for LLMs.
 
             Args:
-                test_folder: Path to the test folder (relative to project_dir), default "tests"
                 markers: Optional list of pytest markers to filter tests
                 verbosity: Integer for pytest verbosity level (0-3), default 2
                 extra_args: Optional list of additional pytest arguments
                 env_vars: Optional dictionary of environment variables for the subprocess
-                keep_temp_files: Whether to keep temporary files after execution, default False
                 continue_on_collection_errors: Whether to continue on collection errors, default True
-                python_executable: Optional path to Python interpreter to use, overrides server setting
-                venv_path: Optional path to a virtual environment to activate, overrides server setting
 
             Returns:
                 A string containing either pytest results or a prompt for an LLM to interpret
@@ -135,25 +133,17 @@ class CodeCheckerServer:
                 )
                 from src.code_checker_pytest.runners import check_code_with_pytest
 
-                # Use function parameters if provided, otherwise fall back to server instance values
-                python_exec = (
-                    python_executable
-                    if python_executable is not None
-                    else self.python_executable
-                )
-                venv = venv_path if venv_path is not None else self.venv_path
-
                 # Run pytest on the project directory
                 test_results = check_code_with_pytest(
                     project_dir=str(self.project_dir),
-                    test_folder=test_folder,
-                    python_executable=python_exec,
+                    test_folder=self.test_folder,
+                    python_executable=self.python_executable,
                     markers=markers,
                     verbosity=verbosity,
                     extra_args=extra_args,
                     env_vars=env_vars,
-                    venv_path=venv,
-                    keep_temp_files=keep_temp_files,
+                    venv_path=self.venv_path,
+                    keep_temp_files=self.keep_temp_files,
                     continue_on_collection_errors=continue_on_collection_errors,
                 )
 
@@ -182,15 +172,11 @@ class CodeCheckerServer:
 
         @self.mcp.tool()
         async def run_all_checks(
-            test_folder: str = "tests",
             markers: Optional[List[str]] = None,
             verbosity: int = 1,
             extra_args: Optional[List[str]] = None,
             env_vars: Optional[Dict[str, str]] = None,
-            keep_temp_files: bool = False,
             continue_on_collection_errors: bool = True,
-            python_executable: Optional[str] = None,
-            venv_path: Optional[str] = None,
             disable_codes: Optional[List[str]] = None,
             categories: Optional[Set[str]] = None,
         ) -> str:
@@ -198,15 +184,11 @@ class CodeCheckerServer:
             Run all code checks (pylint and pytest) and generate combined results.
 
             Args:
-                test_folder: Path to the test folder (relative to project_dir), default "tests"
                 markers: Optional list of pytest markers to filter tests
                 verbosity: Integer for pytest verbosity level (0-3), default 1
                 extra_args: Optional list of additional pytest arguments
                 env_vars: Optional dictionary of environment variables for the subprocess
-                keep_temp_files: Whether to keep temporary files after execution, default False
                 continue_on_collection_errors: Whether to continue on collection errors, default True
-                python_executable: Optional path to Python interpreter to use, overrides server setting
-                venv_path: Optional path to a virtual environment to activate, overrides server setting
                 disable_codes: Optional list of pylint error codes to disable during analysis
                 categories: Optional set of pylint message categories to include (error, warning, etc.)
 
@@ -236,18 +218,11 @@ class CodeCheckerServer:
                         except ValueError:
                             logger.warning(f"Unknown pylint category: {category}")
 
-                # Use function parameters if provided, otherwise fall back to server instance values
-                python_exec = (
-                    python_executable
-                    if python_executable is not None
-                    else self.python_executable
-                )
-
                 pylint_prompt = get_pylint_prompt(
                     str(self.project_dir),
                     categories=pylint_categories,
                     disable_codes=disable_codes,
-                    python_executable=python_exec,
+                    python_executable=self.python_executable,
                 )
 
                 # Run pytest check
@@ -256,18 +231,16 @@ class CodeCheckerServer:
                 )
                 from src.code_checker_pytest.runners import check_code_with_pytest
 
-                venv = venv_path if venv_path is not None else self.venv_path
-
                 test_results = check_code_with_pytest(
                     project_dir=str(self.project_dir),
-                    test_folder=test_folder,
-                    python_executable=python_exec,
+                    test_folder=self.test_folder,
+                    python_executable=self.python_executable,
                     markers=markers,
                     verbosity=verbosity,
                     extra_args=extra_args,
                     env_vars=env_vars,
-                    venv_path=venv,
-                    keep_temp_files=keep_temp_files,
+                    venv_path=self.venv_path,
+                    keep_temp_files=self.keep_temp_files,
                     continue_on_collection_errors=continue_on_collection_errors,
                 )
 
@@ -316,6 +289,8 @@ def create_server(
     project_dir: Path,
     python_executable: Optional[str] = None,
     venv_path: Optional[str] = None,
+    test_folder: str = "tests",
+    keep_temp_files: bool = False,
 ) -> CodeCheckerServer:
     """
     Create a new CodeCheckerServer instance.
@@ -324,8 +299,16 @@ def create_server(
         project_dir: Path to the project directory to check
         python_executable: Optional path to Python interpreter to use
         venv_path: Optional path to a virtual environment to activate
+        test_folder: Path to the test folder (relative to project_dir)
+        keep_temp_files: Whether to keep temporary files after execution
 
     Returns:
         A new CodeCheckerServer instance
     """
-    return CodeCheckerServer(project_dir, python_executable, venv_path)
+    return CodeCheckerServer(
+        project_dir, 
+        python_executable=python_executable, 
+        venv_path=venv_path,
+        test_folder=test_folder,
+        keep_temp_files=keep_temp_files
+    )
