@@ -25,15 +25,15 @@ dependencies = [
     "pylint>=3.3.3",
     "pytest>=8.3.5",
     "pytest-json-report>=1.5.0",
-    "mypy>=1.9.0",
+    "pytest-asyncio>=0.25.3",
+"mypy>=1.9.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest-asyncio>=0.25.3",
     "black>=24.10.0",
     "isort>=5.13.2",
-]
+    ]
 
 [project.urls]
 "Homepage" = "https://github.com/yourusername/mcp-code-checker"
