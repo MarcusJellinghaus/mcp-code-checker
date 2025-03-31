@@ -221,64 +221,6 @@ def get_pylint_results(
         return result
 
 
-def get_pylint_results_as_str(
-    result: PylintResult, remove_project_dir: str, verbosity: int = 1
-) -> str:
-    """
-    Render Pylint results in a user-friendly format as string.
-
-    Args:
-        result: The PylintResult to format.
-        remove_project_dir: The project directory path to remove from file paths.
-        verbosity: Level of detail (0=minimal, 1=normal, 2=detailed).
-
-    Returns:
-        A formatted string representation of the pylint results.
-    """
-    list_result: List[str] = []
-
-    if result.error:
-        list_result.append(f"Pylint Error: {result.error}")
-        if result.raw_output and verbosity >= 1:
-            list_result.append("Raw output from pylint:")
-            result_raw_output = result.raw_output
-            result_raw_output = result_raw_output.replace(
-                remove_project_dir + os.path.sep, ""
-            )
-            list_result.append(result_raw_output)
-    elif result.return_code == 0:
-        list_result.append("Pylint found no issues.")
-    else:
-        if verbosity >= 2:
-            list_result.append(f"Pylint found {len(result.messages)} issues:")
-        else:
-            list_result.append("Pylint found the following issues:")
-
-        for message in result.messages:
-            message_path = normalize_path(message.path, remove_project_dir)
-
-            if verbosity == 0:
-                # Minimal output
-                list_result.append(f"{message_path}:{message.line}: {message.symbol}")
-            elif verbosity == 1:
-                # Normal output
-                list_result.append(
-                    f"{message_path}:{message.line}:{message.column}: {message.symbol} "
-                    f"({message.message_id}) {message.message}"
-                )
-            else:
-                # Detailed output
-                list_result.append(
-                    f"File: {message_path}\n"
-                    f"Line: {message.line}, Column: {message.column}\n"
-                    f"Type: {message.type}, Symbol: {message.symbol}, ID: {message.message_id}\n"
-                    f"Message: {message.message}\n"
-                )
-
-    str_result = "\n".join(list_result)
-    return str_result
-
-
 def get_direct_instruction_for_pylint_code(code: str) -> Optional[str]:
     """
     Provides a direct instruction for a given Pylint code.
