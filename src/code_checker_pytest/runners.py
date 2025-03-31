@@ -341,7 +341,7 @@ def check_code_with_pytest(
     Returns:
         Dictionary with test results containing the following keys:
         - success: Boolean indicating if the test execution was successful
-        - summary: Summary of test results (passed, failed, skipped counts) 
+        - summary: Summary of test results (passed, failed, skipped counts)
         - failed_tests_prompt: Formatted prompt for failed tests (if any)
         - test_results: Complete PytestReport object with detailed test information
         - environment_info: Information about the test environment (Python version, pytest version, etc.)

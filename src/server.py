@@ -81,17 +81,17 @@ class CodeCheckerServer:
             """
             try:
                 logger.info(
-            f"Running pylint check on project directory: {self.project_dir}"
-            )
+                    f"Running pylint check on project directory: {self.project_dir}"
+                )
 
-                    # Import the code_checker_pylint module to run pylint checks
+                # Import the code_checker_pylint module to run pylint checks
                 from src.code_checker_pylint import get_pylint_prompt
 
                 # Generate a prompt for pylint issues
                 pylint_prompt = get_pylint_prompt(
                     str(self.project_dir),
-                disable_codes=disable_codes,
-                python_executable=self.python_executable,
+                    disable_codes=disable_codes,
+                    python_executable=self.python_executable,
                 )
 
                 # Format the results as a string
@@ -184,7 +184,7 @@ class CodeCheckerServer:
             env_vars: Optional[Dict[str, str]] = None,
             continue_on_collection_errors: bool = True,
             pylint_categories: Optional[Set[str]] = None,
-            ) -> str:
+        ) -> str:
             """
             Run all code checks (pylint and pytest) and generate combined results.
 
@@ -199,7 +199,7 @@ class CodeCheckerServer:
 
             Returns:
             A string containing results from all checks and/or LLM prompts
-                """
+            """
             try:
                 logger.info(
                     f"Running all code checks on project directory: {self.project_dir}"
@@ -229,7 +229,7 @@ class CodeCheckerServer:
                     str(self.project_dir),
                     categories=pylint_categories_enum,
                     python_executable=self.python_executable,
-                    )
+                )
 
                 # Run pytest check
                 from src.code_checker_pytest.reporting import (

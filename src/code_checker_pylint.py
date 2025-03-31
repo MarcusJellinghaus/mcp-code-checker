@@ -127,26 +127,26 @@ def get_pylint_results(
     python_executable: Optional[str] = None,
 ) -> PylintResult:
     """
-        Runs pylint on the specified project directory and returns the results.
+    Runs pylint on the specified project directory and returns the results.
 
-        Args:
-            project_dir: The path to the project directory.
-            disable_codes: List of pylint codes to disable during analysis. Common codes include:
-                - C0114: Missing module docstring
-                - C0116: Missing function docstring
-                - C0301: Line too long
-                - C0303: Trailing whitespace
-                - C0305: Trailing newlines
-                - W0311: Bad indentation
-                - W0611: Unused import
-                - W1514: Unspecified encoding
-            python_executable: Path to Python executable to use for running pylint. Defaults to sys.executable if None.
+    Args:
+        project_dir: The path to the project directory.
+        disable_codes: List of pylint codes to disable during analysis. Common codes include:
+            - C0114: Missing module docstring
+            - C0116: Missing function docstring
+            - C0301: Line too long
+            - C0303: Trailing whitespace
+            - C0305: Trailing newlines
+            - W0311: Bad indentation
+            - W0611: Unused import
+            - W1514: Unspecified encoding
+        python_executable: Path to Python executable to use for running pylint. Defaults to sys.executable if None.
 
-        Returns:
-            A PylintResult object containing the results of the pylint run.
+    Returns:
+        A PylintResult object containing the results of the pylint run.
 
-        Raises:
-            FileNotFoundError: If the project directory does not exist.
+    Raises:
+        FileNotFoundError: If the project directory does not exist.
     """
     if not os.path.isdir(project_dir):
         raise FileNotFoundError(f"Project directory not found: {project_dir}")
@@ -330,7 +330,7 @@ def get_pylint_prompt(
         project_dir: The path to the project directory to analyze.
         categories: Set of specific pylint categories to filter by. The available categories are the same as in run_pylint_check:
             - PylintMessageType.CONVENTION: Style conventions (C)
-            - PylintMessageType.REFACTOR: Refactoring suggestions (R) 
+            - PylintMessageType.REFACTOR: Refactoring suggestions (R)
             - PylintMessageType.WARNING: Python-specific warnings (W)
             - PylintMessageType.ERROR: Probable bugs in the code (E)
             - PylintMessageType.FATAL: Critical errors that prevent pylint from working (F)
