@@ -41,10 +41,10 @@ class CodeCheckerServer:
 
         Args:
             project_dir: Path to the project directory to check
-            python_executable: Optional path to Python interpreter to use. If None, defaults to sys.executable.
-            venv_path: Optional path to a virtual environment to activate. When specified, the Python executable from this venv will be used.
+            python_executable: Optional path to Python interpreter to use for running tests. If None, defaults to sys.executable.
+            venv_path: Optional path to a virtual environment to activate for running tests. When specified, the Python executable from this venv will be used instead of python_executable.
             test_folder: Path to the test folder (relative to project_dir). Defaults to 'tests'.
-            keep_temp_files: Whether to keep temporary files after execution. Useful for debugging test failures.
+            keep_temp_files: Whether to keep temporary files after test execution. Useful for debugging when tests fail.
         """
         self.project_dir = project_dir
         self.python_executable = python_executable
@@ -187,15 +187,15 @@ class CodeCheckerServer:
 
             Args:
                 markers: Optional list of pytest markers to filter tests. Examples: ['slow', 'integration']
-                verbosity: Integer for pytest verbosity level (0-3), default 2
+                verbosity: Integer for pytest verbosity level (0-3), default 2. Higher values provide more detailed output.
                 extra_args: Optional list of additional pytest arguments. Examples: ['-xvs', '--no-header']
-                env_vars: Optional dictionary of environment variables for the subprocess
+                env_vars: Optional dictionary of environment variables for the subprocess. Example: {'DEBUG': '1', 'PYTHONPATH': '/custom/path'}
                 categories: Optional set of pylint message categories to include.
                     Available categories: 'convention', 'refactor', 'warning', 'error', 'fatal'
                     Defaults to {'error', 'fatal'} if not specified.
 
             Returns:
-            A string containing results from all checks and/or LLM prompts
+                A string containing results from all checks and/or LLM prompts
             """
             try:
                 logger.info(
@@ -294,10 +294,10 @@ def create_server(
 
     Args:
         project_dir: Path to the project directory to check
-        python_executable: Optional path to Python interpreter to use. If None, defaults to sys.executable.
-        venv_path: Optional path to a virtual environment to activate. When specified, the Python executable from this venv will be used.
+        python_executable: Optional path to Python interpreter to use for running tests. If None, defaults to sys.executable.
+        venv_path: Optional path to a virtual environment to activate for running tests. When specified, the Python executable from this venv will be used instead of python_executable.
         test_folder: Path to the test folder (relative to project_dir). Defaults to 'tests'.
-        keep_temp_files: Whether to keep temporary files after execution. Useful for debugging test failures.
+        keep_temp_files: Whether to keep temporary files after test execution. Useful for debugging when tests fail.
 
     Returns:
         A new CodeCheckerServer instance

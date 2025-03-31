@@ -286,8 +286,16 @@ def run_pylint_check(
             - PylintMessageType.ERROR: Probable bugs in the code (E)
             - PylintMessageType.FATAL: Critical errors that prevent pylint from working (F)
             Defaults to {ERROR, FATAL} if None.
-        disable_codes: Optional list of pylint codes to disable during analysis. See get_pylint_results for common codes.
-        python_executable: Optional path to Python executable to use for running pylint. Defaults to sys.executable.
+        disable_codes: Optional list of pylint codes to disable during analysis. Common codes include:
+            - C0114: Missing module docstring
+            - C0116: Missing function docstring
+            - C0301: Line too long
+            - C0303: Trailing whitespace
+            - C0305: Trailing newlines
+            - W0311: Bad indentation
+            - W0611: Unused import
+            - W1514: Unspecified encoding
+        python_executable: Optional path to Python interpreter to use for running tests. If None, defaults to sys.executable.
 
     Returns:
         PylintResult with the analysis outcome.
@@ -333,8 +341,16 @@ def get_pylint_prompt(
             - PylintMessageType.ERROR: Probable bugs in the code (E)
             - PylintMessageType.FATAL: Critical errors that prevent pylint from working (F)
             Defaults to {ERROR, FATAL} if None.
-        disable_codes: Optional list of pylint codes to disable during analysis. Common codes are listed in get_pylint_results.
-        python_executable: Optional path to Python executable to use for running pylint. Defaults to sys.executable.
+        disable_codes: Optional list of pylint codes to disable during analysis. Common codes include:
+            - C0114: Missing module docstring
+            - C0116: Missing function docstring
+            - C0301: Line too long
+            - C0303: Trailing whitespace
+            - C0305: Trailing newlines
+            - W0311: Bad indentation
+            - W0611: Unused import
+            - W1514: Unspecified encoding
+        python_executable: Optional path to Python interpreter to use for running tests. If None, defaults to sys.executable.
 
     Returns:
         A prompt string with issue details and instructions, or None if no issues were found.

@@ -39,8 +39,8 @@ def run_tests(
         markers: Optional list of pytest markers to filter tests. Examples: ['slow', 'integration', 'unit']
         verbosity: Integer for pytest verbosity level (0-3). Default is 2. Higher values provide more detailed output
         extra_args: Optional list of additional pytest arguments. Examples: ['-xvs', '--no-header', '--durations=10']
-        env_vars: Optional dictionary of environment variables to set for the subprocess. Example: {'DEBUG': '1', 'PYTHONPATH': '/custom/path'}
-        venv_path: Optional path to a virtual environment to activate. When provided, this venv's Python will be used instead of python_executable
+        env_vars: Optional dictionary of environment variables to set for the subprocess. Example: {'DEBUG': '1'}
+        venv_path: Optional path to a virtual environment to activate. When provided, this venv's Python will be used
         keep_temp_files: Whether to keep temporary files after execution (useful for debugging failures)
 
 
@@ -318,13 +318,13 @@ def check_code_with_pytest(
     Args:
         project_dir: Path to the project directory
         test_folder: Path to the test folder (relative to project_dir). Defaults to 'tests'
-        python_executable: Optional path to Python interpreter to use. Defaults to sys.executable if None
+        python_executable: Optional path to Python interpreter to use for running tests. If None, defaults to sys.executable
         markers: Optional list of pytest markers to filter tests. Examples: ['slow', 'integration', 'unit']
-        verbosity: Integer for pytest verbosity level (0-3). Default is 2. Higher values provide more detailed output
+        verbosity: Integer for pytest verbosity level (0-3), default 2. Higher values provide more detailed output
         extra_args: Optional list of additional pytest arguments. Examples: ['-xvs', '--no-header']
-        env_vars: Optional dictionary of environment variables to set for the subprocess. Example: {'DEBUG': '1'}
-        venv_path: Optional path to a virtual environment to activate. When provided, this venv's Python will be used
-        keep_temp_files: Whether to keep temporary files after execution (useful for debugging failures)
+        env_vars: Optional dictionary of environment variables for the subprocess. Example: {'DEBUG': '1', 'PYTHONPATH': '/custom/path'}
+        venv_path: Optional path to a virtual environment to activate for running tests. When specified, the Python executable from this venv will be used instead of python_executable
+        keep_temp_files: Whether to keep temporary files after test execution. Useful for debugging when tests fail
 
 
     Returns:

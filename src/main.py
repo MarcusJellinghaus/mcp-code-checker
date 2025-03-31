@@ -32,13 +32,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--venv-path",
         type=str,
-        help="Path to virtual environment to activate for running tests. When specified, the Python executable from this venv will be used",
+        help="Path to virtual environment to activate for running tests. When specified, the Python executable from this venv will be used instead of python-executable",
     )
     parser.add_argument(
         "--test-folder",
         type=str,
         default="tests",
-        help="Path to the test folder (relative to project_dir), default 'tests'",
+        help="Path to the test folder (relative to project_dir). Defaults to 'tests'",
     )
     parser.add_argument(
         "--keep-temp-files",
