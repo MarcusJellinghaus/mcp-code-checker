@@ -48,7 +48,6 @@ async def test_run_pytest_check_parameters(
         verbosity=3,
         extra_args=["--no-header"],
         env_vars={"TEST_ENV": "value"},
-        continue_on_collection_errors=False,
     )
 
     # Verify check_code_with_pytest was called with correct parameters
@@ -63,7 +62,6 @@ async def test_run_pytest_check_parameters(
         env_vars={"TEST_ENV": "value"},
         venv_path=None,
         keep_temp_files=True,  # From server constructor
-        continue_on_collection_errors=False,
     )
 
 
@@ -106,7 +104,6 @@ async def test_run_all_checks_parameters(
         verbosity=3,
         extra_args=["--no-header"],
         env_vars={"TEST_ENV": "value"},
-        continue_on_collection_errors=False,
         pylint_categories={"ERROR"},
     )
 
@@ -122,5 +119,4 @@ async def test_run_all_checks_parameters(
         env_vars={"TEST_ENV": "value"},
         venv_path=None,
         keep_temp_files=True,  # From server constructor
-        continue_on_collection_errors=False,
     )

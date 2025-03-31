@@ -28,7 +28,6 @@ def run_tests(
     env_vars: Optional[Dict[str, str]] = None,
     venv_path: Optional[str] = None,
     keep_temp_files: bool = False,
-    continue_on_collection_errors: bool = False,
 ) -> PytestReport:
     """
     Run pytest tests in the specified project directory and test folder and returns the results.
@@ -43,7 +42,7 @@ def run_tests(
         env_vars: Optional dictionary of environment variables to set for the subprocess. Example: {'DEBUG': '1', 'PYTHONPATH': '/custom/path'}
         venv_path: Optional path to a virtual environment to activate. When provided, this venv's Python will be used instead of python_executable
         keep_temp_files: Whether to keep temporary files after execution (useful for debugging failures)
-        continue_on_collection_errors: Whether to continue execution even if test collection fails. Set to False to fail immediately if tests can't be collected
+
 
     Returns:
         PytestReport: An object containing the results of the test session with the following attributes:
@@ -220,26 +219,17 @@ def run_tests(
                     process.returncode, combined_output
                 )
 
-            # Handle collection errors based on continue_on_collection_errors setting
+            # Always continue on collection errors but log warnings
             report_exists = os.path.isfile(temp_report_file)
             if (process.returncode in [1, 2, 5]) and not report_exists:
                 error_details = (
                     error_context.error_message if error_context else combined_output
                 )
-
-                if continue_on_collection_errors:
-                    # Log warning but continue execution
-                    logger.warning(
-                        f"Test collection error occurred (code {process.returncode}), "
-                        f"but continuing as requested: {error_details}"
-                    )
-                else:
-                    # Raise exception to stop execution
-                    print(combined_output)
-                    raise Exception(
-                        f"Test Collection Errors: {error_context.exit_code_meaning if error_context else 'Pytest failed to collect tests'}. "
-                        f"Suggestion: {error_context.suggestion if error_context else 'Check test file naming and imports'}"
-                    )
+                # Log warning but continue execution
+                logger.warning(
+                    f"Test collection error occurred (code {process.returncode}), "
+                    f"but continuing execution: {error_details}"
+                )
 
             # Handle other error cases
             elif process.returncode == 3:
@@ -321,7 +311,6 @@ def check_code_with_pytest(
     env_vars: Optional[Dict[str, str]] = None,
     venv_path: Optional[str] = None,
     keep_temp_files: bool = False,
-    continue_on_collection_errors: bool = False,
 ) -> Dict[str, Any]:
     """
     Run pytest on the specified project and return results.
@@ -336,7 +325,7 @@ def check_code_with_pytest(
         env_vars: Optional dictionary of environment variables to set for the subprocess. Example: {'DEBUG': '1'}
         venv_path: Optional path to a virtual environment to activate. When provided, this venv's Python will be used
         keep_temp_files: Whether to keep temporary files after execution (useful for debugging failures)
-        continue_on_collection_errors: Whether to continue execution even if test collection fails. Set to False to fail immediately
+
 
     Returns:
         Dictionary with test results containing the following keys:
@@ -358,7 +347,6 @@ def check_code_with_pytest(
             env_vars,
             venv_path,
             keep_temp_files,
-            continue_on_collection_errors,
         )
 
         summary = get_test_summary(test_results)

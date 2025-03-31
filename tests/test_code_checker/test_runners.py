@@ -211,7 +211,6 @@ def test_check_code_with_pytest_with_custom_parameters(
         extra_args=extra_args,
         env_vars=custom_env,
         keep_temp_files=True,
-        continue_on_collection_errors=False,
     )
 
     # Verify run_tests was called with the correct parameters
@@ -225,7 +224,6 @@ def test_check_code_with_pytest_with_custom_parameters(
         custom_env,
         None,  # venv_path
         True,  # keep_temp_files
-        False,  # continue_on_collection_errors
     )
 
     # Verify result is correct

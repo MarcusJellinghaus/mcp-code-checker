@@ -113,7 +113,6 @@ class CodeCheckerServer:
             verbosity: int = 2,
             extra_args: Optional[List[str]] = None,
             env_vars: Optional[Dict[str, str]] = None,
-            continue_on_collection_errors: bool = True,
         ) -> str:
             """
             Run pytest on the project code and generate smart prompts for LLMs.
@@ -123,7 +122,7 @@ class CodeCheckerServer:
                 verbosity: Integer for pytest verbosity level (0-3), default 2. Higher values provide more detailed output.
                 extra_args: Optional list of additional pytest arguments. Examples: ['-xvs', '--no-header']
                 env_vars: Optional dictionary of environment variables for the subprocess. Example: {'DEBUG': '1', 'PYTHONPATH': '/custom/path'}
-                continue_on_collection_errors: Whether to continue on collection errors, default True. Set to False to fail immediately if tests can't be collected.
+
 
             Returns:
                 A string containing either pytest results or a prompt for an LLM to interpret
@@ -150,7 +149,6 @@ class CodeCheckerServer:
                     env_vars=env_vars,
                     venv_path=self.venv_path,
                     keep_temp_files=self.keep_temp_files,
-                    continue_on_collection_errors=continue_on_collection_errors,
                 )
 
                 if not test_results["success"]:
@@ -182,7 +180,6 @@ class CodeCheckerServer:
             verbosity: int = 2,
             extra_args: Optional[List[str]] = None,
             env_vars: Optional[Dict[str, str]] = None,
-            continue_on_collection_errors: bool = True,
             pylint_categories: Optional[Set[str]] = None,
         ) -> str:
             """
@@ -193,7 +190,7 @@ class CodeCheckerServer:
                 verbosity: Integer for pytest verbosity level (0-3), default 2
                 extra_args: Optional list of additional pytest arguments. Examples: ['-xvs', '--no-header']
                 env_vars: Optional dictionary of environment variables for the subprocess
-                continue_on_collection_errors: Whether to continue on collection errors, default True
+
                 pylint_categories: Optional set of pylint message categories to include (error, warning, etc.).
                     Available categories: 'convention', 'refactor', 'warning', 'error', 'fatal'
 
@@ -247,7 +244,6 @@ class CodeCheckerServer:
                     env_vars=env_vars,
                     venv_path=self.venv_path,
                     keep_temp_files=self.keep_temp_files,
-                    continue_on_collection_errors=continue_on_collection_errors,
                 )
 
                 # Generate prompt for failed tests if any
