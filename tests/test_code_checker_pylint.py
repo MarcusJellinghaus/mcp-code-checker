@@ -127,8 +127,8 @@ def test_run_pylint_check(temp_project_dir: Path) -> None:
     )
     assert isinstance(result.return_code, int)
 
-    # Test with pytest_project_marker parameter
-    result = run_pylint_check(str(temp_project_dir), pytest_project_marker="test")
+    # Test with disable_codes parameter
+    result = run_pylint_check(str(temp_project_dir), disable_codes=["C0114", "C0116"])
     assert isinstance(result.return_code, int)
 
 

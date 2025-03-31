@@ -263,7 +263,6 @@ def get_direct_instruction_for_pylint_code(code: str) -> Optional[str]:
 def run_pylint_check(
     project_dir: str,
     categories: Optional[Set[PylintMessageType]] = None,
-    pytest_project_marker: Optional[str] = None,
     default_categories: Optional[Set[PylintMessageType]] = None,
     disable_codes: Optional[List[str]] = None,
     python_executable: Optional[str] = None,
@@ -274,7 +273,6 @@ def run_pylint_check(
     Args:
         project_dir: The path to the project directory to analyze.
         categories: Set of specific pylint categories to filter by.
-        pytest_project_marker: Optional marker to identify pytest projects.
         default_categories: Default categories to use if none provided.
         disable_codes: Optional list of pylint codes to disable during analysis.
         python_executable: Optional path to Python executable to use for running pylint.
@@ -308,7 +306,6 @@ def run_pylint_check(
 def get_pylint_prompt(
     project_dir: str,
     categories: Optional[Set[PylintMessageType]] = None,
-    pytest_project_marker: Optional[str] = None,
     default_categories: Optional[Set[PylintMessageType]] = None,
     disable_codes: Optional[List[str]] = None,
     python_executable: Optional[str] = None,
@@ -319,7 +316,6 @@ def get_pylint_prompt(
     Args:
         project_dir: The path to the project directory to analyze.
         categories: Set of specific pylint categories to filter by.
-        pytest_project_marker: Optional marker to identify pytest projects.
         default_categories: Default categories to use if none provided.
         disable_codes: Optional list of pylint codes to disable during analysis.
         python_executable: Optional path to Python executable to use for running pylint.
@@ -327,8 +323,7 @@ def get_pylint_prompt(
     Returns:
         A prompt string with issue details and instructions, or None if no issues were found.
     """
-    if pytest_project_marker is not None:
-        raise NotImplementedError
+    # Initialize default categories if not provided
 
     if categories is None:
         if default_categories is not None:
