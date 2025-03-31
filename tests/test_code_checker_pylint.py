@@ -7,8 +7,8 @@ from typing import Generator, Set
 import pytest
 
 from src.code_checker_pylint import (
-    PylintCategory,
     DEFAULT_CATEGORIES,
+    PylintCategory,
     filter_pylint_codes_by_category,
     get_pylint_results,
     run_pylint_check,

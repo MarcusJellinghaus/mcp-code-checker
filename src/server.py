@@ -210,9 +210,7 @@ class CodeCheckerServer:
                 if categories:
                     for category in categories:
                         try:
-                            pylint_categories.add(
-                                PylintMessageType(category.lower())
-                            )
+                            pylint_categories.add(PylintMessageType(category.lower()))
                         except ValueError:
                             logger.warning(f"Unknown pylint category: {category}")
 
