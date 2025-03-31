@@ -36,9 +36,7 @@ async def test_run_pytest_check_parameters(
 
     # Create server with the static parameters
     server = CodeCheckerServer(
-        mock_project_dir,
-        test_folder="custom_tests",
-        keep_temp_files=True
+        mock_project_dir, test_folder="custom_tests", keep_temp_files=True
     )
 
     # Get the run_pytest_check function (it's decorated by mock_tool)
@@ -96,9 +94,7 @@ async def test_run_all_checks_parameters(
 
     # Create server with the static parameters
     server = CodeCheckerServer(
-        mock_project_dir,
-        test_folder="custom_tests",
-        keep_temp_files=True
+        mock_project_dir, test_folder="custom_tests", keep_temp_files=True
     )
 
     # Get the run_all_checks function (it's decorated by mock_tool)
@@ -112,7 +108,7 @@ async def test_run_all_checks_parameters(
         env_vars={"TEST_ENV": "value"},
         continue_on_collection_errors=False,
         disable_codes=["E1101"],
-        categories={"ERROR"}
+        categories={"ERROR"},
     )
 
     # Verify check_code_with_pytest was called with correct parameters

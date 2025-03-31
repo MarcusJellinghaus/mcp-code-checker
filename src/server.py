@@ -306,9 +306,9 @@ def create_server(
         A new CodeCheckerServer instance
     """
     return CodeCheckerServer(
-        project_dir, 
-        python_executable=python_executable, 
+        project_dir,
+        python_executable=python_executable,
         venv_path=venv_path,
         test_folder=test_folder,
-        keep_temp_files=keep_temp_files
+        keep_temp_files=keep_temp_files,
     )

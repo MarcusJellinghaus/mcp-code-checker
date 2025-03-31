@@ -74,11 +74,11 @@ def main() -> None:
 
     # Create and run the server
     server = create_server(
-        project_dir, 
-        python_executable=args.python_executable, 
+        project_dir,
+        python_executable=args.python_executable,
         venv_path=args.venv_path,
         test_folder=args.test_folder,
-        keep_temp_files=args.keep_temp_files
+        keep_temp_files=args.keep_temp_files,
     )
     server.run()
 
