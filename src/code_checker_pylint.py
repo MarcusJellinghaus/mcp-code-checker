@@ -121,15 +121,9 @@ def filter_pylint_codes_by_category(
     return filtered_codes
 
 
-# Cache to store recent pylint results
-_pylint_cache: Dict[Tuple[str, Tuple[str, ...]], Tuple[PylintResult, float]] = {}
-_CACHE_TIMEOUT = 300  # 5 minutes
-
-
 def get_pylint_results(
     project_dir: str,
     disable_codes: Optional[List[str]] = None,
-    use_cache: bool = True,
     python_executable: Optional[str] = None,
 ) -> PylintResult:
     """
@@ -138,7 +132,6 @@ def get_pylint_results(
         Args:
             project_dir: The path to the project directory.
             disable_codes: List of pylint codes to disable during analysis.
-            use_cache: Whether to use cached results if available and recent.
     python_executable: Path to Python executable to use for running pylint. Defaults to sys.executable if None.
 
         Returns:
@@ -149,19 +142,6 @@ def get_pylint_results(
     """
     if not os.path.isdir(project_dir):
         raise FileNotFoundError(f"Project directory not found: {project_dir}")
-
-    # Convert disable_codes to a tuple for cache key
-    cache_key = (
-        project_dir,
-        tuple(sorted(disable_codes)) if disable_codes else tuple(),
-    )
-
-    # Check cache
-    if use_cache and cache_key in _pylint_cache:
-        cached_result, timestamp = _pylint_cache[cache_key]
-        if time.time() - timestamp < _CACHE_TIMEOUT:
-            logger.debug("Using cached pylint results")
-            return cached_result
 
     try:
         # Determine the Python executable from the parameter or fall back to sys.executable
@@ -223,18 +203,11 @@ def get_pylint_results(
                 error=error_message,
                 raw_output=raw_output,
             )
-            # Cache the result
-            if use_cache:
-                _pylint_cache[cache_key] = (result, time.time())
             return result
 
         result = PylintResult(
             return_code=process.returncode, messages=messages, raw_output=raw_output
         )
-
-        # Cache the result
-        if use_cache:
-            _pylint_cache[cache_key] = (result, time.time())
 
         return result
 
