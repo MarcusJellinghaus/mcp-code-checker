@@ -173,24 +173,24 @@ class CodeCheckerServer:
         @self.mcp.tool()
         async def run_all_checks(
             markers: Optional[List[str]] = None,
-            verbosity: int = 1,
+            verbosity: int = 2,
             extra_args: Optional[List[str]] = None,
             env_vars: Optional[Dict[str, str]] = None,
             continue_on_collection_errors: bool = True,
             disable_codes: Optional[List[str]] = None,
-            categories: Optional[Set[str]] = None,
+            pylint_categories: Optional[Set[str]] = None,
         ) -> str:
             """
             Run all code checks (pylint and pytest) and generate combined results.
 
             Args:
                 markers: Optional list of pytest markers to filter tests
-                verbosity: Integer for pytest verbosity level (0-3), default 1
+                verbosity: Integer for pytest verbosity level (0-3), default 2
                 extra_args: Optional list of additional pytest arguments
                 env_vars: Optional dictionary of environment variables for the subprocess
                 continue_on_collection_errors: Whether to continue on collection errors, default True
                 disable_codes: Optional list of pylint error codes to disable during analysis
-                categories: Optional set of pylint message categories to include (error, warning, etc.)
+                pylint_categories: Optional set of pylint message categories to include (error, warning, etc.)
 
             Returns:
                 A string containing results from all checks and/or LLM prompts
@@ -203,24 +203,26 @@ class CodeCheckerServer:
                 # Run pylint check to generate prompt
                 from src.code_checker_pylint import PylintMessageType, get_pylint_prompt
 
-                # Use provided categories if available, otherwise use default (ERROR, FATAL)
-                if categories is None:
-                    pylint_categories = {
+                # Use provided pylint_categories if available, otherwise use default (ERROR, FATAL)
+                if pylint_categories is None:
+                    pylint_categories_enum = {
                         PylintMessageType.ERROR,
                         PylintMessageType.FATAL,
                     }
                 else:
                     # Convert string categories to PylintMessageType enum values
-                    pylint_categories = set()
-                    for category in categories:
+                    pylint_categories_enum = set()
+                    for category in pylint_categories:
                         try:
-                            pylint_categories.add(PylintMessageType(category.lower()))
+                            pylint_categories_enum.add(
+                                PylintMessageType(category.lower())
+                            )
                         except ValueError:
                             logger.warning(f"Unknown pylint category: {category}")
 
                 pylint_prompt = get_pylint_prompt(
                     str(self.project_dir),
-                    categories=pylint_categories,
+                    categories=pylint_categories_enum,
                     disable_codes=disable_codes,
                     python_executable=self.python_executable,
                 )

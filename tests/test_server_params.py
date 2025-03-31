@@ -108,7 +108,7 @@ async def test_run_all_checks_parameters(
         env_vars={"TEST_ENV": "value"},
         continue_on_collection_errors=False,
         disable_codes=["E1101"],
-        categories={"ERROR"},
+        pylint_categories={"ERROR"},
     )
 
     # Verify check_code_with_pytest was called with correct parameters

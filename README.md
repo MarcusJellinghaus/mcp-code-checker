@@ -33,7 +33,7 @@ Additionally, `run_all_checks` exposes:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `categories` | set | ERROR, FATAL | Set of pylint message categories to include (convention, refactor, warning, error, fatal) |
+| `pylint_categories` | set | ERROR, FATAL | Set of pylint message categories to include (convention, refactor, warning, error, fatal) |
 
 ### Pytest Parameters
 
@@ -43,7 +43,7 @@ Both `run_pytest_check` and `run_all_checks` expose the following parameters for
 |-----------|------|---------|-------------|
 | `test_folder` | string | "tests" | Path to the test folder relative to project directory |
 | `markers` | list | None | Optional list of pytest markers to filter tests |
-| `verbosity` | integer | 2 (run_pytest_check), 1 (run_all_checks) | Pytest verbosity level (0-3) |
+| `verbosity` | integer | 2 | Pytest verbosity level (0-3) |
 | `extra_args` | list | None | Optional list of additional pytest arguments |
 | `env_vars` | dictionary | None | Optional environment variables for the subprocess |
 | `keep_temp_files` | boolean | False | Whether to keep temporary files after execution |
