@@ -181,19 +181,19 @@ The server exposes the following MCP tools:
 
 ### Setting Up Development Environment
 
-```bash
-# Clone the repository
+```cmd
+REM Clone the repository
 git clone https://github.com/yourusername/mcp-code-checker.git
 cd mcp-code-checker
 
-# Create and activate a virtual environment
+REM Create and activate a virtual environment
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+.venv\Scripts\activate
 
-# Install dependencies
+REM Install dependencies
 pip install -e .
 
-# For development dependencies
+REM For development dependencies
 pip install -e ".[dev]"
 ```
 
