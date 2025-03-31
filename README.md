@@ -55,7 +55,7 @@ Both `run_pytest_check` and `run_all_checks` expose the following parameters for
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/mcp-code-checker.git
+git clone https://github.com/MarcusJellinghaus/mcp-code-checker.git
 cd mcp-code-checker
 
 # Create and activate a virtual environment (optional but recommended)
@@ -179,7 +179,7 @@ The server exposes the following MCP tools:
 
 ## Development
 
-### Setting Up Development Environment
+### Setting up the development environment on windows
 
 ```cmd
 REM Clone the repository
@@ -193,8 +193,9 @@ python -m venv .venv
 REM Install dependencies
 pip install -e .
 
-REM For development dependencies
+REM Install development dependencies
 pip install -e ".[dev]"
+
 ```
 
 ## Running with MCP Dev Tools
