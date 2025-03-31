@@ -8,7 +8,7 @@ import pytest
 
 from src.code_checker_pylint import (
     PylintCategory,
-    default_categories,
+    DEFAULT_CATEGORIES,
     filter_pylint_codes_by_category,
     get_pylint_results,
     run_pylint_check,
@@ -133,11 +133,11 @@ def test_run_pylint_check(temp_project_dir: Path) -> None:
 
 
 def test_default_categories_from_init() -> None:
-    """Tests that default_categories is correctly exposed via __init__."""
-    assert default_categories is not None
-    assert isinstance(default_categories, set)
-    assert PylintCategory.ERROR in default_categories
-    assert PylintCategory.FATAL in default_categories
+    """Tests that DEFAULT_CATEGORIES is correctly exposed via __init__."""
+    assert DEFAULT_CATEGORIES is not None
+    assert isinstance(DEFAULT_CATEGORIES, set)
+    assert PylintCategory.ERROR in DEFAULT_CATEGORIES
+    assert PylintCategory.FATAL in DEFAULT_CATEGORIES
 
 
 class TestFilterPylintCodesByCategory:

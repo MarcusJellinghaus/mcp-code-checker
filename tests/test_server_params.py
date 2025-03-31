@@ -104,7 +104,7 @@ async def test_run_all_checks_parameters(
         verbosity=3,
         extra_args=["--no-header"],
         env_vars={"TEST_ENV": "value"},
-        pylint_categories={"ERROR"},
+        categories={"ERROR"},  # Updated from pylint_categories to categories
     )
 
     # Verify check_code_with_pytest was called with correct parameters

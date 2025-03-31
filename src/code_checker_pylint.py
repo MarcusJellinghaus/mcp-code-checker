@@ -20,8 +20,8 @@ class PylintMessageType(Enum):
     FATAL = "fatal"
 
 
-# Default categories for pylint checks
-default_categories: Set[PylintMessageType] = {
+# Default categories for pylint checks - used when no categories are specified
+DEFAULT_CATEGORIES: Set[PylintMessageType] = {
     PylintMessageType.ERROR,
     PylintMessageType.FATAL,
 }
@@ -271,7 +271,6 @@ def get_direct_instruction_for_pylint_code(code: str) -> Optional[str]:
 def run_pylint_check(
     project_dir: str,
     categories: Optional[Set[PylintMessageType]] = None,
-    default_categories: Optional[Set[PylintMessageType]] = None,
     disable_codes: Optional[List[str]] = None,
     python_executable: Optional[str] = None,
 ) -> PylintResult:
@@ -286,7 +285,7 @@ def run_pylint_check(
             - PylintMessageType.WARNING: Python-specific warnings (W)
             - PylintMessageType.ERROR: Probable bugs in the code (E)
             - PylintMessageType.FATAL: Critical errors that prevent pylint from working (F)
-        default_categories: Default categories to use if none provided. Defaults to {ERROR, FATAL}.
+            Defaults to {ERROR, FATAL} if None.
         disable_codes: Optional list of pylint codes to disable during analysis. See get_pylint_results for common codes.
         python_executable: Optional path to Python executable to use for running pylint. Defaults to sys.executable.
 
@@ -319,7 +318,6 @@ def run_pylint_check(
 def get_pylint_prompt(
     project_dir: str,
     categories: Optional[Set[PylintMessageType]] = None,
-    default_categories: Optional[Set[PylintMessageType]] = None,
     disable_codes: Optional[List[str]] = None,
     python_executable: Optional[str] = None,
 ) -> Optional[str]:
@@ -328,27 +326,22 @@ def get_pylint_prompt(
 
     Args:
         project_dir: The path to the project directory to analyze.
-        categories: Set of specific pylint categories to filter by. The available categories are the same as in run_pylint_check:
+        categories: Set of specific pylint categories to filter by. Available categories are:
             - PylintMessageType.CONVENTION: Style conventions (C)
             - PylintMessageType.REFACTOR: Refactoring suggestions (R)
             - PylintMessageType.WARNING: Python-specific warnings (W)
             - PylintMessageType.ERROR: Probable bugs in the code (E)
             - PylintMessageType.FATAL: Critical errors that prevent pylint from working (F)
-        default_categories: Default categories to use if none provided. If None, defaults to {ERROR, FATAL}.
+            Defaults to {ERROR, FATAL} if None.
         disable_codes: Optional list of pylint codes to disable during analysis. Common codes are listed in get_pylint_results.
         python_executable: Optional path to Python executable to use for running pylint. Defaults to sys.executable.
 
     Returns:
         A prompt string with issue details and instructions, or None if no issues were found.
     """
-    # Initialize default categories if not provided
-
+    # Use default categories if none provided
     if categories is None:
-        if default_categories is not None:
-            categories = default_categories
-        else:
-            # Default to error categories if nothing specified
-            categories = {PylintMessageType.ERROR, PylintMessageType.FATAL}
+        categories = DEFAULT_CATEGORIES
 
     # Default disable codes if none provided
     if disable_codes is None:
