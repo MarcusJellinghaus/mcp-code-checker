@@ -7,9 +7,11 @@ from typing import Generator, Set
 import pytest
 
 from src.code_checker_pylint import (
+    DEFAULT_CATEGORIES,
     PylintCategory,
     filter_pylint_codes_by_category,
     get_pylint_results,
+    run_pylint_check,
 )
 
 
@@ -57,7 +59,9 @@ def test_get_pylint_results_no_issues(temp_project_dir: Path) -> None:
         "def hello():\n    print('hello')\n",
     )
 
-    result = get_pylint_results(str(temp_project_dir), disable_codes=["C0114", "C0116"])
+    result = get_pylint_results(
+        str(temp_project_dir), disable_codes=["C0114", "C0116"], python_executable=None
+    )
     assert result.return_code == 0
     assert not result.messages
     assert result.error is None
@@ -69,7 +73,7 @@ def test_get_pylint_results_with_issues(temp_project_dir: Path) -> None:
         os.path.join(temp_project_dir, "src", "test_module.py"),
         "def hello():\n    print('hello')\n",
     )
-    result = get_pylint_results(str(temp_project_dir))
+    result = get_pylint_results(str(temp_project_dir), python_executable=None)
     # assert result.return_code == 0
     assert len(result.messages) > 0
     assert result.error is None
@@ -88,7 +92,7 @@ def test_get_pylint_results_pylint_error(temp_project_dir: Path) -> None:
         os.path.join(temp_project_dir, "src", "test_module.py"),
         "def hello()\n    print('hello')\n",
     )  # missing colon
-    result = get_pylint_results(str(temp_project_dir))
+    result = get_pylint_results(str(temp_project_dir), python_executable=None)
 
     assert result.return_code != 0
     # assert result.messages == []
@@ -99,10 +103,41 @@ def test_get_pylint_results_empty_file(temp_project_dir: Path) -> None:
     """Tests get_pylint_results with an empty python file"""
     write_file(os.path.join(temp_project_dir, "src", "empty_file.py"), "")
 
-    result = get_pylint_results(str(temp_project_dir))
+    result = get_pylint_results(str(temp_project_dir), python_executable=None)
     assert result.return_code == 0
     assert len(result.messages) == 0
     assert result.error is None
+
+
+def test_run_pylint_check(temp_project_dir: Path) -> None:
+    """Tests the new run_pylint_check function."""
+    write_file(
+        os.path.join(temp_project_dir, "src", "test_module.py"),
+        "def hello():\n    print('hello')\n",
+    )
+
+    # Test with default parameters
+    result = run_pylint_check(str(temp_project_dir))
+    assert isinstance(result.return_code, int)
+    assert isinstance(result.messages, list)
+
+    # Test with categories parameter
+    result = run_pylint_check(
+        str(temp_project_dir), categories={PylintCategory.ERROR, PylintCategory.FATAL}
+    )
+    assert isinstance(result.return_code, int)
+
+    # Test with disable_codes parameter
+    result = run_pylint_check(str(temp_project_dir), disable_codes=["C0114", "C0116"])
+    assert isinstance(result.return_code, int)
+
+
+def test_default_categories_from_init() -> None:
+    """Tests that DEFAULT_CATEGORIES is correctly exposed via __init__."""
+    assert DEFAULT_CATEGORIES is not None
+    assert isinstance(DEFAULT_CATEGORIES, set)
+    assert PylintCategory.ERROR in DEFAULT_CATEGORIES
+    assert PylintCategory.FATAL in DEFAULT_CATEGORIES
 
 
 class TestFilterPylintCodesByCategory:

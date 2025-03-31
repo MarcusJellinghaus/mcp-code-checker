@@ -23,12 +23,11 @@ def run_tests(
     test_folder: str,
     python_executable: Optional[str] = None,
     markers: Optional[List[str]] = None,
-    verbosity: int = 1,
+    verbosity: int = 2,
     extra_args: Optional[List[str]] = None,
     env_vars: Optional[Dict[str, str]] = None,
     venv_path: Optional[str] = None,
     keep_temp_files: bool = False,
-    continue_on_collection_errors: bool = False,
 ) -> PytestReport:
     """
     Run pytest tests in the specified project directory and test folder and returns the results.
@@ -37,16 +36,20 @@ def run_tests(
         project_dir: The path to the project directory
         test_folder: The path to the folder containing the tests relative to the project directory
         python_executable: Optional path to Python interpreter to use. Defaults to sys.executable if not provided
-        markers: Optional list of pytest markers to filter tests
-        verbosity: Integer for pytest verbosity level (0-3). Default is 1
-        extra_args: Optional list of additional pytest arguments
-        env_vars: Optional dictionary of environment variables to set for the subprocess
-        venv_path: Optional path to a virtual environment to activate
-        keep_temp_files: Whether to keep temporary files after execution (for debugging)
-        continue_on_collection_errors: Whether to continue execution even if test collection fails
+        markers: Optional list of pytest markers to filter tests. Examples: ['slow', 'integration', 'unit']
+        verbosity: Integer for pytest verbosity level (0-3). Default is 2. Higher values provide more detailed output
+        extra_args: Optional list of additional pytest arguments. Examples: ['-xvs', '--no-header', '--durations=10']
+        env_vars: Optional dictionary of environment variables to set for the subprocess. Example: {'DEBUG': '1'}
+        venv_path: Optional path to a virtual environment to activate. When provided, this venv's Python will be used
+        keep_temp_files: Whether to keep temporary files after execution (useful for debugging failures)
+
 
     Returns:
-        PytestReport: An object containing the results of the test session
+        PytestReport: An object containing the results of the test session with the following attributes:
+        - summary: Summary statistics of the test run (passed, failed, skipped counts)
+        - test_results: List of individual test results with detailed information
+        - environment_context: Information about the test environment
+        - error_context: Information about any errors that occurred during execution
 
     Raises:
         Exception: If pytest is not installed or if an error occurs during test execution
@@ -216,26 +219,17 @@ def run_tests(
                     process.returncode, combined_output
                 )
 
-            # Handle collection errors based on continue_on_collection_errors setting
+            # Always continue on collection errors but log warnings
             report_exists = os.path.isfile(temp_report_file)
             if (process.returncode in [1, 2, 5]) and not report_exists:
                 error_details = (
                     error_context.error_message if error_context else combined_output
                 )
-
-                if continue_on_collection_errors:
-                    # Log warning but continue execution
-                    logger.warning(
-                        f"Test collection error occurred (code {process.returncode}), "
-                        f"but continuing as requested: {error_details}"
-                    )
-                else:
-                    # Raise exception to stop execution
-                    print(combined_output)
-                    raise Exception(
-                        f"Test Collection Errors: {error_context.exit_code_meaning if error_context else 'Pytest failed to collect tests'}. "
-                        f"Suggestion: {error_context.suggestion if error_context else 'Check test file naming and imports'}"
-                    )
+                # Log warning but continue execution
+                logger.warning(
+                    f"Test collection error occurred (code {process.returncode}), "
+                    f"but continuing execution: {error_details}"
+                )
 
             # Handle other error cases
             elif process.returncode == 3:
@@ -312,30 +306,35 @@ def check_code_with_pytest(
     test_folder: str = "tests",
     python_executable: Optional[str] = None,
     markers: Optional[List[str]] = None,
-    verbosity: int = 1,
+    verbosity: int = 2,
     extra_args: Optional[List[str]] = None,
     env_vars: Optional[Dict[str, str]] = None,
     venv_path: Optional[str] = None,
     keep_temp_files: bool = False,
-    continue_on_collection_errors: bool = False,
 ) -> Dict[str, Any]:
     """
     Run pytest on the specified project and return results.
 
     Args:
         project_dir: Path to the project directory
-        test_folder: Path to the test folder (relative to project_dir)
-        python_executable: Optional path to Python interpreter to use
-        markers: Optional list of pytest markers to filter tests
-        verbosity: Integer for pytest verbosity level (0-3)
-        extra_args: Optional list of additional pytest arguments
-        env_vars: Optional dictionary of environment variables to set for the subprocess
-        venv_path: Optional path to a virtual environment to activate
-        keep_temp_files: Whether to keep temporary files after execution (for debugging)
-        continue_on_collection_errors: Whether to continue execution even if test collection fails
+        test_folder: Path to the test folder (relative to project_dir). Defaults to 'tests'
+        python_executable: Optional path to Python interpreter to use for running tests. If None, defaults to sys.executable
+        markers: Optional list of pytest markers to filter tests. Examples: ['slow', 'integration', 'unit']
+        verbosity: Integer for pytest verbosity level (0-3), default 2. Higher values provide more detailed output
+        extra_args: Optional list of additional pytest arguments. Examples: ['-xvs', '--no-header']
+        env_vars: Optional dictionary of environment variables for the subprocess. Example: {'DEBUG': '1', 'PYTHONPATH': '/custom/path'}
+        venv_path: Optional path to a virtual environment to activate for running tests. When specified, the Python executable from this venv will be used instead of python_executable
+        keep_temp_files: Whether to keep temporary files after test execution. Useful for debugging when tests fail
+
 
     Returns:
-        Dictionary with test results
+        Dictionary with test results containing the following keys:
+        - success: Boolean indicating if the test execution was successful
+        - summary: Summary of test results (passed, failed, skipped counts)
+        - failed_tests_prompt: Formatted prompt for failed tests (if any)
+        - test_results: Complete PytestReport object with detailed test information
+        - environment_info: Information about the test environment (Python version, pytest version, etc.)
+        - error_info: Details about any errors that occurred during test execution
     """
     try:
         test_results = run_tests(
@@ -348,7 +347,6 @@ def check_code_with_pytest(
             env_vars,
             venv_path,
             keep_temp_files,
-            continue_on_collection_errors,
         )
 
         summary = get_test_summary(test_results)

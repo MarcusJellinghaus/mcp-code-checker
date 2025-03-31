@@ -20,6 +20,13 @@ class PylintMessageType(Enum):
     FATAL = "fatal"
 
 
+# Default categories for pylint checks - used when no categories are specified
+DEFAULT_CATEGORIES: Set[PylintMessageType] = {
+    PylintMessageType.ERROR,
+    PylintMessageType.FATAL,
+}
+
+
 class PylintMessage(NamedTuple):
     """Represents a single Pylint message."""
 
@@ -114,23 +121,26 @@ def filter_pylint_codes_by_category(
     return filtered_codes
 
 
-# Cache to store recent pylint results
-_pylint_cache: Dict[Tuple[str, Tuple[str, ...]], Tuple[PylintResult, float]] = {}
-_CACHE_TIMEOUT = 300  # 5 minutes
-
-
 def get_pylint_results(
     project_dir: str,
     disable_codes: Optional[List[str]] = None,
-    use_cache: bool = True,
+    python_executable: Optional[str] = None,
 ) -> PylintResult:
     """
     Runs pylint on the specified project directory and returns the results.
 
     Args:
         project_dir: The path to the project directory.
-        disable_codes: List of pylint codes to disable during analysis.
-        use_cache: Whether to use cached results if available and recent.
+        disable_codes: List of pylint codes to disable during analysis. Common codes include:
+            - C0114: Missing module docstring
+            - C0116: Missing function docstring
+            - C0301: Line too long
+            - C0303: Trailing whitespace
+            - C0305: Trailing newlines
+            - W0311: Bad indentation
+            - W0611: Unused import
+            - W1514: Unspecified encoding
+        python_executable: Path to Python executable to use for running pylint. Defaults to sys.executable if None.
 
     Returns:
         A PylintResult object containing the results of the pylint run.
@@ -141,26 +151,15 @@ def get_pylint_results(
     if not os.path.isdir(project_dir):
         raise FileNotFoundError(f"Project directory not found: {project_dir}")
 
-    # Convert disable_codes to a tuple for cache key
-    cache_key = (
-        project_dir,
-        tuple(sorted(disable_codes)) if disable_codes else tuple(),
-    )
-
-    # Check cache
-    if use_cache and cache_key in _pylint_cache:
-        cached_result, timestamp = _pylint_cache[cache_key]
-        if time.time() - timestamp < _CACHE_TIMEOUT:
-            logger.debug("Using cached pylint results")
-            return cached_result
-
     try:
-        # Determine the Python executable from the current environment
-        python_executable = sys.executable
+        # Determine the Python executable from the parameter or fall back to sys.executable
+        python_exe = (
+            python_executable if python_executable is not None else sys.executable
+        )
 
         # Construct the pylint command
         pylint_command = [
-            python_executable,
+            python_exe,
             "-m",
             "pylint",
             "--output-format=json",
@@ -212,18 +211,11 @@ def get_pylint_results(
                 error=error_message,
                 raw_output=raw_output,
             )
-            # Cache the result
-            if use_cache:
-                _pylint_cache[cache_key] = (result, time.time())
             return result
 
         result = PylintResult(
             return_code=process.returncode, messages=messages, raw_output=raw_output
         )
-
-        # Cache the result
-        if use_cache:
-            _pylint_cache[cache_key] = (result, time.time())
 
         return result
 
@@ -235,64 +227,6 @@ def get_pylint_results(
             raw_output=None,
         )
         return result
-
-
-def get_pylint_results_as_str(
-    result: PylintResult, remove_project_dir: str, verbosity: int = 1
-) -> str:
-    """
-    Render Pylint results in a user-friendly format as string.
-
-    Args:
-        result: The PylintResult to format.
-        remove_project_dir: The project directory path to remove from file paths.
-        verbosity: Level of detail (0=minimal, 1=normal, 2=detailed).
-
-    Returns:
-        A formatted string representation of the pylint results.
-    """
-    list_result: List[str] = []
-
-    if result.error:
-        list_result.append(f"Pylint Error: {result.error}")
-        if result.raw_output and verbosity >= 1:
-            list_result.append("Raw output from pylint:")
-            result_raw_output = result.raw_output
-            result_raw_output = result_raw_output.replace(
-                remove_project_dir + os.path.sep, ""
-            )
-            list_result.append(result_raw_output)
-    elif result.return_code == 0:
-        list_result.append("Pylint found no issues.")
-    else:
-        if verbosity >= 2:
-            list_result.append(f"Pylint found {len(result.messages)} issues:")
-        else:
-            list_result.append("Pylint found the following issues:")
-
-        for message in result.messages:
-            message_path = normalize_path(message.path, remove_project_dir)
-
-            if verbosity == 0:
-                # Minimal output
-                list_result.append(f"{message_path}:{message.line}: {message.symbol}")
-            elif verbosity == 1:
-                # Normal output
-                list_result.append(
-                    f"{message_path}:{message.line}:{message.column}: {message.symbol} "
-                    f"({message.message_id}) {message.message}"
-                )
-            else:
-                # Detailed output
-                list_result.append(
-                    f"File: {message_path}\n"
-                    f"Line: {message.line}, Column: {message.column}\n"
-                    f"Type: {message.type}, Symbol: {message.symbol}, ID: {message.message_id}\n"
-                    f"Message: {message.message}\n"
-                )
-
-    str_result = "\n".join(list_result)
-    return str_result
 
 
 def get_direct_instruction_for_pylint_code(code: str) -> Optional[str]:
@@ -334,51 +268,118 @@ def get_direct_instruction_for_pylint_code(code: str) -> Optional[str]:
     return instructions.get(code)
 
 
+def run_pylint_check(
+    project_dir: str,
+    categories: Optional[Set[PylintMessageType]] = None,
+    disable_codes: Optional[List[str]] = None,
+    python_executable: Optional[str] = None,
+) -> PylintResult:
+    """
+    Run pylint check on a project directory and returns the result.
+
+    Args:
+        project_dir: The path to the project directory to analyze.
+        categories: Set of specific pylint categories to filter by. Available categories are:
+            - PylintMessageType.CONVENTION: Style conventions (C)
+            - PylintMessageType.REFACTOR: Refactoring suggestions (R)
+            - PylintMessageType.WARNING: Python-specific warnings (W)
+            - PylintMessageType.ERROR: Probable bugs in the code (E)
+            - PylintMessageType.FATAL: Critical errors that prevent pylint from working (F)
+            Defaults to {ERROR, FATAL} if None.
+        disable_codes: Optional list of pylint codes to disable during analysis. Common codes include:
+            - C0114: Missing module docstring
+            - C0116: Missing function docstring
+            - C0301: Line too long
+            - C0303: Trailing whitespace
+            - C0305: Trailing newlines
+            - W0311: Bad indentation
+            - W0611: Unused import
+            - W1514: Unspecified encoding
+        python_executable: Optional path to Python interpreter to use for running tests. If None, defaults to sys.executable.
+
+    Returns:
+        PylintResult with the analysis outcome.
+    """
+    # Default disable codes if none provided
+    if disable_codes is None:
+        disable_codes = [
+            # not required for now
+            "C0114",  # doc missing
+            "C0116",  # doc missing
+            #
+            # can be solved with formatting / black
+            "C0301",  # line-too-long
+            "C0303",  # trailing-whitespace
+            "C0305",  # trailing-newlines
+            "W0311",  # bad-indentation   - instruction available
+            #
+            # can be solved with iSort
+            "W0611",  # unused-import
+            "W1514",  # unspecified-encoding
+        ]
+
+    return get_pylint_results(
+        project_dir, disable_codes=disable_codes, python_executable=python_executable
+    )
+
+
 def get_pylint_prompt(
     project_dir: str,
     categories: Optional[Set[PylintMessageType]] = None,
-    pytest_project_marker: Optional[str] = None,
-    default_categories: Optional[Set[PylintMessageType]] = None,
+    disable_codes: Optional[List[str]] = None,
+    python_executable: Optional[str] = None,
 ) -> Optional[str]:
     """
     Generate a prompt for fixing pylint issues based on the analysis of a project.
 
     Args:
         project_dir: The path to the project directory to analyze.
-        categories: Set of specific pylint categories to filter by.
-        pytest_project_marker: Optional marker to identify pytest projects.
-        default_categories: Default categories to use if none provided.
+        categories: Set of specific pylint categories to filter by. Available categories are:
+            - PylintMessageType.CONVENTION: Style conventions (C)
+            - PylintMessageType.REFACTOR: Refactoring suggestions (R)
+            - PylintMessageType.WARNING: Python-specific warnings (W)
+            - PylintMessageType.ERROR: Probable bugs in the code (E)
+            - PylintMessageType.FATAL: Critical errors that prevent pylint from working (F)
+            Defaults to {ERROR, FATAL} if None.
+        disable_codes: Optional list of pylint codes to disable during analysis. Common codes include:
+            - C0114: Missing module docstring
+            - C0116: Missing function docstring
+            - C0301: Line too long
+            - C0303: Trailing whitespace
+            - C0305: Trailing newlines
+            - W0311: Bad indentation
+            - W0611: Unused import
+            - W1514: Unspecified encoding
+        python_executable: Optional path to Python interpreter to use for running tests. If None, defaults to sys.executable.
 
     Returns:
         A prompt string with issue details and instructions, or None if no issues were found.
     """
-    if pytest_project_marker is not None:
-        raise NotImplementedError
-
+    # Use default categories if none provided
     if categories is None:
-        if default_categories is not None:
-            categories = default_categories
-        else:
-            # Default to error categories if nothing specified
-            categories = {PylintMessageType.ERROR, PylintMessageType.FATAL}
+        categories = DEFAULT_CATEGORIES
 
-    disable_codes = [
-        # not required for now
-        "C0114",  # doc missing
-        "C0116",  # doc missing
-        #
-        # can be solved with formatting / black
-        "C0301",  # line-too-long
-        "C0303",  # trailing-whitespace
-        "C0305",  # trailing-newlines
-        "W0311",  # bad-indentation   - instruction available
-        #
-        # can be solved with iSort
-        "W0611",  # unused-import
-        "W1514",  # unspecified-encoding
-    ]
+    # Default disable codes if none provided
+    if disable_codes is None:
+        disable_codes = [
+            # not required for now
+            "C0114",  # doc missing
+            "C0116",  # doc missing
+            #
+            # can be solved with formatting / black
+            "C0301",  # line-too-long
+            "C0303",  # trailing-whitespace
+            "C0305",  # trailing-newlines
+            "W0311",  # bad-indentation   - instruction available
+            #
+            # can be solved with iSort
+            "W0611",  # unused-import
+            "W1514",  # unspecified-encoding
+        ]
 
-    pylint_results = get_pylint_results(project_dir, disable_codes=disable_codes)
+    pylint_results = get_pylint_results(
+        project_dir, disable_codes=disable_codes, python_executable=python_executable
+    )
 
     codes = pylint_results.get_message_ids()
     if len(categories) > 0:
