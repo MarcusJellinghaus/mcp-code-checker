@@ -27,12 +27,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--python-executable",
         type=str,
-        help="Path to Python interpreter to use for running tests",
+        help="Path to Python interpreter to use for running tests. If not specified, defaults to the current Python interpreter (sys.executable)",
     )
     parser.add_argument(
         "--venv-path",
         type=str,
-        help="Path to virtual environment to activate for running tests",
+        help="Path to virtual environment to activate for running tests. When specified, the Python executable from this venv will be used",
     )
     parser.add_argument(
         "--test-folder",
@@ -43,7 +43,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--keep-temp-files",
         action="store_true",
-        help="Keep temporary files after test execution",
+        help="Keep temporary files after test execution. Useful for debugging when tests fail",
     )
     return parser.parse_args()
 

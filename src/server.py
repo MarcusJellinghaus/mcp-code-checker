@@ -41,10 +41,10 @@ class CodeCheckerServer:
 
         Args:
             project_dir: Path to the project directory to check
-            python_executable: Optional path to Python interpreter to use
-            venv_path: Optional path to a virtual environment to activate
-            test_folder: Path to the test folder (relative to project_dir)
-            keep_temp_files: Whether to keep temporary files after execution
+            python_executable: Optional path to Python interpreter to use. If None, defaults to sys.executable.
+            venv_path: Optional path to a virtual environment to activate. When specified, the Python executable from this venv will be used.
+            test_folder: Path to the test folder (relative to project_dir). Defaults to 'tests'.
+            keep_temp_files: Whether to keep temporary files after execution. Useful for debugging test failures.
         """
         self.project_dir = project_dir
         self.python_executable = python_executable
@@ -68,24 +68,30 @@ class CodeCheckerServer:
             Run pylint on the project code and generate smart prompts for LLMs.
 
             Args:
-                disable_codes: Optional list of pylint error codes to disable during analysis
+                disable_codes: Optional list of pylint error codes to disable during analysis.
+            Common codes to disable include:
+            - C0114: Missing module docstring
+            - C0116: Missing function docstring
+            - C0301: Line too long
+            - W0611: Unused import
+            - W1514: Using open without explicitly specifying an encoding
 
             Returns:
                 A string containing either pylint results or a prompt for an LLM to interpret
             """
             try:
                 logger.info(
-                    f"Running pylint check on project directory: {self.project_dir}"
-                )
+            f"Running pylint check on project directory: {self.project_dir}"
+            )
 
-                # Import the code_checker_pylint module to run pylint checks
+                    # Import the code_checker_pylint module to run pylint checks
                 from src.code_checker_pylint import get_pylint_prompt
 
                 # Generate a prompt for pylint issues
                 pylint_prompt = get_pylint_prompt(
                     str(self.project_dir),
-                    disable_codes=disable_codes,
-                    python_executable=self.python_executable,
+                disable_codes=disable_codes,
+                python_executable=self.python_executable,
                 )
 
                 # Format the results as a string
@@ -113,11 +119,11 @@ class CodeCheckerServer:
             Run pytest on the project code and generate smart prompts for LLMs.
 
             Args:
-                markers: Optional list of pytest markers to filter tests
-                verbosity: Integer for pytest verbosity level (0-3), default 2
-                extra_args: Optional list of additional pytest arguments
-                env_vars: Optional dictionary of environment variables for the subprocess
-                continue_on_collection_errors: Whether to continue on collection errors, default True
+                markers: Optional list of pytest markers to filter tests. Examples: ['slow', 'integration']
+                verbosity: Integer for pytest verbosity level (0-3), default 2. Higher values provide more detailed output.
+                extra_args: Optional list of additional pytest arguments. Examples: ['-xvs', '--no-header']
+                env_vars: Optional dictionary of environment variables for the subprocess. Example: {'DEBUG': '1', 'PYTHONPATH': '/custom/path'}
+                continue_on_collection_errors: Whether to continue on collection errors, default True. Set to False to fail immediately if tests can't be collected.
 
             Returns:
                 A string containing either pytest results or a prompt for an LLM to interpret
@@ -177,24 +183,23 @@ class CodeCheckerServer:
             extra_args: Optional[List[str]] = None,
             env_vars: Optional[Dict[str, str]] = None,
             continue_on_collection_errors: bool = True,
-            disable_codes: Optional[List[str]] = None,
             pylint_categories: Optional[Set[str]] = None,
-        ) -> str:
+            ) -> str:
             """
             Run all code checks (pylint and pytest) and generate combined results.
 
             Args:
-                markers: Optional list of pytest markers to filter tests
+                markers: Optional list of pytest markers to filter tests. Examples: ['slow', 'integration']
                 verbosity: Integer for pytest verbosity level (0-3), default 2
-                extra_args: Optional list of additional pytest arguments
+                extra_args: Optional list of additional pytest arguments. Examples: ['-xvs', '--no-header']
                 env_vars: Optional dictionary of environment variables for the subprocess
                 continue_on_collection_errors: Whether to continue on collection errors, default True
-                disable_codes: Optional list of pylint error codes to disable during analysis
-                pylint_categories: Optional set of pylint message categories to include (error, warning, etc.)
+                pylint_categories: Optional set of pylint message categories to include (error, warning, etc.).
+                    Available categories: 'convention', 'refactor', 'warning', 'error', 'fatal'
 
             Returns:
-                A string containing results from all checks and/or LLM prompts
-            """
+            A string containing results from all checks and/or LLM prompts
+                """
             try:
                 logger.info(
                     f"Running all code checks on project directory: {self.project_dir}"
@@ -223,9 +228,8 @@ class CodeCheckerServer:
                 pylint_prompt = get_pylint_prompt(
                     str(self.project_dir),
                     categories=pylint_categories_enum,
-                    disable_codes=disable_codes,
                     python_executable=self.python_executable,
-                )
+                    )
 
                 # Run pytest check
                 from src.code_checker_pytest.reporting import (
@@ -299,10 +303,10 @@ def create_server(
 
     Args:
         project_dir: Path to the project directory to check
-        python_executable: Optional path to Python interpreter to use
-        venv_path: Optional path to a virtual environment to activate
-        test_folder: Path to the test folder (relative to project_dir)
-        keep_temp_files: Whether to keep temporary files after execution
+        python_executable: Optional path to Python interpreter to use. If None, defaults to sys.executable.
+        venv_path: Optional path to a virtual environment to activate. When specified, the Python executable from this venv will be used.
+        test_folder: Path to the test folder (relative to project_dir). Defaults to 'tests'.
+        keep_temp_files: Whether to keep temporary files after execution. Useful for debugging test failures.
 
     Returns:
         A new CodeCheckerServer instance

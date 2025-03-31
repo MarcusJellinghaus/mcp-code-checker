@@ -131,8 +131,16 @@ def get_pylint_results(
 
         Args:
             project_dir: The path to the project directory.
-            disable_codes: List of pylint codes to disable during analysis.
-    python_executable: Path to Python executable to use for running pylint. Defaults to sys.executable if None.
+            disable_codes: List of pylint codes to disable during analysis. Common codes include:
+                - C0114: Missing module docstring
+                - C0116: Missing function docstring
+                - C0301: Line too long
+                - C0303: Trailing whitespace
+                - C0305: Trailing newlines
+                - W0311: Bad indentation
+                - W0611: Unused import
+                - W1514: Unspecified encoding
+            python_executable: Path to Python executable to use for running pylint. Defaults to sys.executable if None.
 
         Returns:
             A PylintResult object containing the results of the pylint run.
@@ -272,10 +280,15 @@ def run_pylint_check(
 
     Args:
         project_dir: The path to the project directory to analyze.
-        categories: Set of specific pylint categories to filter by.
-        default_categories: Default categories to use if none provided.
-        disable_codes: Optional list of pylint codes to disable during analysis.
-        python_executable: Optional path to Python executable to use for running pylint.
+        categories: Set of specific pylint categories to filter by. Available categories are:
+            - PylintMessageType.CONVENTION: Style conventions (C)
+            - PylintMessageType.REFACTOR: Refactoring suggestions (R)
+            - PylintMessageType.WARNING: Python-specific warnings (W)
+            - PylintMessageType.ERROR: Probable bugs in the code (E)
+            - PylintMessageType.FATAL: Critical errors that prevent pylint from working (F)
+        default_categories: Default categories to use if none provided. Defaults to {ERROR, FATAL}.
+        disable_codes: Optional list of pylint codes to disable during analysis. See get_pylint_results for common codes.
+        python_executable: Optional path to Python executable to use for running pylint. Defaults to sys.executable.
 
     Returns:
         PylintResult with the analysis outcome.
@@ -315,10 +328,15 @@ def get_pylint_prompt(
 
     Args:
         project_dir: The path to the project directory to analyze.
-        categories: Set of specific pylint categories to filter by.
-        default_categories: Default categories to use if none provided.
-        disable_codes: Optional list of pylint codes to disable during analysis.
-        python_executable: Optional path to Python executable to use for running pylint.
+        categories: Set of specific pylint categories to filter by. The available categories are the same as in run_pylint_check:
+            - PylintMessageType.CONVENTION: Style conventions (C)
+            - PylintMessageType.REFACTOR: Refactoring suggestions (R) 
+            - PylintMessageType.WARNING: Python-specific warnings (W)
+            - PylintMessageType.ERROR: Probable bugs in the code (E)
+            - PylintMessageType.FATAL: Critical errors that prevent pylint from working (F)
+        default_categories: Default categories to use if none provided. If None, defaults to {ERROR, FATAL}.
+        disable_codes: Optional list of pylint codes to disable during analysis. Common codes are listed in get_pylint_results.
+        python_executable: Optional path to Python executable to use for running pylint. Defaults to sys.executable.
 
     Returns:
         A prompt string with issue details and instructions, or None if no issues were found.

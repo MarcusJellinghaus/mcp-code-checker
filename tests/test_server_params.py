@@ -107,9 +107,8 @@ async def test_run_all_checks_parameters(
         extra_args=["--no-header"],
         env_vars={"TEST_ENV": "value"},
         continue_on_collection_errors=False,
-        disable_codes=["E1101"],
         pylint_categories={"ERROR"},
-    )
+        )
 
     # Verify check_code_with_pytest was called with correct parameters
     # test_folder and keep_temp_files should come from the server instance
