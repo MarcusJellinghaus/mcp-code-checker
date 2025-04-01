@@ -69,15 +69,29 @@ pip install -e .
 ## Running the Server
 
 ```bash
-python -m src.main --project-dir /path/to/project [--python-executable /path/to/python] [--venv-path /path/to/venv]
+python -m src.main [--project-dir /path/to/project] [--python-executable /path/to/python] [--venv-path /path/to/venv] [--preset strict|standard|minimal|debug]
 ```
 
-The server uses FastMCP for operation. The project directory parameter (`--project-dir`) is **required** for security reasons. All code checking operations will be restricted to this directory.
+The server uses FastMCP for operation. All code checking operations will be restricted to the project directory.
 
-Additional parameters:
+Parameters:
 
-- `--python-executable`: Optional path to Python interpreter to use for running tests
-- `--venv-path`: Optional path to virtual environment to activate for running tests
+- `--project-dir`: Path to the project directory (defaults to current working directory)
+- `--python-executable`: Optional path to Python interpreter to use for running tests (auto-detected if not specified)
+- `--venv-path`: Optional path to virtual environment to activate for running tests (auto-detected if not specified)
+- `--preset`: Use a predefined configuration preset:
+  - `strict`: All checks (convention, refactor, warning, error, fatal)
+  - `standard`: Warnings and errors (warning, error, fatal)
+  - `minimal`: Errors only (error, fatal)
+  - `debug`: Errors with verbose output and temp files (error, fatal, verbosity=3, keep_temp_files=True)
+
+### Auto-detection Features
+
+The server now includes smart auto-detection capabilities:
+
+1. **Project Directory**: Uses the current working directory if `--project-dir` is not specified
+2. **Python Environment**: Automatically detects virtual environments in the project directory
+3. **Configuration Presets**: Provides predefined settings for different use cases
 
 ## Using with Claude Desktop App
 
@@ -98,10 +112,8 @@ To enable Claude to use this code checking server for analyzing files in your lo
                 "C:\\path\\to\\mcp_code_checker\\src\\main.py",
                 "--project-dir",
                 "C:\\path\\to\\your\\project",
-            "--python-executable",
-            "C:\\path\\to\\python.exe",
-            "--venv-path",
-            "C:\\path\\to\\venv"
+                "--preset",
+                "standard"
             ],
             "env": {
                 "PYTHONPATH": "C:\\path\\to\\mcp_code_checker\\"
@@ -110,6 +122,30 @@ To enable Claude to use this code checking server for analyzing files in your lo
     }
 }
 ```
+
+Note: With the new auto-detection features, you can simplify this configuration:
+
+```json
+{
+    "mcpServers": {
+        "code_checker": {
+            "command": "C:\\path\\to\\mcp_code_checker\\.venv\\Scripts\\python.exe",
+            "args": [                
+                "C:\\path\\to\\mcp_code_checker\\src\\main.py",
+                "--project-dir",
+                "C:\\path\\to\\your\\project",
+                "--preset",
+                "standard"
+            ],
+            "env": {
+                "PYTHONPATH": "C:\\path\\to\\mcp_code_checker\\"
+            }
+        }
+    }
+}
+```
+
+The server will automatically detect Python environments in the project directory, so you don't need to specify `--python-executable` or `--venv-path` unless you want to override the auto-detection.
 
 3. Replace all `C:\\path\\to\\` instances with your actual paths:
    - Point to your Python virtual environment 

@@ -51,6 +51,11 @@ class CodeCheckerServer:
         self.venv_path = venv_path
         self.test_folder = test_folder
         self.keep_temp_files = keep_temp_files
+        
+        # Additional configuration attributes that can be set after initialization
+        # These are used by the tools when they're called
+        self.verbosity: int = 2  # Default verbosity level for pytest
+        self.pylint_categories: Optional[List[str]] = None  # Pylint categories to include
         # We cannot import the actual FastMCP for type checking
         from mcp.server.fastmcp import FastMCP
 
@@ -110,7 +115,7 @@ class CodeCheckerServer:
         @self.mcp.tool()
         async def run_pytest_check(
             markers: Optional[List[str]] = None,
-            verbosity: int = 2,
+            verbosity: Optional[int] = None,
             extra_args: Optional[List[str]] = None,
             env_vars: Optional[Dict[str, str]] = None,
         ) -> str:
@@ -131,6 +136,12 @@ class CodeCheckerServer:
                 logger.info(
                     f"Running pytest check on project directory: {self.project_dir}"
                 )
+                
+                # Use preset verbosity if available and not overridden
+                actual_verbosity = verbosity if verbosity is not None else self.verbosity
+                # Ensure verbosity is an int
+                if actual_verbosity is None:
+                    actual_verbosity = 2  # Default to 2 if somehow still None
 
                 # Import the code_checker_pytest module to run pytest checks and generate prompts
                 from src.code_checker_pytest.reporting import (
@@ -144,7 +155,7 @@ class CodeCheckerServer:
                     test_folder=self.test_folder,
                     python_executable=self.python_executable,
                     markers=markers,
-                    verbosity=verbosity,
+                    verbosity=actual_verbosity,
                     extra_args=extra_args,
                     env_vars=env_vars,
                     venv_path=self.venv_path,
@@ -177,7 +188,7 @@ class CodeCheckerServer:
         @self.mcp.tool()
         async def run_all_checks(
             markers: Optional[List[str]] = None,
-            verbosity: int = 2,
+            verbosity: Optional[int] = None,
             extra_args: Optional[List[str]] = None,
             env_vars: Optional[Dict[str, str]] = None,
             categories: Optional[Set[str]] = None,
@@ -202,13 +213,24 @@ class CodeCheckerServer:
                     f"Running all code checks on project directory: {self.project_dir}"
                 )
 
+                # Use preset verbosity if available and not overridden
+                actual_verbosity = verbosity if verbosity is not None else self.verbosity
+                # Ensure verbosity is an int
+                if actual_verbosity is None:
+                    actual_verbosity = 2  # Default to 2 if somehow still None
+
                 # Run pylint check to generate prompt
                 from src.code_checker_pylint import PylintMessageType, get_pylint_prompt
 
+                # Use preset pylint categories if available and not overridden
+                actual_categories = categories
+                if actual_categories is None and self.pylint_categories:
+                    actual_categories = set(self.pylint_categories)
+
                 # Convert string categories to PylintMessageType enum values if provided
                 pylint_categories = set()
-                if categories:
-                    for category in categories:
+                if actual_categories:
+                    for category in actual_categories:
                         try:
                             pylint_categories.add(PylintMessageType(category.lower()))
                         except ValueError:
@@ -232,7 +254,7 @@ class CodeCheckerServer:
                     test_folder=self.test_folder,
                     python_executable=self.python_executable,
                     markers=markers,
-                    verbosity=verbosity,
+                    verbosity=actual_verbosity,
                     extra_args=extra_args,
                     env_vars=env_vars,
                     venv_path=self.venv_path,
