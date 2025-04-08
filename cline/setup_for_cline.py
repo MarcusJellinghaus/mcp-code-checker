@@ -75,8 +75,8 @@ def get_mcp_code_checker_path() -> Path:
     Returns:
         Path to the MCP Code Checker directory
     """
-    # Get the directory of the current script
-    return Path(__file__).resolve().parent
+    # Get the directory of the current script and go up one level to the project root
+    return Path(__file__).resolve().parent.parent
 
 
 def create_or_update_mcp_settings(
@@ -134,7 +134,7 @@ def create_or_update_mcp_settings(
             preset
         ],
         "env": {
-            "PYTHONPATH": str(mcp_code_checker_path)
+            "PYTHONPATH": "."
         },
         "disabled": False,
         "autoApprove": []

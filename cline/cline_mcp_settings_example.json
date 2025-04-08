@@ -10,7 +10,7 @@
         "standard"
       ],
       "env": {
-        "PYTHONPATH": "C:\\path\\to\\mcp-code-checker"
+        "PYTHONPATH": "."
       },
       "disabled": false,
       "autoApprove": []
