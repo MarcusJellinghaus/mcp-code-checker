@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "code_checker": {
+      "command": "C:\\path\\to\\python.exe",
+      "args": [
+        "C:\\path\\to\\mcp-code-checker\\src\\main.py",
+        "--project-dir",
+        "C:\\path\\to\\your\\project",
+        "--preset",
+        "standard"
+      ],
+      "env": {
+        "PYTHONPATH": "C:\\path\\to\\mcp-code-checker"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
