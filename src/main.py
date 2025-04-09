@@ -8,6 +8,41 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union, cast
 
+# Check if the script is being run directly and if PYTHONPATH is set correctly
+# This check must run before any 'src' imports
+if __name__ == "__main__" and "src" in __file__:
+    # Get the absolute path of the project root directory
+    script_path = Path(__file__).resolve()
+    project_root = script_path.parent.parent
+    
+    # Check if the project root is in sys.path
+    if str(project_root) not in sys.path:
+        # Determine the OS-specific command to set PYTHONPATH
+        if os.name == "nt":  # Windows
+            set_cmd = f"set PYTHONPATH={project_root}"
+            run_cmd = f"{set_cmd} && python src\\main.py"
+        else:  # Unix-like systems
+            set_cmd = f"export PYTHONPATH={project_root}"
+            run_cmd = f"{set_cmd} && python src/main.py"
+        
+        print(f"""
+ERROR: ModuleNotFoundError: No module named 'src'
+
+This error occurs because the project root directory is not in your Python path.
+To fix this, you have two options:
+
+1. Set the PYTHONPATH environment variable:
+   {set_cmd}
+   python src/main.py
+
+2. Run the script as a module from the project root:
+   python -m src.main
+
+For a permanent solution, add the PYTHONPATH to your environment variables.
+""")
+        sys.exit(1)
+
+# Now we can safely import from src
 from src.server import create_server
 
 logger = logging.getLogger(__name__)
