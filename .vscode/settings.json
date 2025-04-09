@@ -1,0 +1,17 @@
+{
+    "terminal.integrated.profiles.windows": {
+        "Python Environment (cmd)": {
+            "path": "cmd.exe",
+            "args": ["/k", "${workspaceFolder}\\.venv\\Scripts\\activate.bat"],
+            "icon": "terminal-cmd"
+        },
+        "Python Environment (PowerShell)": {
+            "source": "PowerShell",
+            "args": ["-NoExit", "-Command", "& '${workspaceFolder}\\.venv\\Scripts\\Activate.ps1'"],
+            "icon": "terminal-powershell"
+        }
+    },
+    "terminal.integrated.defaultProfile.windows": "Python Environment (cmd)",
+    "python.terminal.activateEnvironment": true,
+    "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+}
