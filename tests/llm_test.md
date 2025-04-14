@@ -5,6 +5,7 @@ This document contains a series of independent, self-contained test modules for 
 ## Overview
 
 The MCP Code Checker provides three main tools:
+
 1. `run_pylint_check` - Runs pylint on the project code
 2. `run_pytest_check` - Runs pytest on the project code
 3. `run_all_checks` - Runs both pylint and pytest checks and combines the results
@@ -13,9 +14,11 @@ The MCP Code Checker provides three main tools:
 
 ## Test Module 1: Basic Pylint Functionality
 
-**Purpose**: Verify that the `run_pylint_check` tool works correctly with various configurations.
+**Purpose**: Verify that the `run_pylint_check` MCP tool works correctly with various configurations.'
+Use the MCP tool, report the result, do not investigate further.
 
 **Prerequisites**:
+
 - The MCP Code Checker server is properly installed and configured
 - You have access to the appropriate MCP tool interface for your environment
 
@@ -31,12 +34,14 @@ The MCP Code Checker provides three main tools:
    - Verify that the specified codes are not reported in the results
 
 **Verification**:
+
 - The tool executes without errors
 - The response format is a readable string
 - The content accurately reflects the state of the codebase
 - Any error conditions are handled gracefully with informative messages
 
 **Execution Approach**:
+
 - Call the MCP tool with server name "code_checker" and tool name "run_pylint_check"
 - For the second test, include a "disable_codes" parameter with an array of codes to disable
 
@@ -47,6 +52,7 @@ The MCP Code Checker provides three main tools:
 **Purpose**: Verify that the `run_pytest_check` tool works correctly with various configurations.
 
 **Prerequisites**:
+
 - The MCP Code Checker server is properly installed and configured
 - You have access to the appropriate MCP tool interface for your environment
 - The project contains pytest tests that can be executed
@@ -67,12 +73,14 @@ The MCP Code Checker provides three main tools:
    - Verify that the output contains more detailed information
 
 **Verification**:
+
 - The tool executes without errors
 - The response format is a readable string
 - The content accurately reflects the test results
 - Any error conditions are handled gracefully with informative messages
 
 **Execution Approach**:
+
 - Call the MCP tool with server name "code_checker" and tool name "run_pytest_check"
 - For the second test, include a "markers" parameter with an array containing the marker
 - For the third test, include a "verbosity" parameter with a value of 3
@@ -84,6 +92,7 @@ The MCP Code Checker provides three main tools:
 **Purpose**: Verify that the `run_all_checks` tool correctly combines pylint and pytest functionality.
 
 **Prerequisites**:
+
 - The MCP Code Checker server is properly installed and configured
 - You have access to the appropriate MCP tool interface for your environment
 - The project contains code that can be analyzed by pylint and tests that can be run by pytest
@@ -100,12 +109,14 @@ The MCP Code Checker provides three main tools:
    - Verify that the pylint results include the specified categories
 
 **Verification**:
+
 - The tool executes without errors
 - The response format is a readable string with clearly separated sections
 - The content accurately reflects both pylint and pytest results
 - Any error conditions are handled gracefully with informative messages
 
 **Execution Approach**:
+
 - Call the MCP tool with server name "code_checker" and tool name "run_all_checks"
 - For the second test, include a "categories" parameter with an array of categories
 
@@ -116,6 +127,7 @@ The MCP Code Checker provides three main tools:
 **Purpose**: Verify that the tools correctly identify and report errors in the code.
 
 **Prerequisites**:
+
 - The MCP Code Checker server is properly installed and configured
 - You have access to the appropriate MCP tool interface for your environment
 - You have permission to create temporary files in the project
@@ -131,11 +143,13 @@ The MCP Code Checker provides three main tools:
    - Run the `run_pytest_check` tool and verify that it correctly reports the failures
 
 **Verification**:
+
 - The tools correctly identify the intentional errors
 - The error reports are clear and provide useful information
 - The response includes specific details about the errors (file, line number, error type)
 
 **Execution Approach**:
+
 - Create the necessary files with errors
 - Call the appropriate MCP tools to analyze them
 - Verify that the errors are correctly reported
@@ -147,6 +161,7 @@ The MCP Code Checker provides three main tools:
 **Purpose**: Verify that the tools handle edge cases gracefully.
 
 **Prerequisites**:
+
 - The MCP Code Checker server is properly installed and configured
 - You have access to the appropriate MCP tool interface for your environment
 - You have permission to create and modify directories and files
@@ -166,11 +181,13 @@ The MCP Code Checker provides three main tools:
    - Verify that they provide meaningful error messages
 
 **Verification**:
+
 - The tools handle edge cases without crashing
 - Appropriate error messages or warnings are provided
 - The responses clearly indicate what the issue is
 
 **Execution Approach**:
+
 - Set up the necessary conditions for each edge case
 - Call the appropriate MCP tools
 - Verify that they handle the edge cases gracefully
@@ -182,6 +199,7 @@ The MCP Code Checker provides three main tools:
 **Purpose**: Verify that the tools perform well and produce consistent results.
 
 **Prerequisites**:
+
 - The MCP Code Checker server is properly installed and configured
 - You have access to the appropriate MCP tool interface for your environment
 - You have access to a larger project for testing (optional)
@@ -197,11 +215,13 @@ The MCP Code Checker provides three main tools:
    - Verify that they produce consistent results
 
 **Verification**:
+
 - The tools complete within a reasonable time frame
 - The results are consistent across multiple executions
 - There are no memory leaks or performance degradation
 
 **Execution Approach**:
+
 - Use a larger project if available
 - Run the tools multiple times
 - Compare the results for consistency
@@ -213,6 +233,7 @@ The MCP Code Checker provides three main tools:
 **Purpose**: Verify that the tools work correctly in different environments.
 
 **Prerequisites**:
+
 - The MCP Code Checker server is properly installed and configured
 - You have access to the appropriate MCP tool interface for your environment
 - You have access to different Python environments (optional)
@@ -228,10 +249,12 @@ The MCP Code Checker provides three main tools:
    - Verify that they work correctly across different environments
 
 **Verification**:
+
 - The tools integrate correctly with the MCP framework
 - The results are properly formatted for LLM consumption
 - The tools work correctly across different Python environments
 
 **Execution Approach**:
+
 - Test the tools in different environments if available
 - Verify that they work correctly in each environment
