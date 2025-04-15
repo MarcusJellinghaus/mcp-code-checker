@@ -154,11 +154,11 @@ def run_tests(
                     check=False,
                     cwd=project_dir,
                     env=env,
-                    timeout=30,  # 30 second timeout
+                    timeout=180,  # 180 second timeout
                 )
                 print(f"Command completed with return code: {process.returncode}")
             except subprocess.TimeoutExpired as e:
-                print(f"Command timed out after 30 seconds: {' '.join(command)}")
+                print(f"Command timed out after 180 seconds: {' '.join(command)}")
                 raise Exception(f"Subprocess timed out: {' '.join(command)}") from e
 
             output = process.stdout
@@ -191,7 +191,7 @@ def run_tests(
                         check=False,
                         cwd=project_dir,
                         env=env,
-                        timeout=30,
+                        timeout=180,
                     )
                     output = process.stdout
                     error_output = process.stderr
