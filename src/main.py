@@ -56,12 +56,22 @@ def detect_python_environment(project_dir: Path) -> Tuple[str, Optional[str]]:
 
     This function looks for virtual environments in the project directory
     and returns the path to the Python executable and virtual environment.
+    The detected values are used to set server.python_executable and server.venv_path
+    when these parameters are not explicitly provided via command-line arguments.
+
+    The function checks for common virtual environment directory names:
+    - .venv, venv, env, .env, virtualenv
+
+    When a virtual environment is found, the appropriate Python executable path
+    is determined based on the operating system (Windows or Unix-like).
 
     Args:
-        project_dir: Path to the project directory
+        project_dir: Path to the project directory to scan for virtual environments
 
     Returns:
-        Tuple of (python_executable, venv_path)
+        Tuple of (python_executable, venv_path) where:
+        - python_executable: Path to the Python interpreter (from venv if found, otherwise sys.executable)
+        - venv_path: Path to the detected virtual environment directory (None if not found)
     """
     python_executable = sys.executable
     venv_path = None
@@ -91,11 +101,25 @@ def get_preset_config(preset: str) -> Dict[str, object]:
     """
     Get configuration values for a preset.
 
+    Presets provide a convenient way to set multiple configuration options at once.
+        The values from presets are applied to the server attributes and become the
+    default values used by tools unless overridden by dynamic parameters.
+
+        Available presets:
+    - strict: Includes all pylint categories (convention, refactor, warning, error, fatal)
+             with normal verbosity and no temp files
+    - standard: Includes warning, error, and fatal pylint categories with normal verbosity
+    - minimal: Includes only error and fatal pylint categories with minimal verbosity
+    - debug: Includes error and fatal pylint categories with high verbosity and keeps temp files
+
     Args:
-        preset: The preset name ('strict', 'standard', 'minimal')
+        preset: The preset name ('strict', 'standard', 'minimal', 'debug')
 
     Returns:
-        Dictionary with configuration values for the preset
+        Dictionary with configuration values for the preset containing:
+        - pylint_categories: List of pylint message categories to include
+        - keep_temp_files: Whether to keep temporary files after execution
+        - verbosity: Integer verbosity level for pytest (1-3)
     """
     presets = {
         "strict": {
@@ -135,44 +159,50 @@ def get_preset_config(preset: str) -> Dict[str, object]:
 
 def parse_args() -> argparse.Namespace:
     """
-    Parse command line arguments.
+    Parse command line arguments for the MCP server.
+
+    This function defines and parses the command-line interface for the application,
+        providing options to configure both server initialization parameters and tool
+    execution defaults. The parsed arguments are used to:
+    1. Initialize the server with basic parameters (project_dir, python_executable, etc.)
+    2. Apply preset configurations that set default values for tool execution
 
     Returns:
-        Parsed arguments
+        Parsed command-line arguments as an argparse.Namespace object
     """
     parser = argparse.ArgumentParser(description="MCP Code Checker Server")
     parser.add_argument(
         "--project-dir",
         type=str,
         default=os.getcwd(),
-        help="Base directory for code checking operations (defaults to current working directory)",
+        help="Base directory for code checking operations (defaults to current working directory). Sets server.project_dir.",
     )
     parser.add_argument(
         "--python-executable",
         type=str,
-        help="Path to Python interpreter to use for running tests. If not specified, defaults to the current Python interpreter (sys.executable)",
+        help="Path to Python interpreter to use for running tests. If not specified, auto-detection is attempted. Sets server.python_executable which is used by all tools.",
     )
     parser.add_argument(
         "--venv-path",
         type=str,
-        help="Path to virtual environment to activate for running tests. When specified, the Python executable from this venv will be used instead of python-executable",
+        help="Path to virtual environment to activate for running tests. When specified, the Python executable from this venv takes precedence over --python-executable. Sets server.venv_path.",
     )
     parser.add_argument(
         "--test-folder",
         type=str,
         default="tests",
-        help="Path to the test folder (relative to project_dir). Defaults to 'tests'",
+        help="Path to the test folder (relative to project_dir). Defaults to 'tests'. Sets server.test_folder used by run_pytest_check and run_all_checks.",
     )
     parser.add_argument(
         "--keep-temp-files",
         action="store_true",
-        help="Keep temporary files after test execution. Useful for debugging when tests fail",
+        help="Keep temporary files after test execution. Useful for debugging when tests fail. Sets server.keep_temp_files used by run_pytest_check and run_all_checks.",
     )
     parser.add_argument(
         "--preset",
         type=str,
         choices=["strict", "standard", "minimal", "debug"],
-        help="Use a predefined configuration preset. Available presets: strict (all checks), standard (warnings and errors), minimal (errors only), debug (errors with verbose output and temp files)",
+        help="Use a predefined configuration preset. Affects server.verbosity and server.pylint_categories. These settings configure default behavior for tools but can be overridden when tools are called.",
     )
     return parser.parse_args()
 
@@ -180,6 +210,30 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     """
     Main entry point for the MCP server.
+
+    This function processes command-line arguments, initializes the server, and applies
+    configuration settings. The parameter flow is as follows:
+
+    1. Command-line arguments: Used to set initial configurations for the server
+       - --project-dir: Base directory for code checking
+       - --python-executable: Path to Python interpreter
+       - --venv-path: Path to virtual environment
+       - --test-folder: Path to test directory
+       - --keep-temp-files: Whether to keep test artifacts
+       - --preset: Predefined configuration settings
+
+    2. Server initialization: The server is created with parameters from CLI arguments
+       - The basic parameters are passed directly to create_server()
+       - Additional preset configuration is applied after creation
+
+    3. Server attributes: These serve as defaults for the tools
+       - verbosity: Default verbosity level for pytest
+       - pylint_categories: Default categories for pylint checks
+       - Others set during initialization (project_dir, python_executable, etc.)
+
+    4. Tool execution: When tools are called, they can receive dynamic parameters
+       - Dynamic parameters override server attributes when provided
+       - Server attributes serve as defaults when dynamic parameters are not specified
     """
     args = parse_args()
 
