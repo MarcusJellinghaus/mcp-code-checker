@@ -14,7 +14,7 @@ if __name__ == "__main__" and "src" in __file__:
     # Get the absolute path of the project root directory
     script_path = Path(__file__).resolve()
     project_root = script_path.parent.parent
-    
+
     # Check if the project root is in sys.path
     if str(project_root) not in sys.path:
         # Determine the OS-specific command to set PYTHONPATH
@@ -24,8 +24,9 @@ if __name__ == "__main__" and "src" in __file__:
         else:  # Unix-like systems
             set_cmd = f"export PYTHONPATH={project_root}"
             run_cmd = f"{set_cmd} && python src/main.py"
-        
-        print(f"""
+
+        print(
+            f"""
 ERROR: ModuleNotFoundError: No module named 'src'
 
 This error occurs because the project root directory is not in your Python path.
@@ -39,11 +40,12 @@ To fix this, you have two options:
    python -m src.main
 
 For a permanent solution, add the PYTHONPATH to your environment variables.
-""")
+"""
+        )
         sys.exit(1)
 
 # Now we can safely import from src
-from src.server import create_server
+from src.server import create_server  # isort: skip
 
 logger = logging.getLogger(__name__)
 
@@ -51,22 +53,22 @@ logger = logging.getLogger(__name__)
 def detect_python_environment(project_dir: Path) -> Tuple[str, Optional[str]]:
     """
     Detect Python environment in the project directory.
-    
+
     This function looks for virtual environments in the project directory
     and returns the path to the Python executable and virtual environment.
-    
+
     Args:
         project_dir: Path to the project directory
-        
+
     Returns:
         Tuple of (python_executable, venv_path)
     """
     python_executable = sys.executable
     venv_path = None
-    
+
     # Common virtual environment directory names
     venv_dirs = [".venv", "venv", "env", ".env", "virtualenv"]
-    
+
     # Check for virtual environments in the project directory
     for venv_dir in venv_dirs:
         venv_dir_path = project_dir / venv_dir
@@ -76,11 +78,11 @@ def detect_python_environment(project_dir: Path) -> Tuple[str, Optional[str]]:
                 venv_python = venv_dir_path / "Scripts" / "python.exe"
             else:  # Unix-like systems
                 venv_python = venv_dir_path / "bin" / "python"
-                
+
             if venv_python.exists():
                 logger.info(f"Found virtual environment at {venv_dir_path}")
                 return str(venv_python), str(venv_dir_path)
-    
+
     # If no virtual environment is found, return the current Python executable
     return python_executable, venv_path
 
@@ -88,16 +90,22 @@ def detect_python_environment(project_dir: Path) -> Tuple[str, Optional[str]]:
 def get_preset_config(preset: str) -> Dict[str, object]:
     """
     Get configuration values for a preset.
-    
+
     Args:
         preset: The preset name ('strict', 'standard', 'minimal')
-        
+
     Returns:
         Dictionary with configuration values for the preset
     """
     presets = {
         "strict": {
-            "pylint_categories": ["convention", "refactor", "warning", "error", "fatal"],
+            "pylint_categories": [
+                "convention",
+                "refactor",
+                "warning",
+                "error",
+                "fatal",
+            ],
             "keep_temp_files": False,
             "verbosity": 2,
         },
@@ -117,11 +125,11 @@ def get_preset_config(preset: str) -> Dict[str, object]:
             "verbosity": 3,
         },
     }
-    
+
     if preset not in presets:
         logger.warning(f"Unknown preset '{preset}', using 'standard' preset")
         preset = "standard"
-        
+
     return presets[preset]
 
 
@@ -197,29 +205,29 @@ def main() -> None:
     keep_temp_files = args.keep_temp_files
     verbosity = 2  # Default verbosity
     pylint_categories = None
-    
+
     if args.preset:
         preset_config = get_preset_config(args.preset)
         logger.info(f"Using '{args.preset}' preset configuration")
-        
+
         # Only override keep_temp_files if it wasn't explicitly set on the command line
         if not args.keep_temp_files:
             keep_temp_files = cast(bool, preset_config["keep_temp_files"])
-            
+
         verbosity = cast(int, preset_config["verbosity"])
         pylint_categories = cast(List[str], preset_config["pylint_categories"])
 
     # Auto-detect Python environment if not specified
     python_executable = args.python_executable
     venv_path = args.venv_path
-    
+
     if python_executable is None or venv_path is None:
         detected_executable, detected_venv = detect_python_environment(project_dir)
-        
+
         if python_executable is None:
             python_executable = detected_executable
             logger.info(f"Using auto-detected Python executable: {python_executable}")
-            
+
         if venv_path is None and detected_venv is not None:
             venv_path = detected_venv
             logger.info(f"Using auto-detected virtual environment: {venv_path}")
@@ -232,14 +240,14 @@ def main() -> None:
         test_folder=args.test_folder,
         keep_temp_files=keep_temp_files,
     )
-    
+
     # Store preset configuration in server attributes for later use by tools
     if args.preset:
         # These attributes will be accessible to the tools when they're called
         server.verbosity = verbosity
         server.pylint_categories = pylint_categories
         logger.info(f"Applied '{args.preset}' preset configuration to server")
-    
+
     server.run()
 
 

@@ -51,11 +51,13 @@ class CodeCheckerServer:
         self.venv_path = venv_path
         self.test_folder = test_folder
         self.keep_temp_files = keep_temp_files
-        
+
         # Additional configuration attributes that can be set after initialization
         # These are used by the tools when they're called
         self.verbosity: int = 2  # Default verbosity level for pytest
-        self.pylint_categories: Optional[List[str]] = None  # Pylint categories to include
+        self.pylint_categories: Optional[List[str]] = (
+            None  # Pylint categories to include
+        )
         # We cannot import the actual FastMCP for type checking
         from mcp.server.fastmcp import FastMCP
 
@@ -136,9 +138,11 @@ class CodeCheckerServer:
                 logger.info(
                     f"Running pytest check on project directory: {self.project_dir}"
                 )
-                
+
                 # Use preset verbosity if available and not overridden
-                actual_verbosity = verbosity if verbosity is not None else self.verbosity
+                actual_verbosity = (
+                    verbosity if verbosity is not None else self.verbosity
+                )
                 # Ensure verbosity is an int
                 if actual_verbosity is None:
                     actual_verbosity = 2  # Default to 2 if somehow still None
@@ -214,7 +218,9 @@ class CodeCheckerServer:
                 )
 
                 # Use preset verbosity if available and not overridden
-                actual_verbosity = verbosity if verbosity is not None else self.verbosity
+                actual_verbosity = (
+                    verbosity if verbosity is not None else self.verbosity
+                )
                 # Ensure verbosity is an int
                 if actual_verbosity is None:
                     actual_verbosity = 2  # Default to 2 if somehow still None
