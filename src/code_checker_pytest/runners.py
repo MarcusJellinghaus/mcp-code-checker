@@ -200,12 +200,12 @@ def run_tests(
                     print(f"Failed to install pytest-json-report: {install_error}")
                     raise Exception(
                         "Failed to install the required pytest-json-report plugin"
-                    )
-                except subprocess.TimeoutExpired:
+                    ) from install_error
+                except subprocess.TimeoutExpired as timeout_error:
                     print("Installation or retry timed out")
                     raise Exception(
                         "Timed out while installing pytest-json-report or retrying the test"
-                    )
+                    ) from timeout_error
 
             # Check specifically for 'no tests found' case
             if "collected 0 items" in combined_output or process.returncode == 5:
