@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/marcusjellinghaus-mcp-code-checker-badge.png)](https://mseep.ai/app/marcusjellinghaus-mcp-code-checker)
+
 # MCP Code Checker
 
 A Model Context Protocol (MCP) server providing code quality checking operations. This server offers a API for performing code quality checks within a specified project directory, following the MCP protocol design.
