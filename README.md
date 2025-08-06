@@ -69,7 +69,7 @@ pip install -e .
 ## Running the Server
 
 ```bash
-python -m src.main --project-dir /path/to/project [--python-executable /path/to/python] [--venv-path /path/to/venv]
+python -m src.main --project-dir /path/to/project [--python-executable /path/to/python] [--venv-path /path/to/venv] [--log-level LEVEL] [--log-file PATH]
 ```
 
 The server uses FastMCP for operation. The project directory parameter (`--project-dir`) is **required** for security reasons. All code checking operations will be restricted to this directory.
@@ -78,6 +78,33 @@ Additional parameters:
 
 - `--python-executable`: Optional path to Python interpreter to use for running tests
 - `--venv-path`: Optional path to virtual environment to activate for running tests
+- `--log-level`: Optional logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). Defaults to INFO
+- `--log-file`: Optional path for structured JSON logs. If not specified, logs to mcp_code_checker_{timestamp}.log in project_dir/logs/
+- `--console-only`: Optional flag to log only to console, ignoring --log-file parameter
+
+## Structured Logging
+
+The server provides comprehensive logging capabilities:
+
+- **Standard human-readable logs** to console for development/debugging
+- **Structured JSON logs** to file for analysis and monitoring
+- **Function call tracking** with parameters, timing, and results
+- **Automatic error context capture** with full stack traces
+- **Configurable log levels** (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- **Default timestamped log files** in `project_dir/logs/mcp_code_checker_{timestamp}.log`
+
+Example structured log entries:
+```json
+{
+  "timestamp": "2025-08-05 14:30:15",
+  "level": "info",
+  "event": "Starting pylint check",
+  "project_dir": "/path/to/project",
+  "disable_codes": ["C0114", "C0116"]
+}
+```
+
+Use `--console-only` to disable file logging for simple development scenarios.
 
 ## Using with Claude Desktop App
 
@@ -101,13 +128,15 @@ To enable Claude to use this code checking server for analyzing files in your lo
             "--python-executable",
             "C:\\path\\to\\python.exe",
             "--venv-path",
-            "C:\\path\\to\\venv"
-            ],
+            "C:\\path\\to\\venv",
+            "--log-level",
+            "INFO"
+                ],
             "env": {
-                "PYTHONPATH": "C:\\path\\to\\mcp_code_checker\\"
-            }
-        }
+        "PYTHONPATH": "C:\\path\\to\\mcp_code_checker\\"
     }
+}
+}
 }
 ```
 
@@ -142,7 +171,7 @@ npx @modelcontextprotocol/inspector \
 
 2. In the MCP Inspector web UI, configure with the following:
    - Python interpreter: `C:\path\to\mcp_code_checker\.venv\Scripts\python.exe`
-   - Arguments: `C:\path\to\mcp_code_checker\src\main.py --project-dir C:\path\to\your\project`
+   - Arguments: `C:\path\to\mcp_code_checker\src\main.py --project-dir C:\path\to\your\project --log-level DEBUG`
    - Environment variables:
      - Name: `PYTHONPATH`
      - Value: `C:\path\to\mcp_code_checker\`

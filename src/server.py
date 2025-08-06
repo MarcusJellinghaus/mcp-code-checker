@@ -6,6 +6,10 @@ from pathlib import Path
 # Type stub for mcp.server.fastmcp
 from typing import Callable, Dict, List, Optional, Protocol, Set, TypeVar
 
+import structlog
+
+from src.log_utils import log_function_call
+
 T = TypeVar("T")
 
 
@@ -18,11 +22,9 @@ class FastMCPProtocol(Protocol):
     def run(self) -> None: ...
 
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+# Initialize loggers
 logger = logging.getLogger(__name__)
+structured_logger = structlog.get_logger(__name__)
 
 
 class CodeCheckerServer:
@@ -63,6 +65,7 @@ class CodeCheckerServer:
         # Using type annotations directly on the decorated functions
         # to address the "Untyped decorator makes function untyped" issue
         @self.mcp.tool()
+        @log_function_call
         async def run_pylint_check(disable_codes: Optional[List[str]] = None) -> str:
             """
             Run pylint on the project code and generate smart prompts for LLMs.
@@ -83,6 +86,11 @@ class CodeCheckerServer:
                 logger.info(
                     f"Running pylint check on project directory: {self.project_dir}"
                 )
+                structured_logger.info(
+                    "Starting pylint check",
+                    project_dir=str(self.project_dir),
+                    disable_codes=disable_codes,
+                )
 
                 # Import the code_checker_pylint module to run pylint checks
                 from src.code_checker_pylint import get_pylint_prompt
@@ -97,17 +105,35 @@ class CodeCheckerServer:
                 # Format the results as a string
                 if pylint_prompt is None:
                     result = "Pylint check completed. No issues found that require attention."
+                    structured_logger.info(
+                        "Pylint check completed",
+                        issues_found=False,
+                        result_length=len(result),
+                    )
                 else:
                     result = (
                         f"Pylint found issues that need attention:\n\n{pylint_prompt}"
+                    )
+                    structured_logger.info(
+                        "Pylint check completed",
+                        issues_found=True,
+                        result_length=len(result),
                     )
 
                 return result
             except Exception as e:
                 logger.error(f"Error running pylint check: {str(e)}")
+                structured_logger.error(
+                    "Pylint check failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    project_dir=str(self.project_dir),
+                    disable_codes=disable_codes,
+                )
                 raise
 
         @self.mcp.tool()
+        @log_function_call
         async def run_pytest_check(
             markers: Optional[List[str]] = None,
             verbosity: int = 2,
@@ -131,6 +157,14 @@ class CodeCheckerServer:
                 logger.info(
                     f"Running pytest check on project directory: {self.project_dir}"
                 )
+                structured_logger.info(
+                    "Starting pytest check",
+                    project_dir=str(self.project_dir),
+                    test_folder=self.test_folder,
+                    markers=markers,
+                    verbosity=verbosity,
+                    extra_args=extra_args,
+                )
 
                 # Import the code_checker_pytest module to run pytest checks and generate prompts
                 from src.code_checker_pytest.reporting import (
@@ -153,8 +187,19 @@ class CodeCheckerServer:
 
                 if not test_results["success"]:
                     result = f"Error running pytest: {test_results.get('error', 'Unknown error')}"
+                    structured_logger.error(
+                        "Pytest execution failed",
+                        error=test_results.get("error", "Unknown error"),
+                    )
                 else:
                     summary = test_results["summary"]
+                    structured_logger.info(
+                        "Pytest execution completed",
+                        passed=summary.get("passed", 0),
+                        failed=summary.get("failed", 0),
+                        errors=summary.get("error", 0),
+                        duration=test_results.get("duration", 0),
+                    )
 
                     if (
                         summary.get("failed", 0) > 0 or summary.get("error", 0) > 0
@@ -164,17 +209,36 @@ class CodeCheckerServer:
                             test_results["test_results"]
                         )
                         result = f"Pytest found issues that need attention:\n\n{failed_tests_prompt}"
+                        structured_logger.info(
+                            "Pytest issues found",
+                            failed_tests=summary.get("failed", 0),
+                            error_tests=summary.get("error", 0),
+                        )
                     else:
                         result = (
                             "Pytest check completed. All tests passed successfully."
+                        )
+                        structured_logger.info(
+                            "All pytest tests passed",
+                            total_tests=summary.get("passed", 0),
                         )
 
                 return result
             except Exception as e:
                 logger.error(f"Error running pytest check: {str(e)}")
+                structured_logger.error(
+                    "Pytest check failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    project_dir=str(self.project_dir),
+                    test_folder=self.test_folder,
+                    markers=markers,
+                    verbosity=verbosity,
+                )
                 raise
 
         @self.mcp.tool()
+        @log_function_call
         async def run_all_checks(
             markers: Optional[List[str]] = None,
             verbosity: int = 2,
@@ -200,6 +264,14 @@ class CodeCheckerServer:
             try:
                 logger.info(
                     f"Running all code checks on project directory: {self.project_dir}"
+                )
+                structured_logger.info(
+                    "Starting all code checks",
+                    project_dir=str(self.project_dir),
+                    test_folder=self.test_folder,
+                    markers=markers,
+                    verbosity=verbosity,
+                    categories=list(categories) if categories else None,
                 )
 
                 # Run pylint check to generate prompt
@@ -253,6 +325,26 @@ class CodeCheckerServer:
                 # Combine results
                 result = "All code checks completed:\n\n"
 
+                structured_logger.info(
+                    "All code checks completed",
+                    pylint_issues_found=pylint_prompt is not None,
+                    pytest_failed=(
+                        test_results["summary"].get("failed", 0)
+                        if test_results.get("success")
+                        else None
+                    ),
+                    pytest_passed=(
+                        test_results["summary"].get("passed", 0)
+                        if test_results.get("success")
+                        else None
+                    ),
+                    pytest_errors=(
+                        test_results["summary"].get("error", 0)
+                        if test_results.get("success")
+                        else None
+                    ),
+                )
+
                 # Add pylint results
                 if pylint_prompt is None:
                     result += "1. Pylint: No issues found that require attention.\n"
@@ -273,13 +365,23 @@ class CodeCheckerServer:
                 return result
             except Exception as e:
                 logger.error(f"Error running all code checks: {str(e)}")
+                structured_logger.error(
+                    "All code checks failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    project_dir=str(self.project_dir),
+                )
                 raise
 
+    @log_function_call
     def run(self) -> None:
         """Run the MCP server."""
+        logger.info("Starting MCP server")
+        structured_logger.info("Starting MCP server")
         self.mcp.run()
 
 
+@log_function_call
 def create_server(
     project_dir: Path,
     python_executable: Optional[str] = None,
