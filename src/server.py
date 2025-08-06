@@ -66,7 +66,7 @@ class CodeCheckerServer:
         # to address the "Untyped decorator makes function untyped" issue
         @self.mcp.tool()
         @log_function_call
-        async def run_pylint_check(disable_codes: Optional[List[str]] = None) -> str:
+        def run_pylint_check(disable_codes: Optional[List[str]] = None) -> str:
             """
             Run pylint on the project code and generate smart prompts for LLMs.
 
@@ -134,7 +134,7 @@ class CodeCheckerServer:
 
         @self.mcp.tool()
         @log_function_call
-        async def run_pytest_check(
+        def run_pytest_check(
             markers: Optional[List[str]] = None,
             verbosity: int = 2,
             extra_args: Optional[List[str]] = None,
@@ -239,7 +239,7 @@ class CodeCheckerServer:
 
         @self.mcp.tool()
         @log_function_call
-        async def run_all_checks(
+        def run_all_checks(
             markers: Optional[List[str]] = None,
             verbosity: int = 2,
             extra_args: Optional[List[str]] = None,
