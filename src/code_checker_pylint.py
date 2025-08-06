@@ -130,6 +130,7 @@ def get_pylint_results(
     project_dir: str,
     disable_codes: Optional[List[str]] = None,
     python_executable: Optional[str] = None,
+    target_directories: Optional[List[str]] = None,
 ) -> PylintResult:
     """
     Runs pylint on the specified project directory and returns the results.
@@ -146,6 +147,9 @@ def get_pylint_results(
             - W0611: Unused import
             - W1514: Unspecified encoding
         python_executable: Path to Python executable to use for running pylint. Defaults to sys.executable if None.
+        target_directories: List of directories to analyze relative to project_dir. 
+            Defaults to ["src"] and conditionally "tests" if it exists.
+            Examples: ["src"], ["src", "tests"], ["mypackage", "tests"], ["."]
 
     Returns:
         A PylintResult object containing the results of the pylint run.
@@ -156,8 +160,42 @@ def get_pylint_results(
     if not os.path.isdir(project_dir):
         raise FileNotFoundError(f"Project directory not found: {project_dir}")
 
+    # Set default target directories if none provided
+    if target_directories is None:
+        target_directories = ["src"]
+        if os.path.exists(os.path.join(project_dir, "tests")):
+            target_directories.append("tests")
+
+    # Validate that target directories exist
+    valid_directories = []
+    for directory in target_directories:
+        full_path = os.path.join(project_dir, directory)
+        if os.path.exists(full_path):
+            valid_directories.append(directory)
+        else:
+            structured_logger.warning(
+                "Target directory does not exist, skipping",
+                directory=directory,
+                full_path=full_path
+            )
+
+    if not valid_directories:
+        error_message = f"No valid target directories found. Checked: {target_directories}"
+        structured_logger.error("No valid directories to analyze", 
+                              target_directories=target_directories,
+                              project_dir=project_dir)
+        return PylintResult(
+            return_code=1,
+            messages=[],
+            error=error_message,
+            raw_output=None,
+        )
+
     structured_logger.info(
-        "Starting pylint analysis", project_dir=project_dir, disable_codes=disable_codes
+        "Starting pylint analysis", 
+        project_dir=project_dir, 
+        disable_codes=disable_codes,
+        target_directories=valid_directories
     )
 
     try:
@@ -176,24 +214,68 @@ def get_pylint_results(
 
         if disable_codes and len(disable_codes) > 0:
             pylint_command.append(f"--disable={','.join(disable_codes)}")
-        pylint_command.append("src")
-        if os.path.exists(os.path.join(project_dir, "tests")):
-            pylint_command.append("tests")
+        
+        # Add all valid target directories
+        pylint_command.extend(valid_directories)
 
-        # Run pylint and capture its output
+        # Run pylint and capture its output - add timeout to prevent hanging
         logger.debug(f"Running pylint command: {' '.join(pylint_command)}")
-        process = subprocess.run(
-            pylint_command, cwd=project_dir, capture_output=True, text=True, check=False
-        )
+        try:
+            process = subprocess.run(
+                pylint_command, 
+                cwd=project_dir, 
+                capture_output=True, 
+                text=True, 
+                check=False,
+                timeout=120  # 2 minute timeout for pylint execution
+            )
+        except subprocess.TimeoutExpired:
+            error_message = "Pylint execution timed out after 120 seconds"
+            structured_logger.error("Pylint timeout", timeout_seconds=120, project_dir=project_dir)
+            return PylintResult(
+                return_code=1,
+                messages=[],
+                error=error_message,
+                raw_output=None,
+            )
 
         raw_output = process.stdout
 
         # Parse pylint output from JSON, if available
         messages: List[PylintMessage] = []
 
+        # Check if we have any output to parse
+        if not raw_output or raw_output.strip() == "":
+            structured_logger.info(
+                "Pylint produced no output", 
+                return_code=process.returncode,
+                stderr=process.stderr[:200] if process.stderr else None
+            )
+            # Empty output often means no issues found
+            result = PylintResult(
+                return_code=process.returncode,
+                messages=[],
+                raw_output=raw_output,
+            )
+            return result
+
         try:
             pylint_output = json.loads(process.stdout)
+            if not isinstance(pylint_output, list):
+                error_message = f"Expected JSON array from pylint, got {type(pylint_output).__name__}"
+                structured_logger.error("Invalid pylint output format", output_type=type(pylint_output).__name__)
+                return PylintResult(
+                    return_code=process.returncode,
+                    messages=[],
+                    error=error_message,
+                    raw_output=raw_output,
+                )
+                
             for item in pylint_output:
+                if not isinstance(item, dict):
+                    structured_logger.warning("Skipping non-dict item in pylint output", item_type=type(item).__name__)
+                    continue
+                    
                 messages.append(
                     PylintMessage(
                         type=item.get("type", ""),
@@ -210,9 +292,15 @@ def get_pylint_results(
         except json.JSONDecodeError as e:
             error_message = (
                 f"Failed to parse Pylint JSON output: {e}. "
-                f"First 100 chars of output: {raw_output[:100]}..."
-                if len(raw_output) > 100
+                f"First 200 chars of output: {raw_output[:200]}..."
+                if len(raw_output) > 200
                 else raw_output
+            )
+            structured_logger.error(
+                "JSON parse error", 
+                error=str(e),
+                output_length=len(raw_output),
+                output_preview=raw_output[:100]
             )
             result = PylintResult(
                 return_code=process.returncode,
@@ -296,6 +384,7 @@ def run_pylint_check(
     categories: Optional[Set[PylintMessageType]] = None,
     disable_codes: Optional[List[str]] = None,
     python_executable: Optional[str] = None,
+    target_directories: Optional[List[str]] = None,
 ) -> PylintResult:
     """
     Run pylint check on a project directory and returns the result.
@@ -319,6 +408,9 @@ def run_pylint_check(
             - W0611: Unused import
             - W1514: Unspecified encoding
         python_executable: Optional path to Python interpreter to use for running tests. If None, defaults to sys.executable.
+        target_directories: Optional list of directories to analyze relative to project_dir. 
+            Defaults to ["src"] and conditionally "tests" if it exists.
+            Examples: ["src"], ["src", "tests"], ["mypackage", "tests"], ["."]
 
     Returns:
         PylintResult with the analysis outcome.
@@ -342,7 +434,10 @@ def run_pylint_check(
         ]
 
     return get_pylint_results(
-        project_dir, disable_codes=disable_codes, python_executable=python_executable
+        project_dir, 
+        disable_codes=disable_codes, 
+        python_executable=python_executable,
+        target_directories=target_directories
     )
 
 
@@ -352,6 +447,7 @@ def get_pylint_prompt(
     categories: Optional[Set[PylintMessageType]] = None,
     disable_codes: Optional[List[str]] = None,
     python_executable: Optional[str] = None,
+    target_directories: Optional[List[str]] = None,
 ) -> Optional[str]:
     """
     Generate a prompt for fixing pylint issues based on the analysis of a project.
@@ -375,9 +471,13 @@ def get_pylint_prompt(
             - W0611: Unused import
             - W1514: Unspecified encoding
         python_executable: Optional path to Python interpreter to use for running tests. If None, defaults to sys.executable.
+        target_directories: Optional list of directories to analyze relative to project_dir. 
+            Defaults to ["src"] and conditionally "tests" if it exists.
+            Examples: ["src"], ["src", "tests"], ["mypackage", "tests"], ["."]
 
     Returns:
         A prompt string with issue details and instructions, or None if no issues were found.
+        Returns the error message as a prompt if pylint execution failed (e.g., timeout).
     """
     # Use default categories if none provided
     if categories is None:
@@ -409,8 +509,21 @@ def get_pylint_prompt(
         ]
 
     pylint_results = get_pylint_results(
-        project_dir, disable_codes=disable_codes, python_executable=python_executable
+        project_dir, 
+        disable_codes=disable_codes, 
+        python_executable=python_executable,
+        target_directories=target_directories
     )
+
+    # Check if there was an error running pylint (e.g., timeout, execution failure)
+    if pylint_results.error:
+        structured_logger.error(
+            "Pylint execution error detected", 
+            error=pylint_results.error,
+            return_code=pylint_results.return_code
+        )
+        # Return the error as a prompt so the MCP client gets the error message
+        return f"Pylint analysis failed: {pylint_results.error}"
 
     codes = pylint_results.get_message_ids()
     if len(categories) > 0:

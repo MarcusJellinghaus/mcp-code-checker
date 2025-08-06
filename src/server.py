@@ -66,18 +66,28 @@ class CodeCheckerServer:
         # to address the "Untyped decorator makes function untyped" issue
         @self.mcp.tool()
         @log_function_call
-        def run_pylint_check(disable_codes: Optional[List[str]] = None) -> str:
+        def run_pylint_check(
+            disable_codes: Optional[List[str]] = None,
+            target_directories: Optional[List[str]] = None,
+        ) -> str:
             """
             Run pylint on the project code and generate smart prompts for LLMs.
 
             Args:
                 disable_codes: Optional list of pylint error codes to disable during analysis.
-            Common codes to disable include:
-            - C0114: Missing module docstring
-            - C0116: Missing function docstring
-            - C0301: Line too long
-            - W0611: Unused import
-            - W1514: Using open without explicitly specifying an encoding
+                    Common codes to disable include:
+                    - C0114: Missing module docstring
+                    - C0116: Missing function docstring
+                    - C0301: Line too long
+                    - W0611: Unused import
+                    - W1514: Using open without explicitly specifying an encoding
+                target_directories: Optional list of directories to analyze relative to project_dir. 
+                    Defaults to ["src"] and conditionally "tests" if it exists.
+                    Examples: 
+                    - ["src"] - Analyze only source code
+                    - ["src", "tests"] - Analyze both source and tests (default)
+                    - ["mypackage", "tests"] - Custom package structure
+                    - ["."] - Analyze entire project (may be slow)
 
             Returns:
                 A string containing either pylint results or a prompt for an LLM to interpret
@@ -90,6 +100,7 @@ class CodeCheckerServer:
                     "Starting pylint check",
                     project_dir=str(self.project_dir),
                     disable_codes=disable_codes,
+                    target_directories=target_directories,
                 )
 
                 # Import the code_checker_pylint module to run pylint checks
@@ -100,6 +111,7 @@ class CodeCheckerServer:
                     str(self.project_dir),
                     disable_codes=disable_codes,
                     python_executable=self.python_executable,
+                    target_directories=target_directories,
                 )
 
                 # Format the results as a string
@@ -129,6 +141,7 @@ class CodeCheckerServer:
                     error_type=type(e).__name__,
                     project_dir=str(self.project_dir),
                     disable_codes=disable_codes,
+                    target_directories=target_directories,
                 )
                 raise
 
@@ -245,6 +258,7 @@ class CodeCheckerServer:
             extra_args: Optional[List[str]] = None,
             env_vars: Optional[Dict[str, str]] = None,
             categories: Optional[Set[str]] = None,
+            target_directories: Optional[List[str]] = None,
         ) -> str:
             """
             Run all code checks (pylint and pytest) and generate combined results.
@@ -257,6 +271,13 @@ class CodeCheckerServer:
                 categories: Optional set of pylint message categories to include.
                     Available categories: 'convention', 'refactor', 'warning', 'error', 'fatal'
                     Defaults to {'error', 'fatal'} if not specified.
+                target_directories: Optional list of directories to analyze relative to project_dir. 
+                    Defaults to ["src"] and conditionally "tests" if it exists.
+                    Examples:
+                    - ["src"] - Analyze only source code
+                    - ["src", "tests"] - Analyze both source and tests (default)
+                    - ["mypackage", "tests"] - Custom package structure
+                    - ["."] - Analyze entire project (may be slow)
 
             Returns:
                 A string containing results from all checks and/or LLM prompts
@@ -272,6 +293,7 @@ class CodeCheckerServer:
                     markers=markers,
                     verbosity=verbosity,
                     categories=list(categories) if categories else None,
+                    target_directories=target_directories,
                 )
 
                 # Run pylint check to generate prompt
@@ -286,11 +308,12 @@ class CodeCheckerServer:
                         except ValueError:
                             logger.warning(f"Unknown pylint category: {category}")
 
-                # Run pylint with categories
+                # Run pylint with categories and target directories
                 pylint_prompt = get_pylint_prompt(
                     str(self.project_dir),
                     categories=pylint_categories if pylint_categories else None,
                     python_executable=self.python_executable,
+                    target_directories=target_directories,
                 )
 
                 # Run pytest check
