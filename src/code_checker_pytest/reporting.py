@@ -2,11 +2,20 @@
 Functions for formatting and reporting pytest test results.
 """
 
+import logging
 from typing import Optional
+
+import structlog
+
+from src.log_utils import log_function_call
 
 from .models import PytestReport
 
+logger = logging.getLogger(__name__)
+structured_logger = structlog.get_logger(__name__)
 
+
+@log_function_call
 def create_prompt_for_failed_tests(
     test_session_result: PytestReport, max_number_of_tests_reported: int = 1
 ) -> Optional[str]:

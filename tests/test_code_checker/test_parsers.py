@@ -2,10 +2,7 @@
 Tests for the code_checker_pytest report parsing functionality.
 """
 
-from src.code_checker_pytest import (
-    PytestReport,
-    parse_pytest_report,
-)
+from src.code_checker_pytest import PytestReport, parse_pytest_report
 from tests.test_code_checker.test_code_checker_pytest_common import SAMPLE_JSON
 
 

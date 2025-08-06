@@ -26,7 +26,9 @@ dependencies = [
     "pytest>=8.3.5",
     "pytest-json-report>=1.5.0",
     "pytest-asyncio>=0.25.3",
-"mypy>=1.9.0",
+    "mypy>=1.9.0",
+    "structlog>=24.5.0",
+    "python-json-logger>=3.2.1",
 ]
 
 [project.optional-dependencies]

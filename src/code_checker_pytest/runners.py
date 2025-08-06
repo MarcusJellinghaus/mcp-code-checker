@@ -10,14 +10,20 @@ import sys
 import tempfile
 from typing import Any, Dict, List, Optional
 
+import structlog
+
+from src.log_utils import log_function_call
+
 from .models import PytestReport
 from .parsers import parse_pytest_report
 from .reporting import create_prompt_for_failed_tests, get_test_summary
 from .utils import collect_environment_info, create_error_context, read_file
 
 logger = logging.getLogger(__name__)
+structured_logger = structlog.get_logger(__name__)
 
 
+@log_function_call
 def run_tests(
     project_dir: str,
     test_folder: str,
@@ -58,6 +64,15 @@ def run_tests(
     # Create a temporary directory for output files
     temp_dir = tempfile.mkdtemp(prefix="pytest_runner_")
     temp_report_file = os.path.join(temp_dir, "pytest_result.json")
+
+    structured_logger.info(
+        "Starting pytest execution",
+        project_dir=project_dir,
+        test_folder=test_folder,
+        markers=markers,
+        verbosity=verbosity,
+        venv_path=venv_path,
+    )
 
     try:
         # Determine Python executable
@@ -277,10 +292,26 @@ def run_tests(
             parsed_results.environment_context = environment_context
             parsed_results.error_context = error_context
 
+            structured_logger.info(
+                "Pytest execution completed successfully",
+                passed=parsed_results.summary.passed,
+                failed=parsed_results.summary.failed,
+                errors=parsed_results.summary.error,
+                skipped=parsed_results.summary.skipped,
+                duration=parsed_results.duration,
+            )
+
             return parsed_results
 
         except Exception as e:
             command_line = " ".join(command)
+            structured_logger.error(
+                "Pytest execution failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                project_dir=project_dir,
+                command=command_line,
+            )
             print(
                 f"""Error during pytest execution:
 - folder {project_dir}
@@ -301,6 +332,7 @@ def run_tests(
                 )
 
 
+@log_function_call
 def check_code_with_pytest(
     project_dir: str,
     test_folder: str = "tests",
@@ -330,12 +362,20 @@ def check_code_with_pytest(
     Returns:
         Dictionary with test results containing the following keys:
         - success: Boolean indicating if the test execution was successful
-        - summary: Summary of test results (passed, failed, skipped counts)
+        - summary: Summary of test results as a formatted string
         - failed_tests_prompt: Formatted prompt for failed tests (if any)
         - test_results: Complete PytestReport object with detailed test information
         - environment_info: Information about the test environment (Python version, pytest version, etc.)
         - error_info: Details about any errors that occurred during test execution
     """
+    structured_logger.info(
+        "Starting pytest code check",
+        project_dir=project_dir,
+        test_folder=test_folder,
+        markers=markers,
+        verbosity=verbosity,
+    )
+
     try:
         test_results = run_tests(
             project_dir,
@@ -349,7 +389,16 @@ def check_code_with_pytest(
             keep_temp_files,
         )
 
-        summary = get_test_summary(test_results)
+        # CRITICAL FIX: Use get_test_summary to get formatted string, not a dictionary
+        summary_text = get_test_summary(test_results)
+
+        structured_logger.info(
+            "Pytest code check completed",
+            passed=test_results.summary.passed,
+            failed=test_results.summary.failed,
+            errors=test_results.summary.error,
+            skipped=test_results.summary.skipped,
+        )
 
         failed_tests_prompt = None
         if (test_results.summary.failed and test_results.summary.failed > 0) or (
@@ -380,9 +429,10 @@ def check_code_with_pytest(
                 "collection_errors": test_results.error_context.collection_errors,
             }
 
+        # CRITICAL FIX: Return summary_text (string) not dictionary
         return {
             "success": True,
-            "summary": summary,
+            "summary": summary_text,  # This is the formatted string from get_test_summary()
             "failed_tests_prompt": failed_tests_prompt,
             "test_results": test_results,
             "environment_info": environment_info,
@@ -390,4 +440,11 @@ def check_code_with_pytest(
         }
 
     except Exception as e:
+        structured_logger.error(
+            "Pytest code check failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            project_dir=project_dir,
+            test_folder=test_folder,
+        )
         return {"success": False, "error": str(e)}

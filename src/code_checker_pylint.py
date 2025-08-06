@@ -3,11 +3,15 @@ import logging
 import os
 import subprocess
 import sys
-import time
 from enum import Enum
-from typing import Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import List, NamedTuple, Optional, Set
+
+import structlog
+
+from src.log_utils import log_function_call
 
 logger = logging.getLogger(__name__)
+structured_logger = structlog.get_logger(__name__)
 
 
 class PylintMessageType(Enum):
@@ -121,6 +125,7 @@ def filter_pylint_codes_by_category(
     return filtered_codes
 
 
+@log_function_call
 def get_pylint_results(
     project_dir: str,
     disable_codes: Optional[List[str]] = None,
@@ -150,6 +155,10 @@ def get_pylint_results(
     """
     if not os.path.isdir(project_dir):
         raise FileNotFoundError(f"Project directory not found: {project_dir}")
+
+    structured_logger.info(
+        "Starting pylint analysis", project_dir=project_dir, disable_codes=disable_codes
+    )
 
     try:
         # Determine the Python executable from the parameter or fall back to sys.executable
@@ -217,9 +226,22 @@ def get_pylint_results(
             return_code=process.returncode, messages=messages, raw_output=raw_output
         )
 
+        structured_logger.info(
+            "Pylint analysis completed",
+            return_code=process.returncode,
+            messages_count=len(messages),
+            unique_codes=len(result.get_message_ids()),
+        )
+
         return result
 
     except Exception as e:
+        structured_logger.error(
+            "Pylint analysis failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            project_dir=project_dir,
+        )
         result = PylintResult(
             return_code=1,
             messages=[],
@@ -268,6 +290,7 @@ def get_direct_instruction_for_pylint_code(code: str) -> Optional[str]:
     return instructions.get(code)
 
 
+@log_function_call
 def run_pylint_check(
     project_dir: str,
     categories: Optional[Set[PylintMessageType]] = None,
@@ -323,6 +346,7 @@ def run_pylint_check(
     )
 
 
+@log_function_call
 def get_pylint_prompt(
     project_dir: str,
     categories: Optional[Set[PylintMessageType]] = None,
@@ -359,6 +383,13 @@ def get_pylint_prompt(
     if categories is None:
         categories = DEFAULT_CATEGORIES
 
+    structured_logger.info(
+        "Starting pylint prompt generation",
+        project_dir=project_dir,
+        categories=[cat.value for cat in categories],
+        disable_codes=disable_codes,
+    )
+
     # Default disable codes if none provided
     if disable_codes is None:
         disable_codes = [
@@ -387,6 +418,11 @@ def get_pylint_prompt(
 
     if len(codes) > 0:
         code = list(codes)[0]
+        structured_logger.info(
+            "Pylint issues found, generating prompt",
+            total_codes=len(codes),
+            first_code=code,
+        )
         prompt = get_prompt_for_known_pylint_code(code, project_dir, pylint_results)
         if prompt is not None:
             return prompt
@@ -396,6 +432,7 @@ def get_pylint_prompt(
             )
             return prompt  # just for the first code
     else:
+        structured_logger.info("No pylint issues found", project_dir=project_dir)
         return None
 
 

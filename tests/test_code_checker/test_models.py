@@ -2,12 +2,7 @@
 Tests for the code_checker_pytest models.
 """
 
-from src.code_checker_pytest import (
-    Crash,
-    PytestReport,
-    TestStage,
-    TracebackEntry,
-)
+from src.code_checker_pytest import Crash, PytestReport, TestStage, TracebackEntry
 from src.code_checker_pytest.parsers import parse_pytest_report
 from tests.test_code_checker.test_code_checker_pytest_common import SAMPLE_JSON
 

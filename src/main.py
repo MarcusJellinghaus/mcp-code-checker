@@ -3,11 +3,18 @@
 import argparse
 import logging
 import sys
+from datetime import datetime
 from pathlib import Path
 
+import structlog
+
+# Import logging utilities
+from src.log_utils import setup_logging
 from src.server import create_server
 
-logger = logging.getLogger(__name__)
+# Create loggers
+stdlogger = logging.getLogger(__name__)
+structured_logger = structlog.get_logger(__name__)
 
 
 def parse_args() -> argparse.Namespace:
@@ -45,6 +52,24 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Keep temporary files after test execution. Useful for debugging when tests fail",
     )
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Set logging level (default: INFO)",
+    )
+    parser.add_argument(
+        "--log-file",
+        type=str,
+        default=None,
+        help="Path for structured JSON logs (default: mcp_code_checker_{timestamp}.log in project_dir/logs/).",
+    )
+    parser.add_argument(
+        "--console-only",
+        action="store_true",
+        help="Log only to console, ignore --log-file parameter.",
+    )
     return parser.parse_args()
 
 
@@ -52,25 +77,50 @@ def main() -> None:
     """
     Main entry point for the MCP server.
     """
+    # Parse command line arguments
     args = parse_args()
 
-    # Configure logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
-
-    # Validate project directory
+    # Validate project directory first
     project_dir = Path(args.project_dir)
     if not project_dir.exists() or not project_dir.is_dir():
-        logger.error(
-            f"Project directory does not exist or is not a directory: {project_dir}"
+        print(
+            f"Error: Project directory does not exist or is not a directory: {project_dir}"
         )
         sys.exit(1)
 
-    logger.info(
+    # Convert to absolute path
+    project_dir = project_dir.absolute()
+
+    # Generate default log file path if not specified
+    if args.console_only:
+        log_file = None
+    elif args.log_file:
+        log_file = args.log_file
+    else:
+        # Create default log file in project_dir/logs/ with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        logs_dir = project_dir / "logs"
+        log_file = str(logs_dir / f"mcp_code_checker_{timestamp}.log")
+
+    # Configure logging now that we have the project directory
+    setup_logging(args.log_level, log_file)
+
+    # Add debug logging after logger is initialized
+    stdlogger.debug("Logger initialized in main")
+    structured_logger.debug(
+        "Structured logger initialized in main", log_level=args.log_level
+    )
+
+    stdlogger.info(
         f"Starting MCP Code Checker server with project directory: {project_dir}"
     )
+    if log_file:
+        structured_logger.info(
+            "Starting MCP Code Checker server",
+            project_dir=str(project_dir),
+            log_level=args.log_level,
+            log_file=log_file,
+        )
 
     # Create and run the server
     server = create_server(
@@ -80,7 +130,15 @@ def main() -> None:
         test_folder=args.test_folder,
         keep_temp_files=args.keep_temp_files,
     )
+
+    stdlogger.info("Starting MCP server")
+    structured_logger.info("Starting MCP server")
+    stdlogger.debug("About to call server.run()")
+    structured_logger.debug("About to call server.run()", project_dir=str(project_dir))
     server.run()
+    stdlogger.debug(
+        "After server.run() call - this line will only execute if server.run() returns"
+    )
 
 
 if __name__ == "__main__":
