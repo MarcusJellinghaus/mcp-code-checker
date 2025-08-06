@@ -1,11 +1,9 @@
 """Tests for log_utils module."""
 
-import json
 import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
@@ -144,7 +142,9 @@ class TestLogFunctionCall:
         assert "path_func" in call_args
 
     @patch("src.log_utils.stdlogger")
-    def test_log_function_call_with_large_result(self, mock_stdlogger: mock.Mock) -> None:
+    def test_log_function_call_with_large_result(
+        self, mock_stdlogger: mock.Mock
+    ) -> None:
         """Test that large results are properly truncated in logs."""
 
         # Define a test function that returns a large list
