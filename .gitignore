@@ -21,3 +21,6 @@ venv/
 # default log folder used by mcp servers
 /logs/
 
+# Cache files
+.pytest_cache/
+.mypy_cache/
