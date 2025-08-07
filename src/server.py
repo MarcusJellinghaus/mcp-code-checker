@@ -67,6 +67,7 @@ class CodeCheckerServer:
         @self.mcp.tool()
         @log_function_call
         def run_pylint_check(
+            categories: Optional[List[str]] = None,
             disable_codes: Optional[List[str]] = None,
             target_directories: Optional[List[str]] = None,
         ) -> str:
@@ -74,6 +75,14 @@ class CodeCheckerServer:
             Run pylint on the project code and generate smart prompts for LLMs.
 
             Args:
+                categories: Optional list of pylint message categories to include.
+                    Available categories: 'convention', 'refactor', 'warning', 'error', 'fatal'
+                    Defaults to ['error', 'fatal'] if not specified.
+                    Examples:
+                    - ['error', 'fatal'] - Only critical issues (default)
+                    - ['error', 'fatal', 'warning'] - Include warnings
+                    - ['convention', 'refactor'] - Only style and refactoring suggestions
+                    - ['convention', 'refactor', 'warning', 'error', 'fatal'] - All categories
                 disable_codes: Optional list of pylint error codes to disable during analysis.
                     Common codes to disable include:
                     - C0114: Missing module docstring
@@ -99,16 +108,27 @@ class CodeCheckerServer:
                 structured_logger.info(
                     "Starting pylint check",
                     project_dir=str(self.project_dir),
+                    categories=categories,
                     disable_codes=disable_codes,
                     target_directories=target_directories,
                 )
 
                 # Import the code_checker_pylint module to run pylint checks
-                from src.code_checker_pylint import get_pylint_prompt
+                from src.code_checker_pylint import PylintMessageType, get_pylint_prompt
+
+                # Convert string categories to PylintMessageType enum values if provided
+                pylint_categories = set()
+                if categories:
+                    for category in categories:
+                        try:
+                            pylint_categories.add(PylintMessageType(category.lower()))
+                        except ValueError:
+                            logger.warning(f"Unknown pylint category: {category}")
 
                 # Generate a prompt for pylint issues
                 pylint_prompt = get_pylint_prompt(
                     str(self.project_dir),
+                    categories=pylint_categories if pylint_categories else None,
                     disable_codes=disable_codes,
                     python_executable=self.python_executable,
                     target_directories=target_directories,
@@ -140,6 +160,7 @@ class CodeCheckerServer:
                     error=str(e),
                     error_type=type(e).__name__,
                     project_dir=str(self.project_dir),
+                    categories=categories,
                     disable_codes=disable_codes,
                     target_directories=target_directories,
                 )
@@ -257,7 +278,7 @@ class CodeCheckerServer:
             verbosity: int = 2,
             extra_args: Optional[List[str]] = None,
             env_vars: Optional[Dict[str, str]] = None,
-            categories: Optional[Set[str]] = None,
+            categories: Optional[List[str]] = None,
             target_directories: Optional[List[str]] = None,
         ) -> str:
             """
@@ -268,9 +289,9 @@ class CodeCheckerServer:
                 verbosity: Integer for pytest verbosity level (0-3), default 2. Higher values provide more detailed output.
                 extra_args: Optional list of additional pytest arguments. Examples: ['-xvs', '--no-header']
                 env_vars: Optional dictionary of environment variables for the subprocess. Example: {'DEBUG': '1', 'PYTHONPATH': '/custom/path'}
-                categories: Optional set of pylint message categories to include.
+                categories: Optional list of pylint message categories to include.
                     Available categories: 'convention', 'refactor', 'warning', 'error', 'fatal'
-                    Defaults to {'error', 'fatal'} if not specified.
+                    Defaults to ['error', 'fatal'] if not specified.
                 target_directories: Optional list of directories to analyze relative to project_dir. 
                     Defaults to ["src"] and conditionally "tests" if it exists.
                     Examples:
@@ -292,7 +313,7 @@ class CodeCheckerServer:
                     test_folder=self.test_folder,
                     markers=markers,
                     verbosity=verbosity,
-                    categories=list(categories) if categories else None,
+                    categories=categories,
                     target_directories=target_directories,
                 )
 
