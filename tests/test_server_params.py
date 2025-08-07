@@ -43,7 +43,7 @@ async def test_run_pytest_check_parameters(
     run_pytest_check = mock_tool.call_args_list[1][0][0]
 
     # Call with only the dynamic parameters (without test_folder and keep_temp_files)
-    await run_pytest_check(
+    run_pytest_check(
         markers=["slow", "integration"],
         verbosity=3,
         extra_args=["--no-header"],
@@ -99,7 +99,7 @@ async def test_run_all_checks_parameters(
     run_all_checks = mock_tool.call_args_list[2][0][0]
 
     # Call with only the dynamic parameters (without test_folder and keep_temp_files)
-    await run_all_checks(
+    run_all_checks(
         markers=["slow", "integration"],
         verbosity=3,
         extra_args=["--no-header"],
