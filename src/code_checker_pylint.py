@@ -4,7 +4,7 @@ import os
 import subprocess
 import sys
 from enum import Enum
-from typing import List, NamedTuple, Optional, Set
+from typing import Dict, List, NamedTuple, Optional, Set
 
 import structlog
 
@@ -12,6 +12,131 @@ from src.log_utils import log_function_call
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
+
+
+class SubprocessResult(NamedTuple):
+    """Represents the result of a subprocess execution."""
+
+    return_code: int
+    stdout: str
+    stderr: str
+    timed_out: bool
+    execution_error: Optional[str] = None
+
+
+@log_function_call
+def execute_subprocess_with_timeout(
+    command: List[str],
+    cwd: Optional[str] = None,
+    timeout_seconds: int = 120,
+    env: Optional[Dict[str, str]] = None
+) -> SubprocessResult:
+    """
+    Execute a subprocess with proper timeout and error handling.
+
+    Args:
+        command: Complete command as list (e.g., ["python", "-m", "pylint", "--output-format=json", "src"])
+        cwd: Working directory for subprocess
+        timeout_seconds: Timeout in seconds
+        env: Optional environment variables (inherits from current process if None)
+
+    Returns:
+        SubprocessResult with execution details and output
+    """
+    structured_logger.debug(
+        "Starting subprocess execution",
+        command=command,
+        cwd=cwd,
+        timeout_seconds=timeout_seconds,
+        env_keys=list(env.keys()) if env else None
+    )
+
+    try:
+        start_time = logger.info if hasattr(logger, '_start_time') else None
+        
+        process = subprocess.run(
+            command,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=timeout_seconds,
+            env=env
+        )
+        
+        structured_logger.debug(
+            "Subprocess execution completed",
+            return_code=process.returncode,
+            stdout_length=len(process.stdout) if process.stdout else 0,
+            stderr_length=len(process.stderr) if process.stderr else 0,
+            stdout_preview=process.stdout[:200] if process.stdout else None,
+            stderr_preview=process.stderr[:200] if process.stderr else None
+        )
+
+        return SubprocessResult(
+            return_code=process.returncode,
+            stdout=process.stdout or "",
+            stderr=process.stderr or "",
+            timed_out=False,
+            execution_error=None
+        )
+
+    except subprocess.TimeoutExpired as e:
+        structured_logger.error(
+            "Subprocess execution timed out",
+            timeout_seconds=timeout_seconds,
+            command=command[:3]  # First few elements for security
+        )
+        return SubprocessResult(
+            return_code=1,
+            stdout="",
+            stderr="",
+            timed_out=True,
+            execution_error=f"Process timed out after {timeout_seconds} seconds"
+        )
+
+    except FileNotFoundError as e:
+        structured_logger.error(
+            "Subprocess executable not found",
+            command_executable=command[0] if command else None,
+            error=str(e)
+        )
+        return SubprocessResult(
+            return_code=1,
+            stdout="",
+            stderr="",
+            timed_out=False,
+            execution_error=f"Executable not found: {e}"
+        )
+
+    except PermissionError as e:
+        structured_logger.error(
+            "Subprocess permission error",
+            command_executable=command[0] if command else None,
+            error=str(e)
+        )
+        return SubprocessResult(
+            return_code=1,
+            stdout="",
+            stderr="",
+            timed_out=False,
+            execution_error=f"Permission error: {e}"
+        )
+
+    except Exception as e:
+        structured_logger.error(
+            "Subprocess execution failed with unexpected error",
+            error=str(e),
+            error_type=type(e).__name__,
+            command_preview=command[:3] if command else None
+        )
+        return SubprocessResult(
+            return_code=1,
+            stdout="",
+            stderr="",
+            timed_out=False,
+            execution_error=f"Unexpected error: {e}"
+        )
 
 
 class PylintMessageType(Enum):
@@ -198,145 +323,150 @@ def get_pylint_results(
         target_directories=valid_directories
     )
 
-    try:
-        # Determine the Python executable from the parameter or fall back to sys.executable
-        python_exe = (
-            python_executable if python_executable is not None else sys.executable
-        )
+    # Determine the Python executable from the parameter or fall back to sys.executable
+    python_exe = (
+        python_executable if python_executable is not None else sys.executable
+    )
 
-        # Construct the pylint command
-        pylint_command = [
-            python_exe,
-            "-m",
-            "pylint",
-            "--output-format=json",
-        ]
+    # Construct the pylint command
+    pylint_command = [
+        python_exe,
+        "-m",
+        "pylint",
+        "--output-format=json",
+    ]
 
-        if disable_codes and len(disable_codes) > 0:
-            pylint_command.append(f"--disable={','.join(disable_codes)}")
-        
-        # Add all valid target directories
-        pylint_command.extend(valid_directories)
+    if disable_codes and len(disable_codes) > 0:
+        pylint_command.append(f"--disable={','.join(disable_codes)}")
+    
+    # Add all valid target directories
+    pylint_command.extend(valid_directories)
 
-        # Run pylint and capture its output - add timeout to prevent hanging
-        logger.debug(f"Running pylint command: {' '.join(pylint_command)}")
-        try:
-            process = subprocess.run(
-                pylint_command, 
-                cwd=project_dir, 
-                capture_output=True, 
-                text=True, 
-                check=False,
-                timeout=120  # 2 minute timeout for pylint execution
-            )
-        except subprocess.TimeoutExpired:
-            error_message = "Pylint execution timed out after 120 seconds"
-            structured_logger.error("Pylint timeout", timeout_seconds=120, project_dir=project_dir)
-            return PylintResult(
-                return_code=1,
-                messages=[],
-                error=error_message,
-                raw_output=None,
-            )
+    # Execute the subprocess
+    subprocess_result = execute_subprocess_with_timeout(
+        command=pylint_command,
+        cwd=project_dir,
+        timeout_seconds=120
+    )
 
-        raw_output = process.stdout
-
-        # Parse pylint output from JSON, if available
-        messages: List[PylintMessage] = []
-
-        # Check if we have any output to parse
-        if not raw_output or raw_output.strip() == "":
-            structured_logger.info(
-                "Pylint produced no output", 
-                return_code=process.returncode,
-                stderr=process.stderr[:200] if process.stderr else None
-            )
-            # Empty output often means no issues found
-            result = PylintResult(
-                return_code=process.returncode,
-                messages=[],
-                raw_output=raw_output,
-            )
-            return result
-
-        try:
-            pylint_output = json.loads(process.stdout)
-            if not isinstance(pylint_output, list):
-                error_message = f"Expected JSON array from pylint, got {type(pylint_output).__name__}"
-                structured_logger.error("Invalid pylint output format", output_type=type(pylint_output).__name__)
-                return PylintResult(
-                    return_code=process.returncode,
-                    messages=[],
-                    error=error_message,
-                    raw_output=raw_output,
-                )
-                
-            for item in pylint_output:
-                if not isinstance(item, dict):
-                    structured_logger.warning("Skipping non-dict item in pylint output", item_type=type(item).__name__)
-                    continue
-                    
-                messages.append(
-                    PylintMessage(
-                        type=item.get("type", ""),
-                        module=item.get("module", ""),
-                        obj=item.get("obj", ""),
-                        line=item.get("line", -1),
-                        column=item.get("column", -1),
-                        path=item.get("path", ""),
-                        symbol=item.get("symbol", ""),
-                        message=item.get("message", ""),
-                        message_id=item.get("message-id", ""),
-                    )
-                )
-        except json.JSONDecodeError as e:
-            error_message = (
-                f"Failed to parse Pylint JSON output: {e}. "
-                f"First 200 chars of output: {raw_output[:200]}..."
-                if len(raw_output) > 200
-                else raw_output
-            )
-            structured_logger.error(
-                "JSON parse error", 
-                error=str(e),
-                output_length=len(raw_output),
-                output_preview=raw_output[:100]
-            )
-            result = PylintResult(
-                return_code=process.returncode,
-                messages=[],
-                error=error_message,
-                raw_output=raw_output,
-            )
-            return result
-
-        result = PylintResult(
-            return_code=process.returncode, messages=messages, raw_output=raw_output
-        )
-
-        structured_logger.info(
-            "Pylint analysis completed",
-            return_code=process.returncode,
-            messages_count=len(messages),
-            unique_codes=len(result.get_message_ids()),
-        )
-
-        return result
-
-    except Exception as e:
-        structured_logger.error(
-            "Pylint analysis failed",
-            error=str(e),
-            error_type=type(e).__name__,
-            project_dir=project_dir,
-        )
-        result = PylintResult(
-            return_code=1,
+    # Handle subprocess execution errors
+    if subprocess_result.execution_error:
+        return PylintResult(
+            return_code=subprocess_result.return_code,
             messages=[],
-            error=f"Error running pylint: {str(e)}",
+            error=subprocess_result.execution_error,
             raw_output=None,
         )
-        return result
+
+    if subprocess_result.timed_out:
+        return PylintResult(
+            return_code=1,
+            messages=[],
+            error="Pylint execution timed out after 120 seconds",
+            raw_output=None,
+        )
+
+    # Log subprocess results
+    structured_logger.info(
+        "Pylint subprocess completed",
+        return_code=subprocess_result.return_code,
+        has_stdout=bool(subprocess_result.stdout),
+        has_stderr=bool(subprocess_result.stderr),
+        stdout_empty=not subprocess_result.stdout or subprocess_result.stdout.strip() == "",
+        stderr_empty=not subprocess_result.stderr or subprocess_result.stderr.strip() == "",
+        command_executed=' '.join(pylint_command)
+    )
+
+    raw_output = subprocess_result.stdout
+
+    # Parse pylint output from JSON, if available
+    messages: List[PylintMessage] = []
+
+    # Check if we have any output to parse
+    if not raw_output or raw_output.strip() == "":
+        structured_logger.info(
+            "Pylint produced no output", 
+            return_code=subprocess_result.return_code,
+            stderr=subprocess_result.stderr[:200] if subprocess_result.stderr else None
+        )
+        # Empty output often means no issues found
+        return PylintResult(
+            return_code=subprocess_result.return_code,
+            messages=[],
+            raw_output=raw_output,
+        )
+
+    try:
+        pylint_output = json.loads(subprocess_result.stdout)
+        if not isinstance(pylint_output, list):
+            error_message = f"Expected JSON array from pylint, got {type(pylint_output).__name__}"
+            structured_logger.error("Invalid pylint output format", output_type=type(pylint_output).__name__)
+            return PylintResult(
+                return_code=subprocess_result.return_code,
+                messages=[],
+                error=error_message,
+                raw_output=raw_output,
+            )
+            
+        # Log details about JSON parsing success
+        structured_logger.debug(
+            "Successfully parsed pylint JSON output",
+            json_array_length=len(pylint_output),
+            first_item_keys=list(pylint_output[0].keys()) if pylint_output else None
+        )
+            
+        for item in pylint_output:
+            if not isinstance(item, dict):
+                structured_logger.warning("Skipping non-dict item in pylint output", item_type=type(item).__name__)
+                continue
+                
+            messages.append(
+                PylintMessage(
+                    type=item.get("type", ""),
+                    module=item.get("module", ""),
+                    obj=item.get("obj", ""),
+                    line=item.get("line", -1),
+                    column=item.get("column", -1),
+                    path=item.get("path", ""),
+                    symbol=item.get("symbol", ""),
+                    message=item.get("message", ""),
+                    message_id=item.get("message-id", ""),
+                )
+            )
+    except json.JSONDecodeError as e:
+        error_message = (
+            f"Failed to parse Pylint JSON output: {e}. "
+            f"First 200 chars of output: {raw_output[:200]}..."
+            if len(raw_output) > 200
+            else raw_output
+        )
+        structured_logger.error(
+            "JSON parse error", 
+            error=str(e),
+            output_length=len(raw_output),
+            output_preview=raw_output[:100]
+        )
+        return PylintResult(
+            return_code=subprocess_result.return_code,
+            messages=[],
+            error=error_message,
+            raw_output=raw_output,
+        )
+
+    result = PylintResult(
+        return_code=subprocess_result.return_code, 
+        messages=messages, 
+        raw_output=raw_output
+    )
+
+    structured_logger.info(
+        "Pylint analysis completed",
+        return_code=subprocess_result.return_code,
+        messages_count=len(messages),
+        unique_codes=len(result.get_message_ids()),
+    )
+
+    return result
 
 
 def get_direct_instruction_for_pylint_code(code: str) -> Optional[str]:
