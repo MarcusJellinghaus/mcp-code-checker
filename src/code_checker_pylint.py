@@ -29,7 +29,7 @@ def execute_subprocess_with_timeout(
     command: List[str],
     cwd: Optional[str] = None,
     timeout_seconds: int = 120,
-    env: Optional[Dict[str, str]] = None
+    env: Optional[Dict[str, str]] = None,
 ) -> SubprocessResult:
     """
     Execute a subprocess with proper timeout and error handling.
@@ -48,12 +48,12 @@ def execute_subprocess_with_timeout(
         command=command,
         cwd=cwd,
         timeout_seconds=timeout_seconds,
-        env_keys=list(env.keys()) if env else None
+        env_keys=list(env.keys()) if env else None,
     )
 
     try:
-        start_time = logger.info if hasattr(logger, '_start_time') else None
-        
+        start_time = logger.info if hasattr(logger, "_start_time") else None
+
         process = subprocess.run(
             command,
             cwd=cwd,
@@ -61,16 +61,16 @@ def execute_subprocess_with_timeout(
             text=True,
             check=False,
             timeout=timeout_seconds,
-            env=env
+            env=env,
         )
-        
+
         structured_logger.debug(
             "Subprocess execution completed",
             return_code=process.returncode,
             stdout_length=len(process.stdout) if process.stdout else 0,
             stderr_length=len(process.stderr) if process.stderr else 0,
             stdout_preview=process.stdout[:200] if process.stdout else None,
-            stderr_preview=process.stderr[:200] if process.stderr else None
+            stderr_preview=process.stderr[:200] if process.stderr else None,
         )
 
         return SubprocessResult(
@@ -78,49 +78,49 @@ def execute_subprocess_with_timeout(
             stdout=process.stdout or "",
             stderr=process.stderr or "",
             timed_out=False,
-            execution_error=None
+            execution_error=None,
         )
 
-    except subprocess.TimeoutExpired as e:
+    except subprocess.TimeoutExpired:
         structured_logger.error(
             "Subprocess execution timed out",
             timeout_seconds=timeout_seconds,
-            command=command[:3]  # First few elements for security
+            command=command[:3],  # First few elements for security
         )
         return SubprocessResult(
             return_code=1,
             stdout="",
             stderr="",
             timed_out=True,
-            execution_error=f"Process timed out after {timeout_seconds} seconds"
+            execution_error=f"Process timed out after {timeout_seconds} seconds",
         )
 
     except FileNotFoundError as e:
         structured_logger.error(
             "Subprocess executable not found",
             command_executable=command[0] if command else None,
-            error=str(e)
+            error=str(e),
         )
         return SubprocessResult(
             return_code=1,
             stdout="",
             stderr="",
             timed_out=False,
-            execution_error=f"Executable not found: {e}"
+            execution_error=f"Executable not found: {e}",
         )
 
     except PermissionError as e:
         structured_logger.error(
             "Subprocess permission error",
             command_executable=command[0] if command else None,
-            error=str(e)
+            error=str(e),
         )
         return SubprocessResult(
             return_code=1,
             stdout="",
             stderr="",
             timed_out=False,
-            execution_error=f"Permission error: {e}"
+            execution_error=f"Permission error: {e}",
         )
 
     except Exception as e:
@@ -128,14 +128,14 @@ def execute_subprocess_with_timeout(
             "Subprocess execution failed with unexpected error",
             error=str(e),
             error_type=type(e).__name__,
-            command_preview=command[:3] if command else None
+            command_preview=command[:3] if command else None,
         )
         return SubprocessResult(
             return_code=1,
             stdout="",
             stderr="",
             timed_out=False,
-            execution_error=f"Unexpected error: {e}"
+            execution_error=f"Unexpected error: {e}",
         )
 
 
@@ -272,7 +272,7 @@ def get_pylint_results(
             - W0611: Unused import
             - W1514: Unspecified encoding
         python_executable: Path to Python executable to use for running pylint. Defaults to sys.executable if None.
-        target_directories: List of directories to analyze relative to project_dir. 
+        target_directories: List of directories to analyze relative to project_dir.
             Defaults to ["src"] and conditionally "tests" if it exists.
             Examples: ["src"], ["src", "tests"], ["mypackage", "tests"], ["."]
 
@@ -301,14 +301,18 @@ def get_pylint_results(
             structured_logger.warning(
                 "Target directory does not exist, skipping",
                 directory=directory,
-                full_path=full_path
+                full_path=full_path,
             )
 
     if not valid_directories:
-        error_message = f"No valid target directories found. Checked: {target_directories}"
-        structured_logger.error("No valid directories to analyze", 
-                              target_directories=target_directories,
-                              project_dir=project_dir)
+        error_message = (
+            f"No valid target directories found. Checked: {target_directories}"
+        )
+        structured_logger.error(
+            "No valid directories to analyze",
+            target_directories=target_directories,
+            project_dir=project_dir,
+        )
         return PylintResult(
             return_code=1,
             messages=[],
@@ -317,16 +321,14 @@ def get_pylint_results(
         )
 
     structured_logger.info(
-        "Starting pylint analysis", 
-        project_dir=project_dir, 
+        "Starting pylint analysis",
+        project_dir=project_dir,
         disable_codes=disable_codes,
-        target_directories=valid_directories
+        target_directories=valid_directories,
     )
 
     # Determine the Python executable from the parameter or fall back to sys.executable
-    python_exe = (
-        python_executable if python_executable is not None else sys.executable
-    )
+    python_exe = python_executable if python_executable is not None else sys.executable
 
     # Construct the pylint command
     pylint_command = [
@@ -338,15 +340,13 @@ def get_pylint_results(
 
     if disable_codes and len(disable_codes) > 0:
         pylint_command.append(f"--disable={','.join(disable_codes)}")
-    
+
     # Add all valid target directories
     pylint_command.extend(valid_directories)
 
     # Execute the subprocess
     subprocess_result = execute_subprocess_with_timeout(
-        command=pylint_command,
-        cwd=project_dir,
-        timeout_seconds=120
+        command=pylint_command, cwd=project_dir, timeout_seconds=120
     )
 
     # Handle subprocess execution errors
@@ -372,9 +372,11 @@ def get_pylint_results(
         return_code=subprocess_result.return_code,
         has_stdout=bool(subprocess_result.stdout),
         has_stderr=bool(subprocess_result.stderr),
-        stdout_empty=not subprocess_result.stdout or subprocess_result.stdout.strip() == "",
-        stderr_empty=not subprocess_result.stderr or subprocess_result.stderr.strip() == "",
-        command_executed=' '.join(pylint_command)
+        stdout_empty=not subprocess_result.stdout
+        or subprocess_result.stdout.strip() == "",
+        stderr_empty=not subprocess_result.stderr
+        or subprocess_result.stderr.strip() == "",
+        command_executed=" ".join(pylint_command),
     )
 
     raw_output = subprocess_result.stdout
@@ -385,9 +387,9 @@ def get_pylint_results(
     # Check if we have any output to parse
     if not raw_output or raw_output.strip() == "":
         structured_logger.info(
-            "Pylint produced no output", 
+            "Pylint produced no output",
             return_code=subprocess_result.return_code,
-            stderr=subprocess_result.stderr[:200] if subprocess_result.stderr else None
+            stderr=subprocess_result.stderr[:200] if subprocess_result.stderr else None,
         )
         # Empty output often means no issues found
         return PylintResult(
@@ -399,27 +401,34 @@ def get_pylint_results(
     try:
         pylint_output = json.loads(subprocess_result.stdout)
         if not isinstance(pylint_output, list):
-            error_message = f"Expected JSON array from pylint, got {type(pylint_output).__name__}"
-            structured_logger.error("Invalid pylint output format", output_type=type(pylint_output).__name__)
+            error_message = (
+                f"Expected JSON array from pylint, got {type(pylint_output).__name__}"
+            )
+            structured_logger.error(
+                "Invalid pylint output format", output_type=type(pylint_output).__name__
+            )
             return PylintResult(
                 return_code=subprocess_result.return_code,
                 messages=[],
                 error=error_message,
                 raw_output=raw_output,
             )
-            
+
         # Log details about JSON parsing success
         structured_logger.debug(
             "Successfully parsed pylint JSON output",
             json_array_length=len(pylint_output),
-            first_item_keys=list(pylint_output[0].keys()) if pylint_output else None
+            first_item_keys=list(pylint_output[0].keys()) if pylint_output else None,
         )
-            
+
         for item in pylint_output:
             if not isinstance(item, dict):
-                structured_logger.warning("Skipping non-dict item in pylint output", item_type=type(item).__name__)
+                structured_logger.warning(
+                    "Skipping non-dict item in pylint output",
+                    item_type=type(item).__name__,
+                )
                 continue
-                
+
             messages.append(
                 PylintMessage(
                     type=item.get("type", ""),
@@ -441,10 +450,10 @@ def get_pylint_results(
             else raw_output
         )
         structured_logger.error(
-            "JSON parse error", 
+            "JSON parse error",
             error=str(e),
             output_length=len(raw_output),
-            output_preview=raw_output[:100]
+            output_preview=raw_output[:100],
         )
         return PylintResult(
             return_code=subprocess_result.return_code,
@@ -454,9 +463,9 @@ def get_pylint_results(
         )
 
     result = PylintResult(
-        return_code=subprocess_result.return_code, 
-        messages=messages, 
-        raw_output=raw_output
+        return_code=subprocess_result.return_code,
+        messages=messages,
+        raw_output=raw_output,
     )
 
     structured_logger.info(
@@ -538,7 +547,7 @@ def run_pylint_check(
             - W0611: Unused import
             - W1514: Unspecified encoding
         python_executable: Optional path to Python interpreter to use for running tests. If None, defaults to sys.executable.
-        target_directories: Optional list of directories to analyze relative to project_dir. 
+        target_directories: Optional list of directories to analyze relative to project_dir.
             Defaults to ["src"] and conditionally "tests" if it exists.
             Examples: ["src"], ["src", "tests"], ["mypackage", "tests"], ["."]
 
@@ -564,10 +573,10 @@ def run_pylint_check(
         ]
 
     return get_pylint_results(
-        project_dir, 
-        disable_codes=disable_codes, 
+        project_dir,
+        disable_codes=disable_codes,
         python_executable=python_executable,
-        target_directories=target_directories
+        target_directories=target_directories,
     )
 
 
@@ -601,7 +610,7 @@ def get_pylint_prompt(
             - W0611: Unused import
             - W1514: Unspecified encoding
         python_executable: Optional path to Python interpreter to use for running tests. If None, defaults to sys.executable.
-        target_directories: Optional list of directories to analyze relative to project_dir. 
+        target_directories: Optional list of directories to analyze relative to project_dir.
             Defaults to ["src"] and conditionally "tests" if it exists.
             Examples: ["src"], ["src", "tests"], ["mypackage", "tests"], ["."]
 
@@ -639,18 +648,18 @@ def get_pylint_prompt(
         ]
 
     pylint_results = get_pylint_results(
-        project_dir, 
-        disable_codes=disable_codes, 
+        project_dir,
+        disable_codes=disable_codes,
         python_executable=python_executable,
-        target_directories=target_directories
+        target_directories=target_directories,
     )
 
     # Check if there was an error running pylint (e.g., timeout, execution failure)
     if pylint_results.error:
         structured_logger.error(
-            "Pylint execution error detected", 
+            "Pylint execution error detected",
             error=pylint_results.error,
-            return_code=pylint_results.return_code
+            return_code=pylint_results.return_code,
         )
         # Return the error as a prompt so the MCP client gets the error message
         return f"Pylint analysis failed: {pylint_results.error}"

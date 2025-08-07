@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 
 # Type stub for mcp.server.fastmcp
-from typing import Callable, Dict, List, Optional, Protocol, Set, TypeVar
+from typing import Callable, Dict, List, Optional, Protocol, TypeVar
 
 import structlog
 
@@ -90,9 +90,9 @@ class CodeCheckerServer:
                     - C0301: Line too long
                     - W0611: Unused import
                     - W1514: Using open without explicitly specifying an encoding
-                target_directories: Optional list of directories to analyze relative to project_dir. 
+                target_directories: Optional list of directories to analyze relative to project_dir.
                     Defaults to ["src"] and conditionally "tests" if it exists.
-                    Examples: 
+                    Examples:
                     - ["src"] - Analyze only source code
                     - ["src", "tests"] - Analyze both source and tests (default)
                     - ["mypackage", "tests"] - Custom package structure
@@ -292,7 +292,7 @@ class CodeCheckerServer:
                 categories: Optional list of pylint message categories to include.
                     Available categories: 'convention', 'refactor', 'warning', 'error', 'fatal'
                     Defaults to ['error', 'fatal'] if not specified.
-                target_directories: Optional list of directories to analyze relative to project_dir. 
+                target_directories: Optional list of directories to analyze relative to project_dir.
                     Defaults to ["src"] and conditionally "tests" if it exists.
                     Examples:
                     - ["src"] - Analyze only source code
