@@ -1,142 +1,17 @@
 import json
 import logging
 import os
-import subprocess
 import sys
 from enum import Enum
-from typing import Dict, List, NamedTuple, Optional, Set
+from typing import List, NamedTuple, Optional, Set
 
 import structlog
 
 from src.log_utils import log_function_call
+from src.utils.command_runner import execute_subprocess_with_timeout
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
-
-
-class SubprocessResult(NamedTuple):
-    """Represents the result of a subprocess execution."""
-
-    return_code: int
-    stdout: str
-    stderr: str
-    timed_out: bool
-    execution_error: Optional[str] = None
-
-
-@log_function_call
-def execute_subprocess_with_timeout(
-    command: List[str],
-    cwd: Optional[str] = None,
-    timeout_seconds: int = 120,
-    env: Optional[Dict[str, str]] = None,
-) -> SubprocessResult:
-    """
-    Execute a subprocess with proper timeout and error handling.
-
-    Args:
-        command: Complete command as list (e.g., ["python", "-m", "pylint", "--output-format=json", "src"])
-        cwd: Working directory for subprocess
-        timeout_seconds: Timeout in seconds
-        env: Optional environment variables (inherits from current process if None)
-
-    Returns:
-        SubprocessResult with execution details and output
-    """
-    structured_logger.debug(
-        "Starting subprocess execution",
-        command=command,
-        cwd=cwd,
-        timeout_seconds=timeout_seconds,
-        env_keys=list(env.keys()) if env else None,
-    )
-
-    try:
-        start_time = logger.info if hasattr(logger, "_start_time") else None
-
-        process = subprocess.run(
-            command,
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=timeout_seconds,
-            env=env,
-        )
-
-        structured_logger.debug(
-            "Subprocess execution completed",
-            return_code=process.returncode,
-            stdout_length=len(process.stdout) if process.stdout else 0,
-            stderr_length=len(process.stderr) if process.stderr else 0,
-            stdout_preview=process.stdout[:200] if process.stdout else None,
-            stderr_preview=process.stderr[:200] if process.stderr else None,
-        )
-
-        return SubprocessResult(
-            return_code=process.returncode,
-            stdout=process.stdout or "",
-            stderr=process.stderr or "",
-            timed_out=False,
-            execution_error=None,
-        )
-
-    except subprocess.TimeoutExpired:
-        structured_logger.error(
-            "Subprocess execution timed out",
-            timeout_seconds=timeout_seconds,
-            command=command[:3],  # First few elements for security
-        )
-        return SubprocessResult(
-            return_code=1,
-            stdout="",
-            stderr="",
-            timed_out=True,
-            execution_error=f"Process timed out after {timeout_seconds} seconds",
-        )
-
-    except FileNotFoundError as e:
-        structured_logger.error(
-            "Subprocess executable not found",
-            command_executable=command[0] if command else None,
-            error=str(e),
-        )
-        return SubprocessResult(
-            return_code=1,
-            stdout="",
-            stderr="",
-            timed_out=False,
-            execution_error=f"Executable not found: {e}",
-        )
-
-    except PermissionError as e:
-        structured_logger.error(
-            "Subprocess permission error",
-            command_executable=command[0] if command else None,
-            error=str(e),
-        )
-        return SubprocessResult(
-            return_code=1,
-            stdout="",
-            stderr="",
-            timed_out=False,
-            execution_error=f"Permission error: {e}",
-        )
-
-    except Exception as e:
-        structured_logger.error(
-            "Subprocess execution failed with unexpected error",
-            error=str(e),
-            error_type=type(e).__name__,
-            command_preview=command[:3] if command else None,
-        )
-        return SubprocessResult(
-            return_code=1,
-            stdout="",
-            stderr="",
-            timed_out=False,
-            execution_error=f"Unexpected error: {e}",
-        )
 
 
 class PylintMessageType(Enum):
