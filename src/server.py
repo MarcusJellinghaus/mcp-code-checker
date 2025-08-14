@@ -417,6 +417,83 @@ class CodeCheckerServer:
                 )
                 raise
 
+        @self.mcp.tool()
+        @log_function_call
+        def sleep_seconds(sleep_seconds: int = 5) -> str:
+            """
+            Sleep for specified seconds using a batch file (for testing MCP batch file execution).
+
+            Args:
+                sleep_seconds: Number of seconds to sleep (default: 5, max: 300 for safety)
+
+            Returns:
+                A string indicating the sleep operation result
+            """
+            try:
+                logger.info(f"Starting sleep operation for {sleep_seconds} seconds")
+                structured_logger.info(
+                    "Starting sleep operation",
+                    sleep_seconds=sleep_seconds,
+                    project_dir=str(self.project_dir),
+                )
+
+                # Input validation
+                if sleep_seconds < 0:
+                    raise ValueError("Sleep seconds must be non-negative")
+                if sleep_seconds > 300:
+                    raise ValueError(
+                        "Sleep seconds cannot exceed 300 (5 minutes) for safety"
+                    )
+
+                # Use existing command runner infrastructure
+                from src.utils.command_runner import execute_command
+
+                # Find the batch file in the tools directory
+                tools_dir = self.project_dir / "tools"
+                batch_file = tools_dir / "sleep.bat"
+
+                if not batch_file.exists():
+                    raise FileNotFoundError(f"Sleep batch file not found: {batch_file}")
+
+                # Execute the batch file with the sleep duration
+                result = execute_command(
+                    [str(batch_file), str(sleep_seconds)],
+                    cwd=str(self.project_dir),
+                    timeout_seconds=sleep_seconds
+                    + 30,  # Add buffer for batch file overhead
+                )
+
+                if result.return_code == 0:
+                    success_msg = f"Successfully slept for {sleep_seconds} seconds"
+                    structured_logger.info(
+                        "Sleep operation completed successfully",
+                        sleep_seconds=sleep_seconds,
+                        execution_time_ms=result.execution_time_ms,
+                        stdout_preview=result.stdout[:200] if result.stdout else None,
+                    )
+                    return success_msg
+                else:
+                    error_msg = f"Sleep operation failed with return code {result.return_code}: {result.stderr}"
+                    structured_logger.error(
+                        "Sleep operation failed",
+                        sleep_seconds=sleep_seconds,
+                        return_code=result.return_code,
+                        stderr=result.stderr,
+                        stdout=result.stdout,
+                    )
+                    return error_msg
+
+            except Exception as e:
+                logger.error(f"Error in sleep operation: {str(e)}")
+                structured_logger.error(
+                    "Sleep operation failed with exception",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    sleep_seconds=sleep_seconds,
+                    project_dir=str(self.project_dir),
+                )
+                raise
+
     @log_function_call
     def run(self) -> None:
         """Run the MCP server."""
