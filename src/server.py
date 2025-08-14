@@ -464,12 +464,17 @@ class CodeCheckerServer:
                 )
 
                 if result.return_code == 0:
-                    success_msg = f"Successfully slept for {sleep_seconds} seconds"
+                    # Return the batch file output directly
+                    success_msg = (
+                        result.stdout.strip()
+                        if result.stdout
+                        else f"Successfully slept for {sleep_seconds} seconds"
+                    )
                     structured_logger.info(
                         "Sleep operation completed successfully",
                         sleep_seconds=sleep_seconds,
                         execution_time_ms=result.execution_time_ms,
-                        stdout_preview=result.stdout[:200] if result.stdout else None,
+                        stdout=result.stdout,
                     )
                     return success_msg
                 else:
