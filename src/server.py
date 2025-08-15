@@ -421,13 +421,11 @@ class CodeCheckerServer:
         @log_function_call
         def sleep_seconds(sleep_seconds: int = 5) -> str:
             """
-            Sleep for specified seconds using a Python script (for testing MCP script execution).
+            Sleep for specified seconds using a Python script.
 
-            This function implements Solutions 1, 2, 3, and 5 to fix timeout issues:
-            1. Force unbuffered output (-u flag)
-            2. Set appropriate timeouts (sleep_time + buffer)
-            3. Use environment variables (PYTHONUNBUFFERED=1)
-            5. Improved subprocess configuration
+            CRITICAL DISCOVERY: The -u flag is essential to prevent timeout issues!
+            Without -u, Python buffers output and MCP subprocess calls timeout.
+            The -u flag forces unbuffered stdout/stderr for immediate communication.
 
             Args:
                 sleep_seconds: Number of seconds to sleep (default: 5, max: 300 for safety)
@@ -435,98 +433,42 @@ class CodeCheckerServer:
             Returns:
                 A string indicating the sleep operation result
             """
-            try:
-                logger.info(f"Starting sleep operation for {sleep_seconds} seconds")
-                structured_logger.info(
-                    "Starting sleep operation",
-                    sleep_seconds=sleep_seconds,
-                    project_dir=str(self.project_dir),
+            # Input validation
+            if not 0 <= sleep_seconds <= 300:
+                raise ValueError("Sleep seconds must be between 0 and 300")
+
+            import os
+
+            from src.utils.command_runner import execute_command
+
+            # Find the Python script
+            sleep_script = self.project_dir / "tools" / "sleep_script.py"
+            if not sleep_script.exists():
+                raise FileNotFoundError(f"Sleep script not found: {sleep_script}")
+
+            # CRITICAL: Use -u flag to prevent buffering issues that cause timeouts
+            python_exe = self.python_executable or "python"
+            command = [python_exe, "-u", str(sleep_script), str(sleep_seconds)]
+
+            # Set unbuffered environment (additional protection)
+            env = os.environ.copy()
+            env["PYTHONUNBUFFERED"] = "1"
+
+            # Execute with timeout buffer
+            result = execute_command(
+                command,
+                cwd=str(self.project_dir),
+                timeout_seconds=sleep_seconds + 30,
+                env=env,
+            )
+
+            if result.return_code == 0:
+                return (
+                    result.stdout.strip()
+                    or f"Successfully slept for {sleep_seconds} seconds"
                 )
-
-                # Input validation
-                if sleep_seconds < 0:
-                    raise ValueError("Sleep seconds must be non-negative")
-                if sleep_seconds > 300:
-                    raise ValueError(
-                        "Sleep seconds cannot exceed 300 (5 minutes) for safety"
-                    )
-
-                # Use existing command runner infrastructure
-                from src.utils.command_runner import execute_command
-                import os
-
-                # Find the Python script in the tools directory
-                tools_dir = self.project_dir / "tools"
-                sleep_script = tools_dir / "sleep_script.py"
-
-                if not sleep_script.exists():
-                    raise FileNotFoundError(f"Sleep Python script not found: {sleep_script}")
-
-                # Solution 3: Set environment variables for unbuffered output
-                env = os.environ.copy()
-                env['PYTHONUNBUFFERED'] = '1'
-
-                # Solution 1 & 5: Force unbuffered output and improved subprocess configuration
-                python_executable = self.python_executable or "python"
-                command = [python_executable, "-u", str(sleep_script), str(sleep_seconds)]
-
-                # Solution 2: Set appropriate timeouts (sleep_time + buffer)
-                timeout_buffer = 30
-                total_timeout = sleep_seconds + timeout_buffer
-
-                structured_logger.debug(
-                    "Executing Python sleep script",
-                    command=command,
-                    timeout_seconds=total_timeout,
-                    env_pythonunbuffered=env.get('PYTHONUNBUFFERED'),
-                )
-
-                # Execute the Python script with timeout fixes
-                result = execute_command(
-                    command,
-                    cwd=str(self.project_dir),
-                    timeout_seconds=total_timeout,
-                    env=env,
-                )
-
-                if result.return_code == 0:
-                    # Return the script output directly
-                    success_msg = (
-                        result.stdout.strip()
-                        if result.stdout
-                        else f"Successfully slept for {sleep_seconds} seconds"
-                    )
-                    structured_logger.info(
-                        "Sleep operation completed successfully",
-                        sleep_seconds=sleep_seconds,
-                        execution_time_ms=result.execution_time_ms,
-                        stdout=result.stdout,
-                        timeout_used=total_timeout,
-                    )
-                    return success_msg
-                else:
-                    error_msg = f"Sleep operation failed with return code {result.return_code}: {result.stderr}"
-                    structured_logger.error(
-                        "Sleep operation failed",
-                        sleep_seconds=sleep_seconds,
-                        return_code=result.return_code,
-                        stderr=result.stderr,
-                        stdout=result.stdout,
-                        timeout_used=total_timeout,
-                        timed_out=result.timed_out,
-                    )
-                    return error_msg
-
-            except Exception as e:
-                logger.error(f"Error in sleep operation: {str(e)}")
-                structured_logger.error(
-                    "Sleep operation failed with exception",
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    sleep_seconds=sleep_seconds,
-                    project_dir=str(self.project_dir),
-                )
-                raise
+            else:
+                return f"Sleep failed (code {result.return_code}): {result.stderr}"
 
     @log_function_call
     def run(self) -> None:
