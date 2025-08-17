@@ -494,20 +494,6 @@ class CodeCheckerServer:
             else:
                 return f"Sleep failed (method: {implementation_method}, code {result.return_code}): {result.stderr}"
 
-        @self.mcp.tool()
-        @log_function_call
-        def sleep_seconds(sleep_seconds: int = 5) -> str:
-            """
-            Legacy sleep function for backward compatibility.
-
-            Args:
-                sleep_seconds: Number of seconds to sleep (default: 5)
-
-            Returns:
-                A string indicating the sleep operation result
-            """
-            return second_sleep(float(sleep_seconds), "default")
-
     @log_function_call
     def run(self) -> None:
         """Run the MCP server."""
