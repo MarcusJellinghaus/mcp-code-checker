@@ -8,7 +8,7 @@ from typing import List, NamedTuple, Optional, Set
 import structlog
 
 from src.log_utils import log_function_call
-from src.utils.command_runner import execute_subprocess_with_timeout
+from src.utils.subprocess_runner import execute_subprocess_with_timeout
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)

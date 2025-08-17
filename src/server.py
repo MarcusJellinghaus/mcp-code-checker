@@ -435,7 +435,7 @@ class CodeCheckerServer:
 
             import os
 
-            from src.utils.command_runner import execute_command
+            from src.utils.subprocess_runner import execute_command
 
             # Build command to execute Python sleep script
             sleep_script = self.project_dir / "tools" / "sleep_script.py"

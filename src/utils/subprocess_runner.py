@@ -3,6 +3,29 @@ Subprocess execution utilities with MCP STDIO isolation support.
 
 This module provides functions for executing command-line tools with proper
 timeout handling and STDIO isolation for Python commands in MCP server contexts.
+
+Primary API Functions:
+----------------------
+- execute_subprocess(): Main function for executing commands with options
+- execute_command(): Convenience wrapper with common defaults
+- execute_subprocess_with_timeout(): Backward compatibility function
+
+Low-level Functions (for advanced use):
+--------------------------------------
+- is_python_command(): Check if a command is a Python command
+- get_isolated_environment(): Get environment for STDIO isolation
+- execute_with_stdio_isolation(): Execute Python commands with isolation
+- execute_regular_subprocess(): Execute non-Python commands
+
+Data Classes:
+-------------
+- CommandOptions: Configuration for command execution
+- CommandResult: Result of command execution
+
+Backward Compatibility:
+----------------------
+- SubprocessResult: Alias for CommandResult
+- For deprecated classes, see command_runner.py and subprocess_stdio_fix.py
 """
 
 import logging
@@ -13,7 +36,6 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import structlog
 
@@ -31,27 +53,27 @@ class CommandResult:
     stdout: str
     stderr: str
     timed_out: bool
-    execution_error: Optional[str] = None
-    command: Optional[List[str]] = field(default=None)
-    runner_type: Optional[str] = field(default=None)
-    execution_time_ms: Optional[int] = field(default=None)
+    execution_error: str | None = None
+    command: list[str] | None = field(default=None)
+    runner_type: str | None = field(default=None)
+    execution_time_ms: int | None = field(default=None)
 
 
 @dataclass
 class CommandOptions:
     """Configuration options for command execution."""
 
-    cwd: Optional[str] = None
+    cwd: str | None = None
     timeout_seconds: int = 120
-    env: Optional[Dict[str, str]] = None
+    env: dict[str, str] | None = None
     capture_output: bool = True
     text: bool = True
     check: bool = False
     shell: bool = False
-    input_data: Optional[str] = None
+    input_data: str | None = None
 
 
-def get_isolated_environment() -> Dict[str, str]:
+def get_isolated_environment() -> dict[str, str]:
     """
     Creates an environment dictionary that isolates Python subprocess from MCP STDIO.
 
@@ -91,7 +113,7 @@ def get_isolated_environment() -> Dict[str, str]:
     return env
 
 
-def is_python_command(command: List[str]) -> bool:
+def is_python_command(command: list[str]) -> bool:
     """
     Determine if a command is a Python execution command.
 
@@ -124,14 +146,14 @@ def is_python_command(command: List[str]) -> bool:
 
 
 def execute_with_stdio_isolation(
-    command: List[str],
-    cwd: Optional[str] = None,
+    command: list[str],
+    cwd: str | None = None,
     timeout: float = 30.0,
-    env: Optional[Dict[str, str]] = None,
+    env: dict[str, str] | None = None,
     capture_output: bool = True,
     text: bool = True,
     shell: bool = False,
-    input_data: Optional[str] = None,
+    input_data: str | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """
     Execute a Python command with complete STDIO isolation.
@@ -184,26 +206,40 @@ def execute_with_stdio_isolation(
                 open(stderr_file, "w", encoding="utf-8") as stderr_f,
             ):
 
-                stdin_input = (
-                    subprocess.DEVNULL if input_data is None else subprocess.PIPE
-                )
-
-                process = subprocess.run(
-                    command,
-                    cwd=cwd,
-                    stdout=stdout_f,
-                    stderr=stderr_f,
-                    stdin=stdin_input,  # Critical: Prevent STDIN inheritance
-                    text=text,
-                    timeout=timeout,
-                    env=isolated_env,
-                    shell=shell,
-                    input=input_data,
-                    # Prevent any STDIO inheritance
-                    start_new_session=(
-                        os.name != "nt"
-                    ),  # Creates new process group (Unix only)
-                )
+                # When using input parameter, don't set stdin explicitly
+                if input_data is not None:
+                    process = subprocess.run(
+                        command,
+                        cwd=cwd,
+                        stdout=stdout_f,
+                        stderr=stderr_f,
+                        text=text,
+                        timeout=timeout,
+                        env=isolated_env,
+                        shell=shell,
+                        input=input_data,
+                        # input parameter handles stdin automatically
+                        # Prevent any STDIO inheritance
+                        start_new_session=(
+                            os.name != "nt"
+                        ),  # Creates new process group (Unix only)
+                    )
+                else:
+                    process = subprocess.run(
+                        command,
+                        cwd=cwd,
+                        stdout=stdout_f,
+                        stderr=stderr_f,
+                        stdin=subprocess.DEVNULL,  # Critical: Prevent STDIN inheritance
+                        text=text,
+                        timeout=timeout,
+                        env=isolated_env,
+                        shell=shell,
+                        # Prevent any STDIO inheritance
+                        start_new_session=(
+                            os.name != "nt"
+                        ),  # Creates new process group (Unix only)
+                    )
 
             # Read outputs while still within the temp directory context
             stdout_content = (
@@ -222,34 +258,47 @@ def execute_with_stdio_isolation(
         )
     else:
         # Method 2: Direct execution without capture
-        stdin_input = subprocess.DEVNULL if input_data is None else subprocess.PIPE
-
-        return subprocess.run(
-            command,
-            cwd=cwd,
-            stdout=None,
-            stderr=None,
-            stdin=stdin_input,
-            text=text,
-            timeout=timeout,
-            env=isolated_env,
-            shell=shell,
-            input=input_data,
-            start_new_session=(os.name != "nt"),
-            # Additional isolation on Unix systems
-            preexec_fn=os.setsid if hasattr(os, "setsid") else None,
-        )
+        if input_data is not None:
+            return subprocess.run(
+                command,
+                cwd=cwd,
+                stdout=None,
+                stderr=None,
+                text=text,
+                timeout=timeout,
+                env=isolated_env,
+                shell=shell,
+                input=input_data,
+                start_new_session=(os.name != "nt"),
+                # Additional isolation on Unix systems
+                preexec_fn=os.setsid if hasattr(os, "setsid") else None,
+            )
+        else:
+            return subprocess.run(
+                command,
+                cwd=cwd,
+                stdout=None,
+                stderr=None,
+                stdin=subprocess.DEVNULL,
+                text=text,
+                timeout=timeout,
+                env=isolated_env,
+                shell=shell,
+                start_new_session=(os.name != "nt"),
+                # Additional isolation on Unix systems
+                preexec_fn=os.setsid if hasattr(os, "setsid") else None,
+            )
 
 
 def execute_regular_subprocess(
-    command: List[str],
-    cwd: Optional[str] = None,
+    command: list[str],
+    cwd: str | None = None,
     timeout: float = 30.0,
-    env: Optional[Dict[str, str]] = None,
+    env: dict[str, str] | None = None,
     capture_output: bool = True,
     text: bool = True,
     shell: bool = False,
-    input_data: Optional[str] = None,
+    input_data: str | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """
     Execute a non-Python command using regular subprocess.run().
@@ -277,7 +326,7 @@ def execute_regular_subprocess(
 
 @log_function_call
 def execute_subprocess(
-    command: List[str], options: Optional[CommandOptions] = None
+    command: list[str], options: CommandOptions | None = None
 ) -> CommandResult:
     """
     Execute a command with automatic STDIO isolation for Python commands.
@@ -344,6 +393,7 @@ def execute_subprocess(
             )
 
         # Handle check parameter (raise exception on non-zero exit)
+        # This needs to happen before we wrap in CommandResult
         if options.check and process.returncode != 0:
             raise subprocess.CalledProcessError(
                 process.returncode, command, process.stdout, process.stderr
@@ -367,6 +417,29 @@ def execute_subprocess(
             stdout=process.stdout or "",
             stderr=process.stderr or "",
             timed_out=False,
+            command=command,
+            runner_type="subprocess",
+            execution_time_ms=execution_time_ms,
+        )
+
+    except subprocess.CalledProcessError as e:
+        # If check=True, we should re-raise this exception
+        if options.check:
+            raise
+        # Otherwise, treat it as a normal error and return CommandResult
+        execution_time_ms = int((time.time() - start_time) * 1000)
+        structured_logger.debug(
+            "Subprocess returned non-zero exit code",
+            return_code=e.returncode,
+            command=command[:3],
+            execution_time_ms=execution_time_ms,
+        )
+        return CommandResult(
+            return_code=e.returncode,
+            stdout=getattr(e, "stdout", "") or "",
+            stderr=getattr(e, "stderr", "") or "",
+            timed_out=False,
+            execution_error=None,  # This is not an error if check=False
             command=command,
             runner_type="subprocess",
             execution_time_ms=execution_time_ms,
@@ -449,14 +522,12 @@ def execute_subprocess(
         )
 
 
-# Convenience functions for backward compatibility
-@log_function_call
+# Convenience function for backward compatibility with simple API
 def execute_command(
-    command: List[str],
-    cwd: Optional[str] = None,
+    command: list[str],
+    cwd: str | None = None,
     timeout_seconds: int = 120,
-    env: Optional[Dict[str, str]] = None,
-    runner_type: Optional[str] = None,  # Kept for backward compatibility but ignored
+    env: dict[str, str] | None = None,
 ) -> CommandResult:
     """
     Execute a command with automatic STDIO isolation for Python commands.
@@ -466,7 +537,6 @@ def execute_command(
         cwd: Working directory for subprocess
         timeout_seconds: Timeout in seconds
         env: Optional environment variables (inherits from current process if None)
-        runner_type: Ignored, kept for backward compatibility
 
     Returns:
         CommandResult with execution details and output
@@ -480,98 +550,9 @@ def execute_command(
     return execute_subprocess(command, options)
 
 
-@log_function_call
-def execute_subprocess_with_timeout(
-    command: List[str],
-    cwd: Optional[str] = None,
-    timeout_seconds: int = 120,
-    env: Optional[Dict[str, str]] = None,
-) -> CommandResult:
-    """
-    Execute a subprocess with proper timeout and error handling.
-
-    This function maintains backward compatibility with the original implementation
-    while providing automatic STDIO isolation for Python commands in MCP contexts.
-
-    Args:
-        command: Complete command as list (e.g., ["python", "-m", "pylint", "src"])
-        cwd: Working directory for subprocess
-        timeout_seconds: Timeout in seconds
-        env: Optional environment variables (inherits from current process if None)
-
-    Returns:
-        CommandResult with execution details and output
-    """
-    return execute_command(
-        command=command,
-        cwd=cwd,
-        timeout_seconds=timeout_seconds,
-        env=env,
-    )
+# Alias for backward compatibility
+execute_subprocess_with_timeout = execute_command
 
 
 # Type alias for backward compatibility
 SubprocessResult = CommandResult
-
-
-# Classes kept for backward compatibility but simplified
-class SubprocessSTDIOFix:
-    """
-    Backward compatibility class. Methods are now module-level functions.
-    """
-
-    @staticmethod
-    def get_isolated_environment() -> Dict[str, str]:
-        """Backward compatibility wrapper."""
-        return get_isolated_environment()
-
-    @staticmethod
-    def is_python_command(command: List[str]) -> bool:
-        """Backward compatibility wrapper."""
-        return is_python_command(command)
-
-    @staticmethod
-    def execute_with_stdio_isolation(
-        command: List[str],
-        cwd: Optional[str] = None,
-        timeout: float = 30.0,
-        env: Optional[Dict[str, str]] = None,
-        capture_output: bool = True,
-        text: bool = True,
-        shell: bool = False,
-        input_data: Optional[str] = None,
-    ) -> subprocess.CompletedProcess[str]:
-        """Backward compatibility wrapper."""
-        return execute_with_stdio_isolation(
-            command=command,
-            cwd=cwd,
-            timeout=timeout,
-            env=env,
-            capture_output=capture_output,
-            text=text,
-            shell=shell,
-            input_data=input_data,
-        )
-
-    @staticmethod
-    def execute_regular_subprocess(
-        command: List[str],
-        cwd: Optional[str] = None,
-        timeout: float = 30.0,
-        env: Optional[Dict[str, str]] = None,
-        capture_output: bool = True,
-        text: bool = True,
-        shell: bool = False,
-        input_data: Optional[str] = None,
-    ) -> subprocess.CompletedProcess[str]:
-        """Backward compatibility wrapper."""
-        return execute_regular_subprocess(
-            command=command,
-            cwd=cwd,
-            timeout=timeout,
-            env=env,
-            capture_output=capture_output,
-            text=text,
-            shell=shell,
-            input_data=input_data,
-        )
