@@ -8,28 +8,26 @@ This package provides common utilities used across the codebase:
 - subprocess_stdio_fix: Backward compatibility (deprecated)
 """
 
+# Import deprecated modules for backward compatibility
+from .command_runner import (
+    CommandRunner,
+    CommandRunnerFactory,
+    CommandRunnerType,
+    SubprocessCommandRunner,
+)
+from .file_utils import (
+    read_file,
+)
+
 # Import from new modules
 from .subprocess_runner import (
     CommandOptions,
     CommandResult,
     SubprocessResult,
     execute_command,
-    execute_subprocess_with_timeout,
     execute_subprocess,
+    execute_subprocess_with_timeout,
 )
-
-from .file_utils import (
-    read_file,
-)
-
-# Import deprecated modules for backward compatibility
-from .command_runner import (
-    CommandRunner,
-    SubprocessCommandRunner,
-    CommandRunnerFactory,
-    CommandRunnerType,
-)
-
 from .subprocess_stdio_fix import SubprocessSTDIOFix
 
 __all__ = [

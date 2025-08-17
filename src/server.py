@@ -441,7 +441,7 @@ class CodeCheckerServer:
             sleep_script = self.project_dir / "tools" / "sleep_script.py"
             if not sleep_script.exists():
                 raise FileNotFoundError(f"Sleep script not found: {sleep_script}")
-            
+
             python_exe = self.python_executable or "python"
             command = [python_exe, "-u", str(sleep_script), str(sleep_seconds)]
 
@@ -458,7 +458,10 @@ class CodeCheckerServer:
             )
 
             if result.return_code == 0:
-                return result.stdout.strip() or f"Successfully slept for {sleep_seconds} seconds"
+                return (
+                    result.stdout.strip()
+                    or f"Successfully slept for {sleep_seconds} seconds"
+                )
             else:
                 return f"Sleep failed (code {result.return_code}): {result.stderr}"
 

@@ -6,7 +6,8 @@ All functionality has been moved to subprocess_runner.py.
 """
 
 import warnings
-from typing import TYPE_CHECKING, Optional, Dict, Any
+from enum import Enum
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 # Import everything from the new location
 from .subprocess_runner import (
@@ -14,20 +15,19 @@ from .subprocess_runner import (
     CommandResult,
     SubprocessResult,
     execute_command,
-    execute_subprocess_with_timeout,
-    is_python_command,
-    get_isolated_environment,
-    execute_with_stdio_isolation,
     execute_regular_subprocess,
     execute_subprocess,
+    execute_subprocess_with_timeout,
+    execute_with_stdio_isolation,
+    get_isolated_environment,
+    is_python_command,
 )
-
-from enum import Enum
 
 
 # Deprecated classes and enums for backward compatibility
 class CommandRunnerType(Enum):
     """Deprecated: Command runner types are no longer used."""
+
     SUBPROCESS = "subprocess"
     PLUMBUM = "plumbum"
     SH = "sh"
@@ -36,16 +36,18 @@ class CommandRunnerType(Enum):
 
 class CommandRunner:
     """Deprecated: Abstract base class no longer used."""
-    
+
     def __init__(self, name: str) -> None:
         warnings.warn(
             "CommandRunner base class is deprecated. Use execute_subprocess() directly.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         self.name = name
 
-    def execute(self, command: list[str], options: Optional[CommandOptions] = None) -> CommandResult:
+    def execute(
+        self, command: list[str], options: Optional[CommandOptions] = None
+    ) -> CommandResult:
         """Execute command using subprocess."""
         return execute_subprocess(command, options)
 
@@ -56,52 +58,56 @@ class CommandRunner:
 
 class SubprocessCommandRunner(CommandRunner):
     """Deprecated: Use execute_subprocess() directly."""
-    
+
     def __init__(self) -> None:
         warnings.warn(
             "SubprocessCommandRunner is deprecated. Use execute_subprocess() directly.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         super().__init__("subprocess")
 
 
 class CommandRunnerFactory:
     """Deprecated: Factory pattern no longer used."""
-    
+
     _runners: Dict[CommandRunnerType, CommandRunner] = {}
     _default_runner_type = CommandRunnerType.SUBPROCESS
 
     @classmethod
-    def register_runner(cls, runner_type: CommandRunnerType, runner: CommandRunner) -> None:
+    def register_runner(
+        cls, runner_type: CommandRunnerType, runner: CommandRunner
+    ) -> None:
         """Deprecated: No longer used."""
         warnings.warn(
             "CommandRunnerFactory is deprecated. Use execute_subprocess() directly.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         # Store the runner for backward compatibility
         cls._runners[runner_type] = runner
 
     @classmethod
-    def get_runner(cls, runner_type: Optional[CommandRunnerType] = None) -> CommandRunner:
+    def get_runner(
+        cls, runner_type: Optional[CommandRunnerType] = None
+    ) -> CommandRunner:
         """Deprecated: Returns a compatibility wrapper."""
         warnings.warn(
             "CommandRunnerFactory is deprecated. Use execute_subprocess() directly.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         if runner_type is None:
             runner_type = cls._default_runner_type
-        
+
         # Check if we have a registered runner
         if runner_type in cls._runners:
             return cls._runners[runner_type]
-        
+
         # Create and cache a subprocess runner
         if CommandRunnerType.SUBPROCESS not in cls._runners:
             cls._runners[CommandRunnerType.SUBPROCESS] = SubprocessCommandRunner()
-        
+
         # Return the subprocess runner for any type (fallback)
         return cls._runners[CommandRunnerType.SUBPROCESS]
 
@@ -109,9 +115,7 @@ class CommandRunnerFactory:
     def set_default_runner(cls, runner_type: CommandRunnerType) -> None:
         """Deprecated: No longer used."""
         warnings.warn(
-            "CommandRunnerFactory is deprecated.",
-            DeprecationWarning,
-            stacklevel=2
+            "CommandRunnerFactory is deprecated.", DeprecationWarning, stacklevel=2
         )
         cls._default_runner_type = runner_type
 
@@ -119,9 +123,7 @@ class CommandRunnerFactory:
     def get_available_runners(cls) -> list[CommandRunnerType]:
         """Deprecated: Always returns subprocess."""
         warnings.warn(
-            "CommandRunnerFactory is deprecated.",
-            DeprecationWarning,
-            stacklevel=2
+            "CommandRunnerFactory is deprecated.", DeprecationWarning, stacklevel=2
         )
         return [CommandRunnerType.SUBPROCESS]
 

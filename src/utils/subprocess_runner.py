@@ -117,11 +117,7 @@ def is_python_command(command: List[str]) -> bool:
         return True
 
     # Check for python -m module execution
-    if (
-        len(command) >= 3
-        and executable in python_executables
-        and command[1] == "-m"
-    ):
+    if len(command) >= 3 and executable in python_executables and command[1] == "-m":
         return True
 
     return False
@@ -204,19 +200,17 @@ def execute_with_stdio_isolation(
                     shell=shell,
                     input=input_data,
                     # Prevent any STDIO inheritance
-                    start_new_session=(os.name != 'nt'),  # Creates new process group (Unix only)
+                    start_new_session=(
+                        os.name != "nt"
+                    ),  # Creates new process group (Unix only)
                 )
 
             # Read outputs while still within the temp directory context
             stdout_content = (
-                stdout_file.read_text(encoding="utf-8")
-                if stdout_file.exists()
-                else ""
+                stdout_file.read_text(encoding="utf-8") if stdout_file.exists() else ""
             )
             stderr_content = (
-                stderr_file.read_text(encoding="utf-8")
-                if stderr_file.exists()
-                else ""
+                stderr_file.read_text(encoding="utf-8") if stderr_file.exists() else ""
             )
 
         # Create CompletedProcess-like result
@@ -241,7 +235,7 @@ def execute_with_stdio_isolation(
             env=isolated_env,
             shell=shell,
             input=input_data,
-            start_new_session=(os.name != 'nt'),
+            start_new_session=(os.name != "nt"),
             # Additional isolation on Unix systems
             preexec_fn=os.setsid if hasattr(os, "setsid") else None,
         )
@@ -283,8 +277,7 @@ def execute_regular_subprocess(
 
 @log_function_call
 def execute_subprocess(
-    command: List[str],
-    options: Optional[CommandOptions] = None
+    command: List[str], options: Optional[CommandOptions] = None
 ) -> CommandResult:
     """
     Execute a command with automatic STDIO isolation for Python commands.

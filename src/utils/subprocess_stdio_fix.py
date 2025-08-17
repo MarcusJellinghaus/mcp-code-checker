@@ -5,17 +5,17 @@ This module maintains compatibility with existing code that imports from subproc
 All functionality has been moved to subprocess_runner.py.
 """
 
+import subprocess
 import warnings
 
 # Import from the new location
-from typing import Optional, Dict, Any
-import subprocess
+from typing import Any, Dict, Optional
 
 from .subprocess_runner import (
+    execute_regular_subprocess,
+    execute_with_stdio_isolation,
     get_isolated_environment,
     is_python_command,
-    execute_with_stdio_isolation,
-    execute_regular_subprocess,
 )
 
 
@@ -30,7 +30,7 @@ class SubprocessSTDIOFix:
             "SubprocessSTDIOFix class is deprecated. "
             "Use module-level functions from subprocess_runner instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
 
     @staticmethod
