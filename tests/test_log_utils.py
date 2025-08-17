@@ -68,7 +68,7 @@ class TestSetupLogging:
                 import shutil
 
                 shutil.rmtree(temp_dir, ignore_errors=True)
-            except:
+            except Exception:
                 pass
 
     def test_invalid_log_level(self) -> None:
