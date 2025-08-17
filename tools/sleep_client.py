@@ -51,9 +51,17 @@ def main():
                 
             command = [str(hybrid_script), str(sleep_seconds)]
             
+        elif method == "subprocess_test":
+            subprocess_test_script = Path("tools") / "sleep_subprocess_test.py"
+            if not subprocess_test_script.exists():
+                print(f"ERROR: Subprocess test script not found: {subprocess_test_script}")
+                sys.exit(1)
+                
+            command = ["python", str(subprocess_test_script), str(sleep_seconds)]
+            
         else:
             print(f"ERROR: Unknown method: {method}")
-            print("Valid methods: default, python, batch, hybrid")
+            print("Valid methods: default, python, batch, hybrid, subprocess_test")
             sys.exit(1)
 
         # Execute command
