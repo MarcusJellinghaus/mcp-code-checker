@@ -16,7 +16,7 @@ REM Test durations
 set "durations=1 5"
 
 REM Test methods
-set "methods=default python batch hybrid subprocess_test"
+set "methods=default python batch subprocess_test"
 
 echo Starting comprehensive tests...
 echo.

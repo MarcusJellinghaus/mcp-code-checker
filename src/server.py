@@ -427,7 +427,7 @@ class CodeCheckerServer:
 
             Args:
                 sleep_seconds: Number of seconds to sleep (default: 5.0, max: 300 for safety)
-                implementation_method: Method to use ("default", "python", "batch", "hybrid")
+                implementation_method: Method to use ("default", "python", "batch")
 
             Returns:
                 A string indicating the sleep operation result
@@ -436,7 +436,7 @@ class CodeCheckerServer:
             if not 0 <= sleep_seconds <= 300:
                 raise ValueError("Sleep seconds must be between 0 and 300")
 
-            valid_methods = ["default", "python", "batch", "hybrid", "subprocess_test"]
+            valid_methods = ["default", "python", "batch", "subprocess_test"]
             if implementation_method not in valid_methods:
                 raise ValueError(
                     f"Invalid method: {implementation_method}. Valid methods: {valid_methods}"
@@ -466,14 +466,6 @@ class CodeCheckerServer:
                     )
                 command = [str(batch_script), str(sleep_seconds)]
 
-            elif implementation_method == "hybrid":
-                hybrid_script = self.project_dir / "tools" / "sleep_hybrid.bat"
-                if not hybrid_script.exists():
-                    raise FileNotFoundError(
-                        f"Hybrid sleep script not found: {hybrid_script}"
-                    )
-                command = [str(hybrid_script), str(sleep_seconds)]
-
             elif implementation_method == "subprocess_test":
                 subprocess_test_script = (
                     self.project_dir / "tools" / "sleep_subprocess_test.py"
@@ -490,9 +482,9 @@ class CodeCheckerServer:
                     f"Unexpected implementation method after validation: {implementation_method}"
                 )
 
-            # Set environment for Python methods
+            # Set environment variables
             env = os.environ.copy()
-            if implementation_method == "python":
+            if implementation_method in ["python", "subprocess_test"]:
                 env["PYTHONUNBUFFERED"] = "1"
 
             # Execute with timeout buffer
