@@ -473,9 +473,11 @@ class CodeCheckerServer:
                         f"Hybrid sleep script not found: {hybrid_script}"
                     )
                 command = [str(hybrid_script), str(sleep_seconds)]
-                
+
             elif implementation_method == "subprocess_test":
-                subprocess_test_script = self.project_dir / "tools" / "sleep_subprocess_test.py"
+                subprocess_test_script = (
+                    self.project_dir / "tools" / "sleep_subprocess_test.py"
+                )
                 if not subprocess_test_script.exists():
                     raise FileNotFoundError(
                         f"Subprocess test script not found: {subprocess_test_script}"
@@ -512,58 +514,56 @@ class CodeCheckerServer:
 
         @self.mcp.tool()
         @log_function_call
-        def subprocess_test(
-            sleep_seconds: float = 1.0
-        ) -> str:
+        def subprocess_test(sleep_seconds: float = 1.0) -> str:
             """
             Test subprocess execution using the exact same pattern as the MCP server.
-            
+
             This method replicates the exact subprocess.run() call that the MCP server makes,
             helping diagnose whether timeout issues are MCP-specific or general subprocess problems.
-            
+
             Args:
                 sleep_seconds: Number of seconds to sleep (default: 1.0, max: 300 for safety)
-            
+
             Returns:
                 A string with detailed subprocess execution results
             """
             # Input validation
             if not 0 <= sleep_seconds <= 300:
                 raise ValueError("Sleep seconds must be between 0 and 300")
-            
+
             import os
             import subprocess
             import time
-            
+
             # Build the exact same command as the MCP server
             sleep_script = self.project_dir / "tools" / "sleep_script.py"
             if not sleep_script.exists():
                 return f"ERROR: Sleep script not found: {sleep_script}"
-            
+
             python_exe = self.python_executable or "python"
             command = [python_exe, "-u", str(sleep_script), str(sleep_seconds)]
-            
+
             # Set same environment as MCP server
             env = os.environ.copy()
             env["PYTHONUNBUFFERED"] = "1"
-            
+
             # Calculate timeout same as MCP server: sleep_seconds + 30
             timeout_seconds = int(sleep_seconds) + 30
-            
+
             result_lines = [
                 "=" * 60,
                 "MCP Server Subprocess Execution Test",
                 "=" * 60,
                 f"Command: {' '.join(command)}",
                 f"Timeout: {timeout_seconds} seconds",
-                f"Environment: PYTHONUNBUFFERED=1",
+                "Environment: PYTHONUNBUFFERED=1",
                 f"Working directory: {self.project_dir}",
                 "",
-                "Starting subprocess execution..."
+                "Starting subprocess execution...",
             ]
-            
+
             start_time = time.time()
-            
+
             try:
                 # This is the EXACT subprocess.run() call from the MCP server
                 process = subprocess.run(
@@ -575,99 +575,103 @@ class CodeCheckerServer:
                     timeout=timeout_seconds,
                     env=env,
                     shell=False,
-                    input=None
+                    input=None,
                 )
-                
+
                 execution_time = time.time() - start_time
-                
-                result_lines.extend([
-                    f"Subprocess completed!",
-                    f"Execution time: {execution_time:.3f} seconds",
-                    f"Return code: {process.returncode}",
-                    f"Stdout length: {len(process.stdout)} characters",
-                    f"Stderr length: {len(process.stderr)} characters"
-                ])
-                
+
+                result_lines.extend(
+                    [
+                        "Subprocess completed!",
+                        f"Execution time: {execution_time:.3f} seconds",
+                        f"Return code: {process.returncode}",
+                        f"Stdout length: {len(process.stdout)} characters",
+                        f"Stderr length: {len(process.stderr)} characters",
+                    ]
+                )
+
                 if process.stdout:
-                    result_lines.extend([
-                        "",
-                        "Stdout:",
-                        process.stdout.strip()
-                    ])
-                
+                    result_lines.extend(["", "Stdout:", process.stdout.strip()])
+
                 if process.stderr:
-                    result_lines.extend([
+                    result_lines.extend(["", "Stderr:", process.stderr.strip()])
+
+                result_lines.extend(
+                    [
                         "",
-                        "Stderr:",
-                        process.stderr.strip()
-                    ])
-                
-                result_lines.extend([
-                    "",
-                    "=" * 60,
-                    "Test Summary",
-                    "=" * 60,
-                    f"Success: {process.returncode == 0}",
-                    f"Return code: {process.returncode}",
-                    f"Execution time: {execution_time:.3f} seconds",
-                    f"Timed out: False",
-                    ""
-                ])
-                
+                        "=" * 60,
+                        "Test Summary",
+                        "=" * 60,
+                        f"Success: {process.returncode == 0}",
+                        f"Return code: {process.returncode}",
+                        f"Execution time: {execution_time:.3f} seconds",
+                        "Timed out: False",
+                        "",
+                    ]
+                )
+
                 if process.returncode == 0:
-                    result_lines.extend([
-                        "[PASS] Subprocess execution PASSED - same as direct script execution",
-                        "   This suggests the issue is MCP communication-specific, not subprocess"
-                    ])
+                    result_lines.extend(
+                        [
+                            "[PASS] Subprocess execution PASSED - same as direct script execution",
+                            "   This suggests the issue is MCP communication-specific, not subprocess",
+                        ]
+                    )
                 else:
-                    result_lines.extend([
-                        "[FAIL] Subprocess execution FAILED - same issue as MCP server",
-                        "   This suggests the issue is in subprocess execution, not MCP-specific"
-                    ])
-                
+                    result_lines.extend(
+                        [
+                            "[FAIL] Subprocess execution FAILED - same issue as MCP server",
+                            "   This suggests the issue is in subprocess execution, not MCP-specific",
+                        ]
+                    )
+
                 return "\n".join(result_lines)
-                
+
             except subprocess.TimeoutExpired:
                 execution_time = time.time() - start_time
-                
-                result_lines.extend([
-                    f"TIMEOUT! Process timed out after {timeout_seconds} seconds",
-                    f"Actual execution time: {execution_time:.3f} seconds",
-                    "",
-                    "=" * 60,
-                    "Test Summary",
-                    "=" * 60,
-                    f"Success: False",
-                    f"Return code: 1",
-                    f"Execution time: {execution_time:.3f} seconds",
-                    f"Timed out: True",
-                    "",
-                    "[FAIL] Subprocess execution FAILED - same timeout issue as MCP server",
-                    "   This confirms the issue is in subprocess execution, not MCP-specific"
-                ])
-                
+
+                result_lines.extend(
+                    [
+                        f"TIMEOUT! Process timed out after {timeout_seconds} seconds",
+                        f"Actual execution time: {execution_time:.3f} seconds",
+                        "",
+                        "=" * 60,
+                        "Test Summary",
+                        "=" * 60,
+                        "Success: False",
+                        "Return code: 1",
+                        f"Execution time: {execution_time:.3f} seconds",
+                        "Timed out: True",
+                        "",
+                        "[FAIL] Subprocess execution FAILED - same timeout issue as MCP server",
+                        "   This confirms the issue is in subprocess execution, not MCP-specific",
+                    ]
+                )
+
                 return "\n".join(result_lines)
-                
+
             except Exception as e:
                 execution_time = time.time() - start_time
-                
-                result_lines.extend([
-                    f"ERROR! Subprocess failed: {e}",
-                    f"Error type: {type(e).__name__}",
-                    "",
-                    "=" * 60,
-                    "Test Summary",
-                    "=" * 60,
-                    f"Success: False",
-                    f"Return code: 1",
-                    f"Execution time: {execution_time:.3f} seconds",
-                    f"Timed out: False",
-                    f"Error: {str(e)}",
-                    "",
-                    "[FAIL] Subprocess execution FAILED - unexpected error",
-                    "   This suggests a different issue than the MCP timeout problem"
-                ])
-                
+
+                result_lines.extend(
+                    [
+                        f"ERROR! Subprocess failed: {e}",
+                        f"Error type: {type(e).__name__}",
+                        "",
+                        "=" * 60,
+                        "Test Summary",
+                        "=" * 60,
+                        "Success: False",
+                        "Return code: 1",
+                        f"Execution time: {execution_time:.3f} seconds",
+                        "Timed out: False",
+                        f"Error: {str(e)}",
+                        "",
+                        "[FAIL] Subprocess execution FAILED - unexpected error",
+                        "   This suggests a different issue than the MCP timeout problem",
+                    ]
+                )
+
                 return "\n".join(result_lines)
 
         @self.mcp.tool()

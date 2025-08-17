@@ -1,10 +1,12 @@
 """
-Command execution utilities with support for multiple backends.
+Command execution utilities with support for multiple backends and MCP STDIO isolation.
 
 This module provides a unified interface for executing command-line tools
 with different underlying implementations (subprocess, plumbum, sh, etc.).
 Currently only subprocess is implemented, but the architecture is ready
 for extending to other third-party libraries.
+
+Includes special STDIO isolation for Python commands to prevent MCP server conflicts.
 """
 
 import logging
@@ -18,6 +20,7 @@ from typing import Dict, List, Optional
 import structlog
 
 from src.log_utils import log_function_call
+from src.utils.subprocess_stdio_fix import SubprocessSTDIOFix
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
@@ -94,7 +97,7 @@ class CommandRunner(ABC):
 
 
 class SubprocessCommandRunner(CommandRunner):
-    """Command runner using Python's built-in subprocess module."""
+    """Command runner using Python's built-in subprocess module with MCP STDIO isolation."""
 
     def __init__(self) -> None:
         super().__init__("subprocess")
@@ -107,7 +110,7 @@ class SubprocessCommandRunner(CommandRunner):
     def execute(
         self, command: List[str], options: Optional[CommandOptions] = None
     ) -> CommandResult:
-        """Execute command using subprocess.run()."""
+        """Execute command using subprocess.run() with MCP STDIO isolation for Python commands."""
         # Validate command parameter
         if command is None:
             raise TypeError("Command cannot be None")
@@ -121,22 +124,52 @@ class SubprocessCommandRunner(CommandRunner):
             cwd=options.cwd,
             timeout_seconds=options.timeout_seconds,
             env_keys=list(options.env.keys()) if options.env else None,
+            is_python_command=SubprocessSTDIOFix.is_python_command(command),
         )
 
         start_time = time.time()
 
         try:
-            process = subprocess.run(
-                command,
-                cwd=options.cwd,
-                capture_output=options.capture_output,
-                text=options.text,
-                check=options.check,
-                timeout=options.timeout_seconds,
-                env=options.env,
-                shell=options.shell,
-                input=options.input_data,
-            )
+            # Use STDIO isolation for Python commands to prevent MCP conflicts
+            if SubprocessSTDIOFix.is_python_command(command):
+                self._logger.debug(
+                    "Detected Python command, using STDIO isolation",
+                    command_executable=command[0] if command else None,
+                )
+
+                process = SubprocessSTDIOFix.execute_with_stdio_isolation(
+                    command=command,
+                    cwd=options.cwd,
+                    timeout=options.timeout_seconds,
+                    env=options.env,
+                    capture_output=options.capture_output,
+                    text=options.text,
+                    shell=options.shell,
+                    input_data=options.input_data,
+                )
+            else:
+                # Use regular subprocess for non-Python commands
+                self._logger.debug(
+                    "Using regular subprocess execution for non-Python command",
+                    command_executable=command[0] if command else None,
+                )
+
+                process = SubprocessSTDIOFix.execute_regular_subprocess(
+                    command=command,
+                    cwd=options.cwd,
+                    timeout=options.timeout_seconds,
+                    env=options.env,
+                    capture_output=options.capture_output,
+                    text=options.text,
+                    shell=options.shell,
+                    input_data=options.input_data,
+                )
+
+            # Handle check parameter (raise exception on non-zero exit)
+            if options.check and process.returncode != 0:
+                raise subprocess.CalledProcessError(
+                    process.returncode, command, process.stdout, process.stderr
+                )
 
             execution_time_ms = int((time.time() - start_time) * 1000)
 
@@ -148,6 +181,7 @@ class SubprocessCommandRunner(CommandRunner):
                 stdout_preview=process.stdout[:200] if process.stdout else None,
                 stderr_preview=process.stderr[:200] if process.stderr else None,
                 execution_time_ms=execution_time_ms,
+                used_stdio_isolation=SubprocessSTDIOFix.is_python_command(command),
             )
 
             return CommandResult(
@@ -167,6 +201,7 @@ class SubprocessCommandRunner(CommandRunner):
                 timeout_seconds=options.timeout_seconds,
                 command=command[:3],  # First few elements for security
                 execution_time_ms=execution_time_ms,
+                used_stdio_isolation=SubprocessSTDIOFix.is_python_command(command),
             )
             return CommandResult(
                 return_code=1,
@@ -222,6 +257,7 @@ class SubprocessCommandRunner(CommandRunner):
                 error=str(e),
                 error_type=type(e).__name__,
                 command_preview=command[:3] if command else None,
+                used_stdio_isolation=SubprocessSTDIOFix.is_python_command(command),
             )
             return CommandResult(
                 return_code=1,
@@ -329,6 +365,7 @@ def execute_command(
 
     This is a convenience function that maintains compatibility with the original
     execute_subprocess_with_timeout function while providing access to new runners.
+    Now includes automatic STDIO isolation for Python commands in MCP contexts.
 
     Args:
         command: Complete command as list (e.g., ["python", "-m", "pylint", "--output-format=json", "src"])
@@ -362,7 +399,7 @@ def execute_subprocess_with_timeout(
     Execute a subprocess with proper timeout and error handling.
 
     This function maintains backward compatibility with the original implementation
-    while using the new command runner infrastructure.
+    while using the new command runner infrastructure with MCP STDIO isolation.
 
     Args:
         command: Complete command as list (e.g., ["python", "-m", "pylint", "--output-format=json", "src"])

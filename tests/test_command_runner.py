@@ -1,4 +1,4 @@
-"""Tests for the command runner utilities."""
+"""Tests for the basic command runner utilities (legacy compatibility)."""
 
 import sys
 import tempfile
