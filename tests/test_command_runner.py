@@ -2,6 +2,7 @@
 
 import sys
 import tempfile
+import warnings
 from pathlib import Path
 from typing import Any, Generator
 from unittest.mock import patch
@@ -122,13 +123,17 @@ class TestSubprocessCommandRunner:
 
     def test_subprocess_runner_creation(self) -> None:
         """Test creating a SubprocessCommandRunner."""
-        runner = SubprocessCommandRunner()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            runner = SubprocessCommandRunner()
         assert runner.name == "subprocess"
         assert runner.is_available()
 
     def test_execute_simple_command(self) -> None:
         """Test executing a simple command."""
-        runner = SubprocessCommandRunner()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            runner = SubprocessCommandRunner()
         result = runner.execute([sys.executable, "-c", "print('hello')"])
 
         assert result.return_code == 0
@@ -143,7 +148,9 @@ class TestSubprocessCommandRunner:
 
     def test_execute_command_with_options(self, temp_dir: Path) -> None:
         """Test executing a command with custom options."""
-        runner = SubprocessCommandRunner()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            runner = SubprocessCommandRunner()
         options = CommandOptions(
             cwd=str(temp_dir),
             timeout_seconds=30,
@@ -166,7 +173,9 @@ class TestSubprocessCommandRunner:
 
     def test_execute_command_with_error(self) -> None:
         """Test executing a command that returns an error."""
-        runner = SubprocessCommandRunner()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            runner = SubprocessCommandRunner()
         result = runner.execute([sys.executable, "-c", "import sys; sys.exit(1)"])
 
         assert result.return_code == 1
@@ -176,7 +185,9 @@ class TestSubprocessCommandRunner:
 
     def test_execute_command_not_found(self) -> None:
         """Test executing a command that doesn't exist."""
-        runner = SubprocessCommandRunner()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            runner = SubprocessCommandRunner()
         result = runner.execute(["nonexistent_command_12345"])
 
         assert result.return_code == 1
@@ -187,7 +198,9 @@ class TestSubprocessCommandRunner:
 
     def test_execute_command_timeout(self) -> None:
         """Test executing a command that times out."""
-        runner = SubprocessCommandRunner()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            runner = SubprocessCommandRunner()
         options = CommandOptions(timeout_seconds=1)
 
         result = runner.execute(
@@ -202,7 +215,9 @@ class TestSubprocessCommandRunner:
 
     def test_execute_command_permission_error(self) -> None:
         """Test handling permission errors."""
-        runner = SubprocessCommandRunner()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            runner = SubprocessCommandRunner()
 
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = PermissionError("Access denied")
@@ -217,7 +232,9 @@ class TestSubprocessCommandRunner:
 
     def test_execute_command_unexpected_error(self) -> None:
         """Test handling unexpected errors."""
-        runner = SubprocessCommandRunner()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            runner = SubprocessCommandRunner()
 
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = RuntimeError("Unexpected error")
@@ -236,20 +253,26 @@ class TestCommandRunnerFactory:
 
     def test_get_default_runner(self, reset_factory: Any) -> None:
         """Test getting the default runner."""
-        runner = CommandRunnerFactory.get_runner()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            runner = CommandRunnerFactory.get_runner()
         assert isinstance(runner, SubprocessCommandRunner)
         assert runner.name == "subprocess"
 
     def test_get_subprocess_runner(self, reset_factory: Any) -> None:
         """Test explicitly getting subprocess runner."""
-        runner = CommandRunnerFactory.get_runner(CommandRunnerType.SUBPROCESS)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            runner = CommandRunnerFactory.get_runner(CommandRunnerType.SUBPROCESS)
         assert isinstance(runner, SubprocessCommandRunner)
         assert runner.name == "subprocess"
 
     def test_get_unavailable_runner_falls_back(self, reset_factory: Any) -> None:
         """Test that unavailable runners fall back to subprocess."""
         # Try to get a runner that's not implemented yet
-        runner = CommandRunnerFactory.get_runner(CommandRunnerType.PLUMBUM)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            runner = CommandRunnerFactory.get_runner(CommandRunnerType.PLUMBUM)
 
         # Should fall back to subprocess
         assert isinstance(runner, SubprocessCommandRunner)
@@ -257,15 +280,19 @@ class TestCommandRunnerFactory:
 
     def test_set_default_runner(self, reset_factory: Any) -> None:
         """Test setting a different default runner."""
-        CommandRunnerFactory.set_default_runner(CommandRunnerType.PLUMBUM)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            CommandRunnerFactory.set_default_runner(CommandRunnerType.PLUMBUM)
 
-        # Should still get subprocess due to fallback
-        runner = CommandRunnerFactory.get_runner()
+            # Should still get subprocess due to fallback
+            runner = CommandRunnerFactory.get_runner()
         assert isinstance(runner, SubprocessCommandRunner)
 
     def test_get_available_runners(self, reset_factory: Any) -> None:
         """Test getting list of available runners."""
-        available = CommandRunnerFactory.get_available_runners()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            available = CommandRunnerFactory.get_available_runners()
 
         assert CommandRunnerType.SUBPROCESS in available
         # Other runners should not be available yet
@@ -276,7 +303,9 @@ class TestCommandRunnerFactory:
 
         class MockRunner(CommandRunner):
             def __init__(self) -> None:
-                super().__init__("mock")
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", DeprecationWarning)
+                    super().__init__("mock")
 
             def execute(self, command: Any, options: Any = None) -> CommandResult:
                 return CommandResult(
@@ -290,31 +319,37 @@ class TestCommandRunnerFactory:
             def is_available(self) -> bool:
                 return True
 
-        mock_runner = MockRunner()
-        CommandRunnerFactory.register_runner(CommandRunnerType.PLUMBUM, mock_runner)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            mock_runner = MockRunner()
+            CommandRunnerFactory.register_runner(CommandRunnerType.PLUMBUM, mock_runner)
 
-        runner = CommandRunnerFactory.get_runner(CommandRunnerType.PLUMBUM)
+            runner = CommandRunnerFactory.get_runner(CommandRunnerType.PLUMBUM)
         assert runner.name == "mock"
         assert isinstance(runner, MockRunner)
 
     def test_factory_caches_runners(self, reset_factory: Any) -> None:
         """Test that factory caches runner instances."""
-        runner1 = CommandRunnerFactory.get_runner(CommandRunnerType.SUBPROCESS)
-        runner2 = CommandRunnerFactory.get_runner(CommandRunnerType.SUBPROCESS)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            runner1 = CommandRunnerFactory.get_runner(CommandRunnerType.SUBPROCESS)
+            runner2 = CommandRunnerFactory.get_runner(CommandRunnerType.SUBPROCESS)
 
         # Should be the same instance
         assert runner1 is runner2
 
     def test_reset_factory(self, reset_factory: Any) -> None:
         """Test resetting the factory."""
-        # Get a runner to populate the cache
-        runner1 = CommandRunnerFactory.get_runner(CommandRunnerType.SUBPROCESS)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            # Get a runner to populate the cache
+            runner1 = CommandRunnerFactory.get_runner(CommandRunnerType.SUBPROCESS)
 
-        # Reset the factory
-        CommandRunnerFactory.reset()
+            # Reset the factory
+            CommandRunnerFactory.reset()
 
-        # Get another runner
-        runner2 = CommandRunnerFactory.get_runner(CommandRunnerType.SUBPROCESS)
+            # Get another runner
+            runner2 = CommandRunnerFactory.get_runner(CommandRunnerType.SUBPROCESS)
 
         # Should be different instances
         assert runner1 is not runner2
@@ -407,7 +442,9 @@ class TestErrorHandling:
 
     def test_empty_command_list(self) -> None:
         """Test handling of empty command list."""
-        runner = SubprocessCommandRunner()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            runner = SubprocessCommandRunner()
         result = runner.execute([])
 
         assert result.return_code == 1
@@ -416,17 +453,21 @@ class TestErrorHandling:
 
     def test_none_command(self) -> None:
         """Test handling of None command."""
-        runner = SubprocessCommandRunner()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            runner = SubprocessCommandRunner()
 
         with pytest.raises(TypeError):
             runner.execute(None)  # type: ignore[arg-type]
 
     def test_invalid_options(self) -> None:
         """Test handling of invalid options."""
-        runner = SubprocessCommandRunner()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            runner = SubprocessCommandRunner()
 
         # This should work - None options should use defaults
-        result = runner.execute([sys.executable, "-c", "print('test')"], None)
+        result = runner.execute([sys.executable, "-c", "print('test')"])
         assert result.return_code == 0
 
 
@@ -477,7 +518,9 @@ def mock_runner() -> Generator[CommandRunner, None, None]:
 
     class MockRunner(CommandRunner):
         def __init__(self) -> None:
-            super().__init__("mock")
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                super().__init__("mock")
 
         def execute(self, command: Any, options: Any = None) -> CommandResult:
             return CommandResult(
@@ -497,7 +540,9 @@ def mock_runner() -> Generator[CommandRunner, None, None]:
 @pytest.fixture
 def subprocess_runner() -> SubprocessCommandRunner:
     """Create a SubprocessCommandRunner for testing."""
-    return SubprocessCommandRunner()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        return SubprocessCommandRunner()
 
 
 @pytest.fixture
@@ -569,7 +614,9 @@ def test_mock_runner_with_fixture(mock_runner: CommandRunner) -> None:
 
 def test_execution_with_timeout_custom() -> None:
     """Test execution with custom timeout."""
-    runner = SubprocessCommandRunner()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        runner = SubprocessCommandRunner()
     options = CommandOptions(timeout_seconds=5)
 
     result = runner.execute([sys.executable, "-c", "print('timeout test')"], options)
@@ -579,7 +626,9 @@ def test_execution_with_timeout_custom() -> None:
 
 def test_execution_with_env_vars() -> None:
     """Test execution with environment variables."""
-    runner = SubprocessCommandRunner()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        runner = SubprocessCommandRunner()
     options = CommandOptions(env={"CUSTOM_VAR": "custom_value"})
 
     result = runner.execute(
@@ -597,7 +646,9 @@ def test_execution_with_env_vars() -> None:
 
 def test_execution_time_tracking() -> None:
     """Test that execution time is tracked."""
-    runner = SubprocessCommandRunner()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        runner = SubprocessCommandRunner()
     result = runner.execute([sys.executable, "-c", "import time; time.sleep(0.1)"])
 
     assert result.execution_time_ms is not None
@@ -606,10 +657,12 @@ def test_execution_time_tracking() -> None:
 
 def test_command_factory_singleton_behavior() -> None:
     """Test factory singleton behavior."""
-    CommandRunnerFactory.reset()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        CommandRunnerFactory.reset()
 
-    runner1 = CommandRunnerFactory.get_runner()
-    runner2 = CommandRunnerFactory.get_runner()
+        runner1 = CommandRunnerFactory.get_runner()
+        runner2 = CommandRunnerFactory.get_runner()
 
     assert runner1 is runner2
 
@@ -634,7 +687,9 @@ def test_backwards_compatibility_complete() -> None:
 
 def test_error_handling_comprehensive() -> None:
     """Test comprehensive error handling."""
-    runner = SubprocessCommandRunner()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        runner = SubprocessCommandRunner()
 
     # Test file not found
     result = runner.execute(["this_command_does_not_exist_12345"])

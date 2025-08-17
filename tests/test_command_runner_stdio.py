@@ -7,6 +7,7 @@ import queue
 import subprocess
 import sys
 import threading
+import warnings
 from pathlib import Path
 from unittest.mock import patch
 
@@ -89,7 +90,7 @@ class TestSubprocessSTDIOFix:
         command = [sys.executable, "-u", str(test_script), "arg1", "arg2"]
 
         result = SubprocessSTDIOFix.execute_with_stdio_isolation(
-            command=command, cwd=tmp_path, timeout=5.0
+            command=command, cwd=str(tmp_path), timeout=5.0
         )
 
         assert result.returncode == 0
@@ -110,7 +111,7 @@ class TestSubprocessSTDIOFix:
         command = [sys.executable, "-u", str(test_script)]
 
         result = SubprocessSTDIOFix.execute_with_stdio_isolation(
-            command=command, cwd=tmp_path, timeout=5.0
+            command=command, cwd=str(tmp_path), timeout=5.0
         )
 
         assert result.returncode == 1
@@ -128,7 +129,7 @@ class TestSubprocessSTDIOFix:
 
         with pytest.raises(subprocess.TimeoutExpired):
             SubprocessSTDIOFix.execute_with_stdio_isolation(
-                command=command, cwd=tmp_path, timeout=1.0
+                command=command, cwd=str(tmp_path), timeout=1.0
             )
 
     def test_execute_regular_subprocess(self) -> None:
@@ -179,7 +180,7 @@ class TestSubprocessSTDIOFix:
         custom_env = {"CUSTOM_VAR": "test_value"}
 
         result = SubprocessSTDIOFix.execute_with_stdio_isolation(
-            command=command, cwd=tmp_path, timeout=5.0, env=custom_env
+            command=command, cwd=str(tmp_path), timeout=5.0, env=custom_env
         )
 
         assert result.returncode == 0
@@ -192,14 +193,16 @@ class TestEnhancedCommandRunner:
 
     def test_subprocess_command_runner_python_detection(self) -> None:
         """Test that SubprocessCommandRunner correctly detects Python commands."""
-        runner = SubprocessCommandRunner()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            runner = SubprocessCommandRunner()
 
         with (
-            patch.object(
-                SubprocessSTDIOFix, "execute_with_stdio_isolation"
+            patch(
+                "src.utils.subprocess_runner.execute_with_stdio_isolation"
             ) as mock_isolated,
-            patch.object(
-                SubprocessSTDIOFix, "execute_regular_subprocess"
+            patch(
+                "src.utils.subprocess_runner.execute_regular_subprocess"
             ) as mock_regular,
         ):
 
@@ -226,14 +229,16 @@ class TestEnhancedCommandRunner:
 
     def test_subprocess_command_runner_non_python_command(self) -> None:
         """Test that SubprocessCommandRunner uses regular execution for non-Python commands."""
-        runner = SubprocessCommandRunner()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            runner = SubprocessCommandRunner()
 
         with (
-            patch.object(
-                SubprocessSTDIOFix, "execute_with_stdio_isolation"
+            patch(
+                "src.utils.subprocess_runner.execute_with_stdio_isolation"
             ) as mock_isolated,
-            patch.object(
-                SubprocessSTDIOFix, "execute_regular_subprocess"
+            patch(
+                "src.utils.subprocess_runner.execute_regular_subprocess"
             ) as mock_regular,
         ):
 
@@ -256,10 +261,12 @@ class TestEnhancedCommandRunner:
 
     def test_command_runner_factory_subprocess_creation(self) -> None:
         """Test CommandRunnerFactory creates subprocess runner correctly."""
-        # Reset factory state
-        CommandRunnerFactory.reset()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            # Reset factory state
+            CommandRunnerFactory.reset()
 
-        runner = CommandRunnerFactory.get_runner(CommandRunnerType.SUBPROCESS)
+            runner = CommandRunnerFactory.get_runner(CommandRunnerType.SUBPROCESS)
 
         assert isinstance(runner, SubprocessCommandRunner)
         assert runner.is_available()
