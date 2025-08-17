@@ -5,12 +5,14 @@ setlocal enabledelayedexpansion
 set "sleep_seconds=%1"
 if "%sleep_seconds%"=="" set "sleep_seconds=5"
 
-REM Validate input at batch level
-if %sleep_seconds% lss 0 (
+REM Validate input at batch level (convert to integer first for comparison)
+for /f "tokens=1 delims=." %%i in ("%sleep_seconds%") do set "int_seconds=%%i"
+if not defined int_seconds set "int_seconds=0"
+if %int_seconds% lss 0 (
     echo Error: Sleep duration must be positive
     exit /b 1
 )
-if %sleep_seconds% gtr 300 (
+if %int_seconds% gtr 300 (
     echo Error: Sleep duration must be 300 seconds or less
     exit /b 1
 )

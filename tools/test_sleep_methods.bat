@@ -43,7 +43,7 @@ for %%m in (%methods%) do (
             echo Result: PASS
             set /a passed_tests+=1
         ) else (
-            echo Result: FAIL (exit code !test_result!)
+            echo Result: FAIL ^(exit code !test_result!^)
             set /a failed_tests+=1
         )
         echo.
