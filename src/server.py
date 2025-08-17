@@ -419,15 +419,12 @@ class CodeCheckerServer:
 
         @self.mcp.tool()
         @log_function_call
-        def second_sleep(
-            sleep_seconds: float = 5.0, implementation_method: str = "default"
-        ) -> str:
+        def second_sleep(sleep_seconds: float = 5.0) -> str:
             """
-            Sleep for specified seconds using configurable implementation methods.
+            Sleep for specified seconds using Python script.
 
             Args:
                 sleep_seconds: Number of seconds to sleep (default: 5.0, max: 300 for safety)
-                implementation_method: Method to use ("default", "python", "batch")
 
             Returns:
                 A string indicating the sleep operation result
@@ -436,46 +433,21 @@ class CodeCheckerServer:
             if not 0 <= sleep_seconds <= 300:
                 raise ValueError("Sleep seconds must be between 0 and 300")
 
-            valid_methods = ["default", "python", "batch"]
-            if implementation_method not in valid_methods:
-                raise ValueError(
-                    f"Invalid method: {implementation_method}. Valid methods: {valid_methods}"
-                )
-
             import os
 
             from src.utils.command_runner import execute_command
 
-            # Map default to the most reliable method
-            if implementation_method == "default":
-                implementation_method = "python"
-
-            # Build command based on implementation method
-            if implementation_method == "python":
-                sleep_script = self.project_dir / "tools" / "sleep_script.py"
-                if not sleep_script.exists():
-                    raise FileNotFoundError(f"Sleep script not found: {sleep_script}")
-                python_exe = self.python_executable or "python"
-                command = [python_exe, "-u", str(sleep_script), str(sleep_seconds)]
-
-            elif implementation_method == "batch":
-                batch_script = self.project_dir / "tools" / "sleep_batch.bat"
-                if not batch_script.exists():
-                    raise FileNotFoundError(
-                        f"Batch sleep script not found: {batch_script}"
-                    )
-                command = [str(batch_script), str(sleep_seconds)]
-
-            else:
-                # This should never happen due to validation above, but ensures command is always defined
-                raise ValueError(
-                    f"Unexpected implementation method after validation: {implementation_method}"
-                )
+            # Build command to execute Python sleep script
+            sleep_script = self.project_dir / "tools" / "sleep_script.py"
+            if not sleep_script.exists():
+                raise FileNotFoundError(f"Sleep script not found: {sleep_script}")
+            
+            python_exe = self.python_executable or "python"
+            command = [python_exe, "-u", str(sleep_script), str(sleep_seconds)]
 
             # Set environment variables
             env = os.environ.copy()
-            if implementation_method == "python":
-                env["PYTHONUNBUFFERED"] = "1"
+            env["PYTHONUNBUFFERED"] = "1"
 
             # Execute with timeout buffer
             result = execute_command(
@@ -486,13 +458,9 @@ class CodeCheckerServer:
             )
 
             if result.return_code == 0:
-                output = (
-                    result.stdout.strip()
-                    or f"Successfully slept for {sleep_seconds} seconds using {implementation_method} method"
-                )
-                return f"Method: {implementation_method}\n{output}"
+                return result.stdout.strip() or f"Successfully slept for {sleep_seconds} seconds"
             else:
-                return f"Sleep failed (method: {implementation_method}, code {result.return_code}): {result.stderr}"
+                return f"Sleep failed (code {result.return_code}): {result.stderr}"
 
     @log_function_call
     def run(self) -> None:

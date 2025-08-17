@@ -204,7 +204,7 @@ def execute_with_stdio_isolation(
                     shell=shell,
                     input=input_data,
                     # Prevent any STDIO inheritance
-                    start_new_session=True,  # Creates new process group
+                    start_new_session=(os.name != 'nt'),  # Creates new process group (Unix only)
                 )
 
             # Read outputs while still within the temp directory context
@@ -241,7 +241,7 @@ def execute_with_stdio_isolation(
             env=isolated_env,
             shell=shell,
             input=input_data,
-            start_new_session=True,
+            start_new_session=(os.name != 'nt'),
             # Additional isolation on Unix systems
             preexec_fn=os.setsid if hasattr(os, "setsid") else None,
         )
