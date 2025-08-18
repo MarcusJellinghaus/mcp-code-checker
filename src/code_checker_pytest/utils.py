@@ -5,9 +5,10 @@ Utility functions for code checker pytest operations.
 import json
 import os
 import platform
-import subprocess
 import sys
 from typing import List, Tuple
+
+from src.utils.subprocess_runner import execute_command
 
 from .models import EnvironmentContext, ErrorContext
 
@@ -112,13 +113,18 @@ def collect_environment_info(command: List[str]) -> EnvironmentContext:
 
     # Get pytest version
     try:
-        pytest_version_output = subprocess.run(
-            [sys.executable, "-m", "pytest", "--version"],
-            capture_output=True,
-            text=True,
-            check=False,
+        pytest_version_result = execute_command(
+            command=[sys.executable, "-m", "pytest", "--version"],
+            cwd=None,
+            timeout_seconds=10,
         )
-        pytest_version = pytest_version_output.stdout.strip()
+        if (
+            pytest_version_result.return_code == 0
+            and not pytest_version_result.execution_error
+        ):
+            pytest_version = pytest_version_result.stdout.strip()
+        else:
+            pytest_version = "Unknown"
     except Exception:
         pytest_version = "Unknown"
 
@@ -128,14 +134,13 @@ def collect_environment_info(command: List[str]) -> EnvironmentContext:
     # Get installed packages
     installed_packages = []
     try:
-        pip_list_output = subprocess.run(
-            [sys.executable, "-m", "pip", "list", "--format=json"],
-            capture_output=True,
-            text=True,
-            check=False,
+        pip_list_result = execute_command(
+            command=[sys.executable, "-m", "pip", "list", "--format=json"],
+            cwd=None,
+            timeout_seconds=30,
         )
-        if pip_list_output.returncode == 0:
-            installed_packages = json.loads(pip_list_output.stdout)
+        if pip_list_result.return_code == 0 and not pip_list_result.execution_error:
+            installed_packages = json.loads(pip_list_result.stdout)
     except Exception:
         pass  # Silently fail if pip list cannot be executed
 
@@ -144,27 +149,27 @@ def collect_environment_info(command: List[str]) -> EnvironmentContext:
     try:
         # Add timeout to prevent hanging
         print("Getting pytest plugins info...")
-        pytest_plugins_output = subprocess.run(
-            [sys.executable, "-m", "pytest", "--trace-config"],
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=10,  # 10 second timeout
-        )
-        print(
-            f"Plugins info command completed with return code: {pytest_plugins_output.returncode}"
+        pytest_plugins_result = execute_command(
+            command=[sys.executable, "-m", "pytest", "--trace-config"],
+            cwd=None,
+            timeout_seconds=10,  # 10 second timeout
         )
 
-        # Extract plugin names from output
-        for line in pytest_plugins_output.stderr.split("\n"):
-            if "pluginmanager" in line and "registered" in line:
-                parts = line.split("registered:")
-                if len(parts) > 1:
-                    plugin_name = parts[1].strip()
-                    loaded_plugins.append(plugin_name)
-    except subprocess.TimeoutExpired:
-        print("Timed out while trying to get pytest plugins")
-        loaded_plugins = ["Plugin detection timed out"]
+        if pytest_plugins_result.timed_out:
+            print("Timed out while trying to get pytest plugins")
+            loaded_plugins = ["Plugin detection timed out"]
+        else:
+            print(
+                f"Plugins info command completed with return code: {pytest_plugins_result.return_code}"
+            )
+
+            # Extract plugin names from output
+            for line in pytest_plugins_result.stderr.split("\n"):
+                if "pluginmanager" in line and "registered" in line:
+                    parts = line.split("registered:")
+                    if len(parts) > 1:
+                        plugin_name = parts[1].strip()
+                        loaded_plugins.append(plugin_name)
     except Exception as e:
         print(f"Error getting pytest plugins: {e}")
         # Silently fail if plugin discovery fails
@@ -178,23 +183,21 @@ def collect_environment_info(command: List[str]) -> EnvironmentContext:
                 if cpu_info_list:
                     cpu_info = cpu_info_list[0].split(":")[1].strip()
         elif platform.system() == "Darwin":  # macOS
-            cpu_info_output = subprocess.run(
-                ["sysctl", "-n", "machdep.cpu.brand_string"],
-                capture_output=True,
-                text=True,
-                check=False,
+            cpu_info_result = execute_command(
+                command=["sysctl", "-n", "machdep.cpu.brand_string"],
+                cwd=None,
+                timeout_seconds=5,
             )
-            if cpu_info_output.returncode == 0:
-                cpu_info = cpu_info_output.stdout.strip()
+            if cpu_info_result.return_code == 0 and not cpu_info_result.execution_error:
+                cpu_info = cpu_info_result.stdout.strip()
         elif platform.system() == "Windows":
-            cpu_info_output = subprocess.run(
-                ["wmic", "cpu", "get", "name"],
-                capture_output=True,
-                text=True,
-                check=False,
+            cpu_info_result = execute_command(
+                command=["wmic", "cpu", "get", "name"],
+                cwd=None,
+                timeout_seconds=5,
             )
-            if cpu_info_output.returncode == 0:
-                lines = cpu_info_output.stdout.strip().split("\n")
+            if cpu_info_result.return_code == 0 and not cpu_info_result.execution_error:
+                lines = cpu_info_result.stdout.strip().split("\n")
                 if len(lines) > 1:
                     cpu_info = lines[1].strip()
     except Exception:
@@ -209,24 +212,22 @@ def collect_environment_info(command: List[str]) -> EnvironmentContext:
                 if mem_info_list:
                     memory_info = mem_info_list[0].strip()
         elif platform.system() == "Darwin":  # macOS
-            memory_output = subprocess.run(
-                ["sysctl", "-n", "hw.memsize"],
-                capture_output=True,
-                text=True,
-                check=False,
+            memory_result = execute_command(
+                command=["sysctl", "-n", "hw.memsize"],
+                cwd=None,
+                timeout_seconds=5,
             )
-            if memory_output.returncode == 0:
-                memory_bytes = int(memory_output.stdout.strip())
+            if memory_result.return_code == 0 and not memory_result.execution_error:
+                memory_bytes = int(memory_result.stdout.strip())
                 memory_info = f"Total Memory: {memory_bytes // (1024**3)} GB"
         elif platform.system() == "Windows":
-            memory_output = subprocess.run(
-                ["wmic", "ComputerSystem", "get", "TotalPhysicalMemory"],
-                capture_output=True,
-                text=True,
-                check=False,
+            memory_result = execute_command(
+                command=["wmic", "ComputerSystem", "get", "TotalPhysicalMemory"],
+                cwd=None,
+                timeout_seconds=5,
             )
-            if memory_output.returncode == 0:
-                lines = memory_output.stdout.strip().split("\n")
+            if memory_result.return_code == 0 and not memory_result.execution_error:
+                lines = memory_result.stdout.strip().split("\n")
                 if len(lines) > 1:
                     memory_bytes = int(lines[1].strip())
                     memory_info = f"Total Memory: {memory_bytes // (1024**3)} GB"

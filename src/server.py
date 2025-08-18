@@ -76,10 +76,14 @@ class CodeCheckerServer:
         if not test_results["success"]:
             return f"Error running pytest: {test_results.get('error', 'Unknown error')}"
 
-        summary = test_results["summary"]
-        failed_count = summary.get("failed", 0)
-        error_count = summary.get("error", 0)
-        passed_count = summary.get("passed", 0)
+        summary = test_results.get("summary", {})
+        if not isinstance(summary, dict):
+            return "Error: Invalid test summary format"
+
+        # Handle None values properly
+        failed_count = summary.get("failed") or 0
+        error_count = summary.get("error") or 0
+        passed_count = summary.get("passed") or 0
 
         if (failed_count > 0 or error_count > 0) and test_results.get("test_results"):
             failed_tests_prompt = create_prompt_for_failed_tests(
@@ -87,7 +91,13 @@ class CodeCheckerServer:
             )
             return f"Pytest found issues that need attention:\n\n{failed_tests_prompt}"
 
-        return f"Pytest check completed. All {passed_count} tests passed successfully."
+        # Use summary_text if available, otherwise create a basic message
+        if test_results.get("summary_text"):
+            return f"Pytest check completed. {test_results['summary_text']}"
+        else:
+            return (
+                f"Pytest check completed. All {passed_count} tests passed successfully."
+            )
 
     def _parse_pylint_categories(
         self, categories: Optional[List[str]]
@@ -236,13 +246,13 @@ class CodeCheckerServer:
                 result = self._format_pytest_result(test_results)
 
                 if test_results.get("success"):
-                    summary = test_results["summary"]
+                    summary = test_results.get("summary", {})
                     structured_logger.info(
                         "Pytest execution completed",
-                        passed=summary.get("passed", 0),
-                        failed=summary.get("failed", 0),
-                        errors=summary.get("error", 0),
-                        duration=test_results.get("duration", 0),
+                        passed=summary.get("passed", 0) or 0,
+                        failed=summary.get("failed", 0) or 0,
+                        errors=summary.get("error", 0) or 0,
+                        duration=summary.get("duration", 0) or 0,
                     )
                 else:
                     structured_logger.error(

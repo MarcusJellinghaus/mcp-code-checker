@@ -139,13 +139,15 @@ def _run_subprocess(
             stderr_file = Path(temp_dir) / "stderr.txt"
 
             process = None
-            timed_out = False
+            stdout_f = None
+            stderr_f = None
 
             try:
-                with (
-                    open(stdout_file, "w", encoding="utf-8") as stdout_f,
-                    open(stderr_file, "w", encoding="utf-8") as stderr_f,
-                ):
+                # Open files
+                stdout_f = open(stdout_file, "w", encoding="utf-8")
+                stderr_f = open(stderr_file, "w", encoding="utf-8")
+
+                try:
                     process = subprocess.run(
                         command,
                         stdout=stdout_f,
@@ -159,23 +161,44 @@ def _run_subprocess(
                         input=options.input_data,
                         start_new_session=start_new_session,
                         preexec_fn=preexec_fn,
+                        check=False,  # We handle errors manually
                     )
-            except subprocess.TimeoutExpired as e:
-                # Mark timeout and set process info
-                timed_out = True
-                process = subprocess.CompletedProcess(
-                    args=command,
-                    returncode=1,
-                    stdout="",
-                    stderr="",
-                )
-                # Re-raise to be handled by the caller
+                except subprocess.TimeoutExpired:
+                    # Close files before re-raising to prevent Windows file locking
+                    if stdout_f:
+                        stdout_f.flush()
+                        stdout_f.close()
+                    if stderr_f:
+                        stderr_f.flush()
+                        stderr_f.close()
+
+                    # On Windows, add a small delay to help with file handle cleanup
+                    if os.name == "nt":
+                        time.sleep(0.1)  # Give Windows time to release handles
+
+                    # Re-raise to be handled by the caller
+                    raise
+                finally:
+                    # Ensure files are closed
+                    if stdout_f and not stdout_f.closed:
+                        stdout_f.close()
+                    if stderr_f and not stderr_f.closed:
+                        stderr_f.close()
+            except subprocess.TimeoutExpired:
+                # This will be caught by the outer execute_subprocess
+                raise
+            except Exception:
+                # For any other exception, ensure files are closed
+                if stdout_f and not stdout_f.closed:
+                    stdout_f.close()
+                if stderr_f and not stderr_f.closed:
+                    stderr_f.close()
                 raise
 
             # Read output files after process completes
             # Use a small delay on Windows to avoid file locking issues
-            if os.name == "nt" and not timed_out:
-                time.sleep(0.1)
+            if os.name == "nt":
+                time.sleep(0.2)  # Increased delay for Windows
 
             # Read output files, handling potential errors
             stdout = ""
@@ -184,16 +207,16 @@ def _run_subprocess(
             try:
                 if stdout_file.exists():
                     stdout = stdout_file.read_text(encoding="utf-8")
-            except (OSError, PermissionError):
+            except (OSError, PermissionError) as exc:
                 # If we can't read the file, leave stdout empty
-                pass
+                logger.debug("Could not read stdout file: %s", exc)
 
             try:
                 if stderr_file.exists():
                     stderr = stderr_file.read_text(encoding="utf-8")
-            except (OSError, PermissionError):
+            except (OSError, PermissionError) as exc:
                 # If we can't read the file, leave stderr empty
-                pass
+                logger.debug("Could not read stderr file: %s", exc)
 
             if process is None:
                 # This should not happen, but handle it gracefully
@@ -206,7 +229,7 @@ def _run_subprocess(
 
             return subprocess.CompletedProcess(
                 args=command,
-                returncode=process.returncode,
+                returncode=process.returncode if process else 1,
                 stdout=stdout,
                 stderr=stderr,
             )
@@ -224,10 +247,10 @@ def _run_subprocess(
             input=options.input_data,
             start_new_session=start_new_session,
             preexec_fn=preexec_fn,
+            check=False,  # We handle return codes in execute_subprocess
         )
 
 
-@log_function_call
 def execute_subprocess(
     command: list[str], options: CommandOptions | None = None
 ) -> CommandResult:
@@ -250,7 +273,11 @@ def execute_subprocess(
     start_time = time.time()
 
     # Determine if we need STDIO isolation
-    use_isolation = is_python_command(command)
+    # Check for test flag to disable isolation (for testing purposes)
+    disable_isolation = (
+        options.env and options.env.get("_DISABLE_STDIO_ISOLATION") == "1"
+    )
+    use_isolation = is_python_command(command) and not disable_isolation
 
     structured_logger.debug(
         "Starting subprocess execution",

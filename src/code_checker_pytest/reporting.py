@@ -155,17 +155,17 @@ def get_test_summary(test_session_result: PytestReport) -> str:
         f"Collected {summary.collected} tests in {test_session_result.duration:.2f} seconds"
     )
 
-    if summary.passed:
+    if summary.passed is not None and summary.passed > 0:
         parts.append(f"✅ Passed: {summary.passed}")
-    if summary.failed:
+    if summary.failed is not None and summary.failed > 0:
         parts.append(f"❌ Failed: {summary.failed}")
-    if summary.error:
+    if summary.error is not None and summary.error > 0:
         parts.append(f"⚠️ Error: {summary.error}")
-    if summary.skipped:
+    if summary.skipped is not None and summary.skipped > 0:
         parts.append(f"⏭️ Skipped: {summary.skipped}")
-    if summary.xfailed:
+    if summary.xfailed is not None and summary.xfailed > 0:
         parts.append(f"🔶 Expected failures: {summary.xfailed}")
-    if summary.xpassed:
+    if summary.xpassed is not None and summary.xpassed > 0:
         parts.append(f"🔶 Unexpected passes: {summary.xpassed}")
 
     return " | ".join(parts)
