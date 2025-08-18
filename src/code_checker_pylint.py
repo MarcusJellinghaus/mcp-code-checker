@@ -8,7 +8,7 @@ from typing import List, NamedTuple, Optional, Set
 import structlog
 
 from src.log_utils import log_function_call
-from src.utils.subprocess_runner import execute_subprocess_with_timeout
+from src.utils.subprocess_runner import execute_command
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
@@ -220,7 +220,7 @@ def get_pylint_results(
     pylint_command.extend(valid_directories)
 
     # Execute the subprocess
-    subprocess_result = execute_subprocess_with_timeout(
+    subprocess_result = execute_command(
         command=pylint_command, cwd=project_dir, timeout_seconds=120
     )
 

@@ -15,13 +15,9 @@ import pytest
 from src.utils.subprocess_runner import (
     CommandOptions,
     CommandResult,
-    SubprocessResult,
     execute_command,
-    execute_regular_subprocess,
     execute_subprocess,
-    execute_subprocess_with_timeout,
-    execute_with_stdio_isolation,
-    get_isolated_environment,
+    get_python_isolation_env,
     is_python_command,
 )
 
@@ -76,9 +72,7 @@ class TestCommandResult:
         assert result.runner_type is None
         assert result.execution_time_ms is None
 
-    def test_subprocess_result_alias(self) -> None:
-        """Test that SubprocessResult is aliased to CommandResult."""
-        assert SubprocessResult is CommandResult
+
 
 
 class TestCommandOptions:
@@ -274,36 +268,15 @@ class TestConvenienceFunctions:
         assert str(temp_dir) in result.stdout
         assert result.runner_type == "subprocess"
 
-    def test_execute_subprocess_with_timeout(self) -> None:
-        """Test backward compatibility function."""
-        result = execute_subprocess_with_timeout(
-            [sys.executable, "-c", "print('backward compatible')"]
-        )
 
-        assert result.return_code == 0
-        assert "backward compatible" in result.stdout
-        assert result.runner_type == "subprocess"
-
-    def test_execute_subprocess_with_timeout_all_params(self, temp_dir: Path) -> None:
-        """Test backward compatibility function with all parameters."""
-        result = execute_subprocess_with_timeout(
-            command=[sys.executable, "-c", "import os; print(os.getcwd())"],
-            cwd=str(temp_dir),
-            timeout_seconds=60,
-            env={"TEST": "value"},
-        )
-
-        assert result.return_code == 0
-        assert str(temp_dir) in result.stdout
-        assert result.runner_type == "subprocess"
 
 
 class TestSTDIOIsolation:
     """Tests for STDIO isolation functionality."""
 
-    def test_get_isolated_environment(self) -> None:
+    def test_get_python_isolation_env(self) -> None:
         """Test environment isolation setup."""
-        env = get_isolated_environment()
+        env = get_python_isolation_env()
 
         # Check critical environment variables are set
         assert env["PYTHONUNBUFFERED"] == "1"
@@ -346,8 +319,8 @@ class TestSTDIOIsolation:
         for cmd in non_python_commands:
             assert not is_python_command(cmd), f"Incorrectly detected as Python: {cmd}"
 
-    def test_execute_with_stdio_isolation_success(self, temp_dir: Path) -> None:
-        """Test successful Python subprocess execution with STDIO isolation."""
+    def test_python_subprocess_with_isolation(self, temp_dir: Path) -> None:
+        """Test successful Python subprocess execution with automatic STDIO isolation."""
         # Create test script
         test_script = temp_dir / "test_script.py"
         test_script.write_text(
@@ -358,17 +331,16 @@ class TestSTDIOIsolation:
         )
 
         command = [sys.executable, "-u", str(test_script), "arg1", "arg2"]
+        options = CommandOptions(cwd=str(temp_dir), timeout_seconds=5)
 
-        result = execute_with_stdio_isolation(
-            command=command, cwd=str(temp_dir), timeout=5.0
-        )
+        result = execute_subprocess(command, options)
 
-        assert result.returncode == 0
+        assert result.return_code == 0
         assert "Hello from subprocess" in result.stdout
         assert "Args: ['arg1', 'arg2']" in result.stdout
         assert result.stderr == ""
 
-    def test_execute_with_stdio_isolation_with_error(self, temp_dir: Path) -> None:
+    def test_python_subprocess_with_error(self, temp_dir: Path) -> None:
         """Test Python subprocess that writes to stderr."""
         test_script = temp_dir / "error_script.py"
         test_script.write_text(
@@ -379,16 +351,15 @@ class TestSTDIOIsolation:
         )
 
         command = [sys.executable, "-u", str(test_script)]
+        options = CommandOptions(cwd=str(temp_dir), timeout_seconds=5)
 
-        result = execute_with_stdio_isolation(
-            command=command, cwd=str(temp_dir), timeout=5.0
-        )
+        result = execute_subprocess(command, options)
 
-        assert result.returncode == 1
+        assert result.return_code == 1
         assert "Normal output" in result.stdout
         assert "Error message" in result.stderr
 
-    def test_execute_with_stdio_isolation_timeout(self, temp_dir: Path) -> None:
+    def test_python_subprocess_timeout(self, temp_dir: Path) -> None:
         """Test subprocess timeout handling."""
         test_script = temp_dir / "timeout_script.py"
         test_script.write_text(
@@ -396,22 +367,25 @@ class TestSTDIOIsolation:
         )
 
         command = [sys.executable, "-u", str(test_script)]
+        options = CommandOptions(cwd=str(temp_dir), timeout_seconds=1)
 
-        with pytest.raises(subprocess.TimeoutExpired):
-            execute_with_stdio_isolation(
-                command=command, cwd=str(temp_dir), timeout=1.0
-            )
+        result = execute_subprocess(command, options)
+        
+        assert result.timed_out is True
+        assert result.execution_error is not None
+        assert "Process timed out after 1 seconds" in result.execution_error
 
-    def test_execute_regular_subprocess(self) -> None:
+    def test_non_python_subprocess(self) -> None:
         """Test regular subprocess execution for non-Python commands."""
         if os.name == "nt":  # Windows
             command = ["cmd", "/c", "echo hello"]
         else:  # Unix/Linux
             command = ["echo", "hello"]
 
-        result = execute_regular_subprocess(command=command, timeout=5.0)
+        options = CommandOptions(timeout_seconds=5)
+        result = execute_subprocess(command, options)
 
-        assert result.returncode == 0
+        assert result.return_code == 0
         assert "hello" in result.stdout.strip()
 
     def test_environment_mcp_variables_removed(self) -> None:
@@ -424,7 +398,7 @@ class TestSTDIOIsolation:
             os.environ["MCP_SERVER_NAME"] = "test_server"
             os.environ["MCP_CLIENT_PARAMS"] = "test_params"
 
-            env = get_isolated_environment()
+            env = get_python_isolation_env()
 
             assert "MCP_STDIO_TRANSPORT" not in env
             assert "MCP_SERVER_NAME" not in env
@@ -445,13 +419,15 @@ class TestSTDIOIsolation:
         )
 
         command = [sys.executable, "-u", str(test_script)]
-        custom_env = {"CUSTOM_VAR": "test_value"}
-
-        result = execute_with_stdio_isolation(
-            command=command, cwd=str(temp_dir), timeout=5.0, env=custom_env
+        options = CommandOptions(
+            cwd=str(temp_dir),
+            timeout_seconds=5,
+            env={"CUSTOM_VAR": "test_value"}
         )
 
-        assert result.returncode == 0
+        result = execute_subprocess(command, options)
+
+        assert result.return_code == 0
         assert "CUSTOM_VAR: test_value" in result.stdout
         assert "PYTHONUNBUFFERED: 1" in result.stdout
 
