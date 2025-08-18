@@ -1,10 +1,10 @@
 """Unit tests for pylint models module."""
 
 from src.code_checker_pylint.models import (
+    DEFAULT_CATEGORIES,
     PylintMessage,
     PylintMessageType,
     PylintResult,
-    DEFAULT_CATEGORIES,
 )
 
 
@@ -35,7 +35,7 @@ def test_pylint_message_creation() -> None:
         message="Undefined variable 'x'",
         message_id="E0602",
     )
-    
+
     assert msg.type == "error"
     assert msg.module == "test_module"
     assert msg.obj == "test_function"
@@ -73,14 +73,14 @@ def test_pylint_result_creation() -> None:
             message_id="W0612",
         ),
     ]
-    
+
     result = PylintResult(
         return_code=0,
         messages=messages,
         error=None,
         raw_output="test output",
     )
-    
+
     assert result.return_code == 0
     assert len(result.messages) == 2
     assert result.error is None
@@ -124,10 +124,10 @@ def test_pylint_result_get_message_ids() -> None:
             message_id="E0602",  # Duplicate
         ),
     ]
-    
+
     result = PylintResult(return_code=0, messages=messages)
     message_ids = result.get_message_ids()
-    
+
     assert message_ids == {"E0602", "W0612"}
 
 
@@ -168,10 +168,10 @@ def test_pylint_result_get_messages_filtered_by_message_id() -> None:
             message_id="E0602",
         ),
     ]
-    
+
     result = PylintResult(return_code=0, messages=messages)
     filtered = result.get_messages_filtered_by_message_id("E0602")
-    
+
     assert len(filtered) == 2
     assert all(msg.message_id == "E0602" for msg in filtered)
     assert filtered[0].module == "test1"

@@ -58,9 +58,10 @@ class CodeCheckerServer:
         self.venv_path = venv_path
         self.test_folder = test_folder
         self.keep_temp_files = keep_temp_files
-        
+
         # Import FastMCP
         from mcp.server.fastmcp import FastMCP
+
         self.mcp: FastMCPProtocol = FastMCP("Code Checker Service")
         self._register_tools()
 
@@ -74,30 +75,34 @@ class CodeCheckerServer:
         """Format pytest check result."""
         if not test_results["success"]:
             return f"Error running pytest: {test_results.get('error', 'Unknown error')}"
-        
+
         summary = test_results["summary"]
         failed_count = summary.get("failed", 0)
         error_count = summary.get("error", 0)
         passed_count = summary.get("passed", 0)
-        
+
         if (failed_count > 0 or error_count > 0) and test_results.get("test_results"):
-            failed_tests_prompt = create_prompt_for_failed_tests(test_results["test_results"])
+            failed_tests_prompt = create_prompt_for_failed_tests(
+                test_results["test_results"]
+            )
             return f"Pytest found issues that need attention:\n\n{failed_tests_prompt}"
-        
+
         return f"Pytest check completed. All {passed_count} tests passed successfully."
 
-    def _parse_pylint_categories(self, categories: Optional[List[str]]) -> Optional[set[PylintMessageType]]:
+    def _parse_pylint_categories(
+        self, categories: Optional[List[str]]
+    ) -> Optional[set[PylintMessageType]]:
         """Parse string categories into PylintMessageType enum values."""
         if not categories:
             return None
-            
+
         pylint_categories = set()
         for category in categories:
             try:
                 pylint_categories.add(PylintMessageType(category.lower()))
             except ValueError:
                 logger.warning(f"Unknown pylint category: {category}")
-        
+
         return pylint_categories if pylint_categories else None
 
     def _register_tools(self) -> None:
@@ -141,7 +146,9 @@ class CodeCheckerServer:
                 A string containing either pylint results or a prompt for an LLM to interpret
             """
             try:
-                logger.info(f"Running pylint check on project directory: {self.project_dir}")
+                logger.info(
+                    f"Running pylint check on project directory: {self.project_dir}"
+                )
                 structured_logger.info(
                     "Starting pylint check",
                     project_dir=str(self.project_dir),
@@ -161,15 +168,15 @@ class CodeCheckerServer:
                 )
 
                 result = self._format_pylint_result(pylint_prompt)
-                
+
                 structured_logger.info(
                     "Pylint check completed",
                     issues_found=pylint_prompt is not None,
                     result_length=len(result),
                 )
-                
+
                 return result
-                
+
             except Exception as e:
                 logger.error(f"Error running pylint check: {str(e)}")
                 structured_logger.error(
@@ -201,7 +208,9 @@ class CodeCheckerServer:
                 A string containing either pytest results or a prompt for an LLM to interpret
             """
             try:
-                logger.info(f"Running pytest check on project directory: {self.project_dir}")
+                logger.info(
+                    f"Running pytest check on project directory: {self.project_dir}"
+                )
                 structured_logger.info(
                     "Starting pytest check",
                     project_dir=str(self.project_dir),
@@ -225,7 +234,7 @@ class CodeCheckerServer:
                 )
 
                 result = self._format_pytest_result(test_results)
-                
+
                 if test_results.get("success"):
                     summary = test_results["summary"]
                     structured_logger.info(
@@ -240,9 +249,9 @@ class CodeCheckerServer:
                         "Pytest execution failed",
                         error=test_results.get("error", "Unknown error"),
                     )
-                
+
                 return result
-                
+
             except Exception as e:
                 logger.error(f"Error running pytest check: {str(e)}")
                 structured_logger.error(
@@ -286,7 +295,9 @@ class CodeCheckerServer:
                 A string containing results from all checks and/or LLM prompts
             """
             try:
-                logger.info(f"Running all code checks on project directory: {self.project_dir}")
+                logger.info(
+                    f"Running all code checks on project directory: {self.project_dir}"
+                )
                 structured_logger.info(
                     "Starting all code checks",
                     project_dir=str(self.project_dir),
@@ -331,7 +342,7 @@ class CodeCheckerServer:
                 )
 
                 return result
-                
+
             except Exception as e:
                 logger.error(f"Error running all code checks: {str(e)}")
                 structured_logger.error(
@@ -370,7 +381,7 @@ class CodeCheckerServer:
             # Execute with timeout buffer
             env = os.environ.copy()
             env["PYTHONUNBUFFERED"] = "1"
-            
+
             result = execute_command(
                 command,
                 cwd=str(self.project_dir),
@@ -379,7 +390,10 @@ class CodeCheckerServer:
             )
 
             if result.return_code == 0:
-                return result.stdout.strip() or f"Successfully slept for {sleep_seconds} seconds"
+                return (
+                    result.stdout.strip()
+                    or f"Successfully slept for {sleep_seconds} seconds"
+                )
             else:
                 return f"Sleep failed (code {result.return_code}): {result.stderr}"
 

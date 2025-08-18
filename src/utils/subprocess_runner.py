@@ -54,7 +54,7 @@ def is_python_command(command: list[str]) -> bool:
     """Check if a command is a Python execution command."""
     if not command:
         return False
-    
+
     executable = Path(command[0]).name.lower()
     return (
         executable in ["python", "python3", "python.exe", "python3.exe"]
@@ -65,37 +65,37 @@ def is_python_command(command: list[str]) -> bool:
 def get_python_isolation_env() -> dict[str, str]:
     """Get environment variables for Python subprocess isolation."""
     env = os.environ.copy()
-    
+
     # Python-specific settings to prevent MCP STDIO conflicts
-    env.update({
-        "PYTHONUNBUFFERED": "1",
-        "PYTHONDONTWRITEBYTECODE": "1",
-        "PYTHONIOENCODING": "utf-8",
-        "PYTHONNOUSERSITE": "1",
-        "PYTHONHASHSEED": "0",
-        "PYTHONSTARTUP": "",
-    })
-    
+    env.update(
+        {
+            "PYTHONUNBUFFERED": "1",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONIOENCODING": "utf-8",
+            "PYTHONNOUSERSITE": "1",
+            "PYTHONHASHSEED": "0",
+            "PYTHONSTARTUP": "",
+        }
+    )
+
     # Remove MCP-specific variables
     for var in ["MCP_STDIO_TRANSPORT", "MCP_SERVER_NAME", "MCP_CLIENT_PARAMS"]:
         env.pop(var, None)
-    
+
     return env
 
 
 def _run_subprocess(
-    command: list[str],
-    options: CommandOptions,
-    use_stdio_isolation: bool = False
+    command: list[str], options: CommandOptions, use_stdio_isolation: bool = False
 ) -> subprocess.CompletedProcess[str]:
     """
     Internal function to run subprocess with or without STDIO isolation.
-    
+
     Args:
         command: Command to execute
         options: Execution options
         use_stdio_isolation: Whether to use file-based STDIO isolation
-        
+
     Returns:
         CompletedProcess with execution results
     """
@@ -105,19 +105,19 @@ def _run_subprocess(
         env = get_python_isolation_env()
         if options.env:
             env.update(options.env)
-    
+
     # Handle input data and stdin
     stdin_value = subprocess.DEVNULL if options.input_data is None else None
-    
+
     # Use file-based STDIO for Python commands if needed
     if use_stdio_isolation and options.capture_output:
         with tempfile.TemporaryDirectory() as temp_dir:
             stdout_file = Path(temp_dir) / "stdout.txt"
             stderr_file = Path(temp_dir) / "stderr.txt"
-            
+
             with (
                 open(stdout_file, "w", encoding="utf-8") as stdout_f,
-                open(stderr_file, "w", encoding="utf-8") as stderr_f
+                open(stderr_file, "w", encoding="utf-8") as stderr_f,
             ):
                 # Platform-specific process execution
                 if os.name != "nt" and hasattr(os, "setsid"):
@@ -148,16 +148,20 @@ def _run_subprocess(
                         stdin=stdin_value,
                         input=options.input_data,
                     )
-            
+
             # Read output files
-            stdout = stdout_file.read_text(encoding="utf-8") if stdout_file.exists() else ""
-            stderr = stderr_file.read_text(encoding="utf-8") if stderr_file.exists() else ""
-            
+            stdout = (
+                stdout_file.read_text(encoding="utf-8") if stdout_file.exists() else ""
+            )
+            stderr = (
+                stderr_file.read_text(encoding="utf-8") if stderr_file.exists() else ""
+            )
+
             return subprocess.CompletedProcess(
                 args=command,
                 returncode=process.returncode,
                 stdout=stdout,
-                stderr=stderr
+                stderr=stderr,
             )
     else:
         # Regular execution
@@ -191,8 +195,7 @@ def _run_subprocess(
 
 @log_function_call
 def execute_subprocess(
-    command: list[str], 
-    options: CommandOptions | None = None
+    command: list[str], options: CommandOptions | None = None
 ) -> CommandResult:
     """
     Execute a command with automatic STDIO isolation for Python commands.
@@ -206,15 +209,15 @@ def execute_subprocess(
     """
     if command is None:
         raise TypeError("Command cannot be None")
-    
+
     if options is None:
         options = CommandOptions()
-    
+
     start_time = time.time()
-    
+
     # Determine if we need STDIO isolation
     use_isolation = is_python_command(command)
-    
+
     structured_logger.debug(
         "Starting subprocess execution",
         command=command[:3] if command else None,
@@ -222,18 +225,18 @@ def execute_subprocess(
         timeout_seconds=options.timeout_seconds,
         use_isolation=use_isolation,
     )
-    
+
     try:
         process = _run_subprocess(command, options, use_isolation)
-        
+
         # Handle check parameter
         if options.check and process.returncode != 0:
             raise subprocess.CalledProcessError(
                 process.returncode, command, process.stdout, process.stderr
             )
-        
+
         execution_time_ms = int((time.time() - start_time) * 1000)
-        
+
         return CommandResult(
             return_code=process.returncode,
             stdout=process.stdout or "",
@@ -243,7 +246,7 @@ def execute_subprocess(
             runner_type="subprocess",
             execution_time_ms=execution_time_ms,
         )
-        
+
     except subprocess.TimeoutExpired:
         execution_time_ms = int((time.time() - start_time) * 1000)
         return CommandResult(
@@ -256,7 +259,7 @@ def execute_subprocess(
             runner_type="subprocess",
             execution_time_ms=execution_time_ms,
         )
-        
+
     except subprocess.CalledProcessError as e:
         if options.check:
             raise
@@ -270,7 +273,7 @@ def execute_subprocess(
             runner_type="subprocess",
             execution_time_ms=execution_time_ms,
         )
-        
+
     except Exception as e:
         # Handle all other exceptions (FileNotFoundError, PermissionError, etc.)
         execution_time_ms = int((time.time() - start_time) * 1000)
@@ -316,6 +319,3 @@ def execute_command(
         env=env,
     )
     return execute_subprocess(command, options)
-
-
-

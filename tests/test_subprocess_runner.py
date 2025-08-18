@@ -73,8 +73,6 @@ class TestCommandResult:
         assert result.execution_time_ms is None
 
 
-
-
 class TestCommandOptions:
     """Tests for CommandOptions dataclass."""
 
@@ -269,8 +267,6 @@ class TestConvenienceFunctions:
         assert result.runner_type == "subprocess"
 
 
-
-
 class TestSTDIOIsolation:
     """Tests for STDIO isolation functionality."""
 
@@ -370,7 +366,7 @@ class TestSTDIOIsolation:
         options = CommandOptions(cwd=str(temp_dir), timeout_seconds=1)
 
         result = execute_subprocess(command, options)
-        
+
         assert result.timed_out is True
         assert result.execution_error is not None
         assert "Process timed out after 1 seconds" in result.execution_error
@@ -420,9 +416,7 @@ class TestSTDIOIsolation:
 
         command = [sys.executable, "-u", str(test_script)]
         options = CommandOptions(
-            cwd=str(temp_dir),
-            timeout_seconds=5,
-            env={"CUSTOM_VAR": "test_value"}
+            cwd=str(temp_dir), timeout_seconds=5, env={"CUSTOM_VAR": "test_value"}
         )
 
         result = execute_subprocess(command, options)
@@ -444,14 +438,14 @@ class TestPythonCommandDetection:
             "print('PYTHONUNBUFFERED:', os.environ.get('PYTHONUNBUFFERED', 'NOT_SET'))\n"
             "print('MCP_STDIO_TRANSPORT:', os.environ.get('MCP_STDIO_TRANSPORT', 'NOT_SET'))\n"
         )
-        
+
         # Set an MCP variable to test isolation
         original_env = os.environ.copy()
         try:
             os.environ["MCP_STDIO_TRANSPORT"] = "test_value"
-            
+
             result = execute_subprocess([sys.executable, str(test_script)])
-            
+
             assert result.return_code == 0
             # Python isolation should set PYTHONUNBUFFERED=1
             assert "PYTHONUNBUFFERED: 1" in result.stdout
@@ -467,18 +461,24 @@ class TestPythonCommandDetection:
         original_env = os.environ.copy()
         try:
             os.environ["CUSTOM_TEST_VAR"] = "test_value"
-            
+
             # Use a simple Python command to echo an environment variable
             # This simulates a non-Python command behavior
-            result = execute_subprocess([
-                sys.executable, "-c",
-                "import os; print('CUSTOM_TEST_VAR:', os.environ.get('CUSTOM_TEST_VAR', 'NOT_SET'))"
-            ])
-            
+            result = execute_subprocess(
+                [
+                    sys.executable,
+                    "-c",
+                    "import os; print('CUSTOM_TEST_VAR:', os.environ.get('CUSTOM_TEST_VAR', 'NOT_SET'))",
+                ]
+            )
+
             assert result.return_code == 0
             # The custom variable should still be accessible since we're testing
             # that environment is properly passed through
-            assert "CUSTOM_TEST_VAR: test_value" in result.stdout or "CUSTOM_TEST_VAR: NOT_SET" in result.stdout
+            assert (
+                "CUSTOM_TEST_VAR: test_value" in result.stdout
+                or "CUSTOM_TEST_VAR: NOT_SET" in result.stdout
+            )
         finally:
             os.environ.clear()
             os.environ.update(original_env)

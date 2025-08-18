@@ -80,8 +80,10 @@ def parse_pylint_json_output(
                 f"First 200 chars of output: {raw_output[:200]}..."
             )
         else:
-            error_message = f"Failed to parse Pylint JSON output: {e}. Output: {raw_output}"
-        
+            error_message = (
+                f"Failed to parse Pylint JSON output: {e}. Output: {raw_output}"
+            )
+
         structured_logger.error(
             "JSON parse error",
             error=str(e),

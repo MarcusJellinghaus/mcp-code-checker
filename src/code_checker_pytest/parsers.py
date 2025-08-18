@@ -12,9 +12,9 @@ from .models import (
     Log,
     LogRecord,
     PytestReport,
+    StageInfo,
     Summary,
     Test,
-    StageInfo,
     TracebackEntry,
     Warning,
 )
