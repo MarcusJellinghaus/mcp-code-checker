@@ -28,12 +28,20 @@ The pylint tools expose the following parameters for customization:
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `disable_codes` | list | None | List of pylint error codes to disable during analysis |
+| `target_directories` | list | ["src", "tests"] | List of directories to analyze relative to project_dir |
+
+**Target Directories Examples:**
+- `["src"]` - Analyze only source code directory
+- `["src", "tests"]` - Analyze both source and test directories (default)
+- `["mypackage", "tests"]` - For projects with different package structures
+- `["lib", "scripts", "tests"]` - For complex multi-directory projects
+- `["."]` - Analyze entire project directory (may be slow for large projects)
 
 Additionally, `run_all_checks` exposes:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `pylint_categories` | set | ERROR, FATAL | Set of pylint message categories to include (convention, refactor, warning, error, fatal) |
+| `categories` | set | ERROR, FATAL | Set of pylint message categories to include (convention, refactor, warning, error, fatal) |
 
 ### Pytest Parameters
 
@@ -82,6 +90,28 @@ Additional parameters:
 - `--log-file`: Optional path for structured JSON logs. If not specified, logs to mcp_code_checker_{timestamp}.log in project_dir/logs/
 - `--console-only`: Optional flag to log only to console, ignoring --log-file parameter
 
+## Project Structure Support
+
+The server automatically detects and analyzes Python code in standard project structures:
+
+**Default Analysis:**
+- `src/` directory (if present) - Main source code
+- `tests/` directory (if present) - Test files
+
+**Custom Project Structures:**
+Use the `target_directories` parameter to specify different directories:
+
+```python
+# For a package-based structure
+target_directories = ["mypackage", "tests"]
+
+# For a simple project with code in root
+target_directories = ["."]
+
+# For complex multi-module projects
+target_directories = ["module1", "module2", "shared", "tests"]
+```
+
 ## Structured Logging
 
 The server provides comprehensive logging capabilities:
@@ -100,7 +130,8 @@ Example structured log entries:
   "level": "info",
   "event": "Starting pylint check",
   "project_dir": "/path/to/project",
-  "disable_codes": ["C0114", "C0116"]
+  "disable_codes": ["C0114", "C0116"],
+  "target_directories": ["src", "tests"]
 }
 ```
 
@@ -186,7 +217,8 @@ The server exposes the following MCP tools:
 - Runs pylint on the project code and generates smart prompts for LLMs
 - Returns: A string containing either pylint results or a prompt for an LLM to interpret
 - Helps identify code quality issues, style problems, and potential bugs
-- Customizable with parameters for disabling specific pylint codes
+- Customizable with parameters for disabling specific pylint codes and targeting specific directories
+- Supports flexible project structures through `target_directories` parameter
 
 ### Run Pytest Check
 - Runs pytest on the project code and generates smart prompts for LLMs
@@ -198,13 +230,14 @@ The server exposes the following MCP tools:
 - Runs all code checks (pylint and pytest) and generates combined results
 - Returns: A string containing results from all checks and/or LLM prompts
 - Provides a comprehensive analysis of code quality in a single operation
-- Supports customization parameters for both pylint and pytest
+- Supports customization parameters for both pylint and pytest, including target directories
 
 ## Security Features
 
 - All checks are performed within the specified project directory
 - Code execution is limited to the Python test files within the project
 - Results are formatted for easy interpretation by both humans and LLMs
+- Directory traversal protection through validation of target directories
 
 ## Development
 

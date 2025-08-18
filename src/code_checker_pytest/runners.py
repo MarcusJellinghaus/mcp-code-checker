@@ -190,7 +190,7 @@ def run_tests(
                     "pytest-json-report plugin not found, attempting to install it..."
                 )
                 try:
-                    install_result = subprocess.run(
+                    subprocess.run(
                         [py_executable, "-m", "pip", "install", "pytest-json-report"],
                         check=True,
                         capture_output=True,

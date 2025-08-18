@@ -35,7 +35,7 @@ async def test_run_pytest_check_parameters(
     }
 
     # Create server with the static parameters
-    server = CodeCheckerServer(
+    CodeCheckerServer(
         mock_project_dir, test_folder="custom_tests", keep_temp_files=True
     )
 
@@ -43,7 +43,7 @@ async def test_run_pytest_check_parameters(
     run_pytest_check = mock_tool.call_args_list[1][0][0]
 
     # Call with only the dynamic parameters (without test_folder and keep_temp_files)
-    await run_pytest_check(
+    run_pytest_check(
         markers=["slow", "integration"],
         verbosity=3,
         extra_args=["--no-header"],
@@ -66,13 +66,9 @@ async def test_run_pytest_check_parameters(
 
 
 @pytest.mark.asyncio
-@patch("src.code_checker_pylint.get_pylint_prompt")
-@patch("src.code_checker_pytest.runners.check_code_with_pytest")
 @patch("mcp.server.fastmcp.FastMCP")
 async def test_run_all_checks_parameters(
     mock_fastmcp: MagicMock,
-    mock_check_pytest: MagicMock,
-    mock_pylint: MagicMock,
     mock_project_dir: Path,
 ) -> None:
     """Test that run_all_checks properly uses server parameters and passes parameters correctly."""
@@ -82,41 +78,46 @@ async def test_run_all_checks_parameters(
     mock_tool = MagicMock()
     mock_fastmcp.return_value.tool.return_value = mock_tool
 
-    # Setup mock results
-    mock_pylint.return_value = None
-    mock_check_pytest.return_value = {
-        "success": True,
-        "summary": {"passed": 5, "failed": 0, "error": 0},
-        "test_results": MagicMock(),
-    }
-
     # Create server with the static parameters
-    server = CodeCheckerServer(
-        mock_project_dir, test_folder="custom_tests", keep_temp_files=True
-    )
+    with (
+        patch("src.server.get_pylint_prompt") as mock_pylint,
+        patch("src.server.check_code_with_pytest") as mock_check_pytest,
+    ):
+        # Setup mock results
+        mock_pylint.return_value = None
+        mock_check_pytest.return_value = {
+            "success": True,
+            "summary": {"passed": 5, "failed": 0, "error": 0},
+            "test_results": MagicMock(),
+        }
 
-    # Get the run_all_checks function (it's decorated by mock_tool)
-    run_all_checks = mock_tool.call_args_list[2][0][0]
+        server = CodeCheckerServer(
+            mock_project_dir, test_folder="custom_tests", keep_temp_files=True
+        )
 
-    # Call with only the dynamic parameters (without test_folder and keep_temp_files)
-    await run_all_checks(
-        markers=["slow", "integration"],
-        verbosity=3,
-        extra_args=["--no-header"],
-        env_vars={"TEST_ENV": "value"},
-        categories={"ERROR"},  # Updated from pylint_categories to categories
-    )
+        # Get the run_all_checks function (it's decorated by mock_tool)
+        run_all_checks = mock_tool.call_args_list[2][0][0]
 
-    # Verify check_code_with_pytest was called with correct parameters
-    # test_folder and keep_temp_files should come from the server instance
-    mock_check_pytest.assert_called_once_with(
-        project_dir=str(mock_project_dir),
-        test_folder="custom_tests",  # From server constructor
-        python_executable=None,
-        markers=["slow", "integration"],
-        verbosity=3,
-        extra_args=["--no-header"],
-        env_vars={"TEST_ENV": "value"},
-        venv_path=None,
-        keep_temp_files=True,  # From server constructor
-    )
+        # Call with only the dynamic parameters (without test_folder and keep_temp_files)
+        # The function needs to be invoked to trigger the actual checks
+        result = run_all_checks(
+            markers=["slow", "integration"],
+            verbosity=3,
+            extra_args=["--no-header"],
+            env_vars={"TEST_ENV": "value"},
+            categories={"ERROR"},  # Updated from pylint_categories to categories
+        )
+
+        # Verify check_code_with_pytest was called with correct parameters
+        # test_folder and keep_temp_files should come from the server instance
+        mock_check_pytest.assert_called_once_with(
+            project_dir=str(mock_project_dir),
+            test_folder="custom_tests",  # From server constructor
+            python_executable=None,
+            markers=["slow", "integration"],
+            verbosity=3,
+            extra_args=["--no-header"],
+            env_vars={"TEST_ENV": "value"},
+            venv_path=None,
+            keep_temp_files=True,  # From server constructor
+        )
