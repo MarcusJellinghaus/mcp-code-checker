@@ -52,7 +52,7 @@ class Log:
 
 
 @dataclass
-class TestStage:
+class StageInfo:
     duration: float
     outcome: str
     crash: Optional[Crash] = None
@@ -69,9 +69,9 @@ class Test:
     lineno: int
     keywords: List[str]
     outcome: str
-    setup: Optional[TestStage] = None
-    call: Optional[TestStage] = None
-    teardown: Optional[TestStage] = None
+    setup: Optional[StageInfo] = None
+    call: Optional[StageInfo] = None
+    teardown: Optional[StageInfo] = None
     metadata: Optional[Dict[str, Any]] = None
 
 

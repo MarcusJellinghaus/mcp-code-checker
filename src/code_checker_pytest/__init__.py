@@ -15,7 +15,7 @@ from .models import (
     PytestReport,
     Summary,
     Test,
-    TestStage,
+    StageInfo,
     TracebackEntry,
     Warning,
 )
@@ -33,7 +33,7 @@ __all__ = [
     "TracebackEntry",
     "LogRecord",
     "Log",
-    "TestStage",
+    "StageInfo",
     "Test",
     "CollectorResult",
     "Collector",

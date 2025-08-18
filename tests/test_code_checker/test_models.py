@@ -2,7 +2,7 @@
 Tests for the code_checker_pytest models.
 """
 
-from src.code_checker_pytest import Crash, PytestReport, TestStage, TracebackEntry
+from src.code_checker_pytest import Crash, PytestReport, StageInfo, TracebackEntry
 from src.code_checker_pytest.parsers import parse_pytest_report
 from tests.test_code_checker.test_code_checker_pytest_common import SAMPLE_JSON
 
@@ -21,7 +21,7 @@ def test_model_instantiation() -> None:
     assert traceback_entry.lineno == 10
     assert traceback_entry.message == "Error message"
 
-    test_stage = TestStage(
+    test_stage = StageInfo(
         duration=0.1, outcome="failed", crash=crash, traceback=[traceback_entry]
     )
     assert test_stage.duration == 0.1

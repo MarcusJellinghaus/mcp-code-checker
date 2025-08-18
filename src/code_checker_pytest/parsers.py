@@ -14,13 +14,13 @@ from .models import (
     PytestReport,
     Summary,
     Test,
-    TestStage,
+    StageInfo,
     TracebackEntry,
     Warning,
 )
 
 
-def parse_test_stage(stage_data: Dict[str, Any]) -> TestStage:
+def parse_test_stage(stage_data: Dict[str, Any]) -> StageInfo:
     """
     Parse test stage data from the pytest JSON report.
 
@@ -28,7 +28,7 @@ def parse_test_stage(stage_data: Dict[str, Any]) -> TestStage:
         stage_data: Dictionary containing test stage data from JSON
 
     Returns:
-        TestStage object populated with data from JSON
+        StageInfo object populated with data from JSON
     """
     crash = None
     if "crash" in stage_data and stage_data["crash"]:
@@ -45,7 +45,7 @@ def parse_test_stage(stage_data: Dict[str, Any]) -> TestStage:
         ]
         log = Log(logs=log_records)
 
-    return TestStage(
+    return StageInfo(
         duration=stage_data["duration"],
         outcome=stage_data["outcome"],
         crash=crash,
