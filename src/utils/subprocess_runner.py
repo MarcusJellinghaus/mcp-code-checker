@@ -39,7 +39,24 @@ class CommandResult:
 
 @dataclass
 class CommandOptions:
-    """Configuration options for command execution."""
+    """Configuration options for command execution.
+    
+    Attributes:
+        cwd: Working directory for the subprocess
+        timeout_seconds: Maximum time to wait for process completion
+        env: Environment variables for the subprocess. May contain internal
+             testing flags prefixed with underscore (e.g., _DISABLE_STDIO_ISOLATION)
+             that should NEVER be used in production code.
+        capture_output: Whether to capture stdout and stderr
+        text: Whether to decode output as text
+        check: Whether to raise exception on non-zero exit code
+        shell: Whether to execute through shell
+        input_data: Data to send to subprocess stdin
+    
+    Warning:
+        Environment variables starting with underscore (_) are internal testing
+        flags that bypass safety mechanisms. They must not be used in production.
+    """
 
     cwd: str | None = None
     timeout_seconds: int = 120
@@ -273,7 +290,31 @@ def execute_subprocess(
     start_time = time.time()
 
     # Determine if we need STDIO isolation
-    # Check for test flag to disable isolation (for testing purposes)
+    # INTERNAL TESTING FLAG: _DISABLE_STDIO_ISOLATION
+    # ================================================
+    # This flag is ONLY for internal testing purposes to disable STDIO isolation
+    # for Python commands. It allows tests to verify subprocess behavior without
+    # the file-based STDIO redirection that's normally applied to Python commands.
+    #
+    # WHEN TO USE:
+    # - Only in unit tests that need to test raw subprocess behavior
+    # - When testing concurrent subprocess execution where file locking might interfere
+    # - For performance testing where STDIO isolation overhead needs to be excluded
+    #
+    # HOW IT WORKS:
+    # - Set environment variable _DISABLE_STDIO_ISOLATION=1 to disable isolation
+    # - Python commands will then use direct subprocess pipes instead of temp files
+    # - This bypasses the MCP STDIO conflict prevention mechanism
+    #
+    # WARNING: DO NOT USE IN PRODUCTION!
+    # - This flag bypasses important isolation mechanisms
+    # - Using it in production may cause STDIO conflicts with MCP servers
+    # - It can lead to output corruption when Python subprocesses are involved
+    # - This is an internal implementation detail that may change without notice
+    #
+    # Example (TEST ONLY):
+    #   options = CommandOptions(env={"_DISABLE_STDIO_ISOLATION": "1"})
+    #   result = execute_subprocess([sys.executable, "script.py"], options)
     disable_isolation = (
         options.env and options.env.get("_DISABLE_STDIO_ISOLATION") == "1"
     )
