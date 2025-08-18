@@ -22,6 +22,11 @@ class TracebackEntry:
 
 @dataclass
 class LogRecord:
+    """Represents a log record matching Python's logging.LogRecord interface.
+    
+    Note: Some attribute names use camelCase to maintain compatibility with
+    Python's standard logging.LogRecord class.
+    """
     name: str
     msg: str
     args: Optional[Any]
@@ -34,15 +39,15 @@ class LogRecord:
     exc_text: Optional[str]
     stack_info: Optional[str]
     lineno: int
-    funcName: str
+    funcName: str  # pylint: disable=invalid-name
     created: float
     msecs: float
-    relativeCreated: float
+    relativeCreated: float  # pylint: disable=invalid-name
     thread: int
-    threadName: str
-    processName: str
+    threadName: str  # pylint: disable=invalid-name
+    processName: str  # pylint: disable=invalid-name
     process: int
-    taskName: str = ""
+    taskName: str = ""  # pylint: disable=invalid-name
     asctime: str = ""
 
 

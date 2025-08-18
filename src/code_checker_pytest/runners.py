@@ -24,12 +24,36 @@ structured_logger = structlog.get_logger(__name__)
 
 
 class ProcessResult:
-    """A simple class to mimic subprocess.CompletedProcess for compatibility."""
+    """
+    Adapter class that mimics subprocess.CompletedProcess interface.
+    
+    This class serves as a bridge between our custom CommandResult from
+    subprocess_runner and the standard subprocess.CompletedProcess interface
+    that the rest of the pytest runner code expects.
+    
+    Why this is needed:
+    - The subprocess_runner module returns CommandResult objects with enhanced
+      functionality (timeout handling, STDIO isolation for Python commands, etc.)
+    - The pytest parsing and reporting code expects objects with the
+      subprocess.CompletedProcess interface (returncode, stdout, stderr attributes)
+    - This adapter allows us to use the enhanced subprocess_runner while maintaining
+      compatibility with existing code that expects the standard interface
+    
+    Attributes:
+        returncode: The exit code of the process (0 indicates success)
+        stdout: The captured standard output as a string
+        stderr: The captured standard error as a string
+    
+    Note:
+        This class is internal to the pytest runner module and should not be
+        used elsewhere. If other modules need similar functionality, consider
+        creating a shared adapter in the utils package.
+    """
 
     def __init__(self, returncode: int, stdout: str, stderr: str) -> None:
-        self.returncode = returncode
-        self.stdout = stdout
-        self.stderr = stderr
+        self.returncode: int = returncode
+        self.stdout: str = stdout
+        self.stderr: str = stderr
 
 
 def run_tests(
