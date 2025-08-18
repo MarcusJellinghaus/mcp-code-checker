@@ -23,10 +23,11 @@ class TracebackEntry:
 @dataclass
 class LogRecord:
     """Represents a log record matching Python's logging.LogRecord interface.
-    
+
     Note: Some attribute names use camelCase to maintain compatibility with
     Python's standard logging.LogRecord class.
     """
+
     name: str
     msg: str
     args: Optional[Any]

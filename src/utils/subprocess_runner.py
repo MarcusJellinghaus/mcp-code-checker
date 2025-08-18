@@ -40,7 +40,7 @@ class CommandResult:
 @dataclass
 class CommandOptions:
     """Configuration options for command execution.
-    
+
     Attributes:
         cwd: Working directory for the subprocess
         timeout_seconds: Maximum time to wait for process completion
@@ -52,7 +52,7 @@ class CommandOptions:
         check: Whether to raise exception on non-zero exit code
         shell: Whether to execute through shell
         input_data: Data to send to subprocess stdin
-    
+
     Warning:
         Environment variables starting with underscore (_) are internal testing
         flags that bypass safety mechanisms. They must not be used in production.
