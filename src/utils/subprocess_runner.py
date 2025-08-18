@@ -115,47 +115,86 @@ def _run_subprocess(
             stdout_file = Path(temp_dir) / "stdout.txt"
             stderr_file = Path(temp_dir) / "stderr.txt"
 
-            with (
-                open(stdout_file, "w", encoding="utf-8") as stdout_f,
-                open(stderr_file, "w", encoding="utf-8") as stderr_f,
-            ):
-                # Platform-specific process execution
-                if os.name != "nt" and hasattr(os, "setsid"):
-                    process = subprocess.run(
-                        command,
-                        stdout=stdout_f,
-                        stderr=stderr_f,
-                        cwd=options.cwd,
-                        text=options.text,
-                        timeout=options.timeout_seconds,
-                        env=env,
-                        shell=options.shell,
-                        stdin=stdin_value,
-                        input=options.input_data,
-                        start_new_session=True,
-                        preexec_fn=os.setsid,  # type: ignore[attr-defined]  # pylint: disable=no-member
-                    )
-                else:
-                    process = subprocess.run(
-                        command,
-                        stdout=stdout_f,
-                        stderr=stderr_f,
-                        cwd=options.cwd,
-                        text=options.text,
-                        timeout=options.timeout_seconds,
-                        env=env,
-                        shell=options.shell,
-                        stdin=stdin_value,
-                        input=options.input_data,
-                    )
+            process = None
+            timed_out = False
 
-            # Read output files
-            stdout = (
-                stdout_file.read_text(encoding="utf-8") if stdout_file.exists() else ""
-            )
-            stderr = (
-                stderr_file.read_text(encoding="utf-8") if stderr_file.exists() else ""
-            )
+            try:
+                with (
+                    open(stdout_file, "w", encoding="utf-8") as stdout_f,
+                    open(stderr_file, "w", encoding="utf-8") as stderr_f,
+                ):
+                    # Platform-specific process execution
+                    if os.name != "nt" and hasattr(os, "setsid"):
+                        process = subprocess.run(
+                            command,
+                            stdout=stdout_f,
+                            stderr=stderr_f,
+                            cwd=options.cwd,
+                            text=options.text,
+                            timeout=options.timeout_seconds,
+                            env=env,
+                            shell=options.shell,
+                            stdin=stdin_value,
+                            input=options.input_data,
+                            start_new_session=True,
+                            preexec_fn=os.setsid,  # type: ignore[attr-defined]  # pylint: disable=no-member
+                        )
+                    else:
+                        process = subprocess.run(
+                            command,
+                            stdout=stdout_f,
+                            stderr=stderr_f,
+                            cwd=options.cwd,
+                            text=options.text,
+                            timeout=options.timeout_seconds,
+                            env=env,
+                            shell=options.shell,
+                            stdin=stdin_value,
+                            input=options.input_data,
+                        )
+            except subprocess.TimeoutExpired as e:
+                # Mark timeout and set process info
+                timed_out = True
+                process = subprocess.CompletedProcess(
+                    args=command,
+                    returncode=1,
+                    stdout="",
+                    stderr="",
+                )
+                # Re-raise to be handled by the caller
+                raise
+
+            # Read output files after process completes
+            # Use a small delay on Windows to avoid file locking issues
+            if os.name == "nt" and not timed_out:
+                time.sleep(0.1)
+
+            # Read output files, handling potential errors
+            stdout = ""
+            stderr = ""
+
+            try:
+                if stdout_file.exists():
+                    stdout = stdout_file.read_text(encoding="utf-8")
+            except (OSError, PermissionError):
+                # If we can't read the file, leave stdout empty
+                pass
+
+            try:
+                if stderr_file.exists():
+                    stderr = stderr_file.read_text(encoding="utf-8")
+            except (OSError, PermissionError):
+                # If we can't read the file, leave stderr empty
+                pass
+
+            if process is None:
+                # This should not happen, but handle it gracefully
+                process = subprocess.CompletedProcess(
+                    args=command,
+                    returncode=1,
+                    stdout=stdout,
+                    stderr=stderr,
+                )
 
             return subprocess.CompletedProcess(
                 args=command,
