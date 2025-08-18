@@ -232,9 +232,27 @@ def run_pylint_check(
             "W1514",  # unspecified-encoding
         ]
 
-    return get_pylint_results(
+    # Get pylint results
+    result = get_pylint_results(
         project_dir,
         disable_codes=disable_codes,
         python_executable=python_executable,
         target_directories=target_directories,
     )
+
+    # Apply category filtering if specified
+    if categories is not None:
+        # Convert categories to their string values for comparison
+        category_values = {cat.value for cat in categories}
+        filtered_messages = [
+            msg for msg in result.messages if msg.type in category_values
+        ]
+        # Return a new result with filtered messages
+        return PylintResult(
+            return_code=result.return_code,
+            messages=filtered_messages,
+            error=result.error,
+            raw_output=result.raw_output,
+        )
+
+    return result

@@ -91,7 +91,7 @@ async def test_run_all_checks_parameters(
             "test_results": MagicMock(),
         }
 
-        server = CodeCheckerServer(
+        CodeCheckerServer(
             mock_project_dir, test_folder="custom_tests", keep_temp_files=True
         )
 
@@ -100,7 +100,7 @@ async def test_run_all_checks_parameters(
 
         # Call with only the dynamic parameters (without test_folder and keep_temp_files)
         # The function needs to be invoked to trigger the actual checks
-        result = run_all_checks(
+        run_all_checks(
             markers=["slow", "integration"],
             verbosity=3,
             extra_args=["--no-header"],

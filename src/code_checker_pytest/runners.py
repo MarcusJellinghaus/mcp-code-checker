@@ -5,7 +5,6 @@ Functions for running pytest tests and processing results.
 import logging
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
 from typing import Any, Dict, List, Optional
@@ -13,6 +12,7 @@ from typing import Any, Dict, List, Optional
 import structlog
 
 from src.log_utils import log_function_call
+from src.utils.subprocess_runner import execute_command
 
 from .models import PytestReport
 from .parsers import parse_pytest_report
@@ -23,7 +23,39 @@ logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
 
 
-@log_function_call
+class ProcessResult:
+    """
+    Adapter class that mimics subprocess.CompletedProcess interface.
+
+    This class serves as a bridge between our custom CommandResult from
+    subprocess_runner and the standard subprocess.CompletedProcess interface
+    that the rest of the pytest runner code expects.
+
+    Why this is needed:
+    - The subprocess_runner module returns CommandResult objects with enhanced
+      functionality (timeout handling, STDIO isolation for Python commands, etc.)
+    - The pytest parsing and reporting code expects objects with the
+      subprocess.CompletedProcess interface (returncode, stdout, stderr attributes)
+    - This adapter allows us to use the enhanced subprocess_runner while maintaining
+      compatibility with existing code that expects the standard interface
+
+    Attributes:
+        returncode: The exit code of the process (0 indicates success)
+        stdout: The captured standard output as a string
+        stderr: The captured standard error as a string
+
+    Note:
+        This class is internal to the pytest runner module and should not be
+        used elsewhere. If other modules need similar functionality, consider
+        creating a shared adapter in the utils package.
+    """
+
+    def __init__(self, returncode: int, stdout: str, stderr: str) -> None:
+        self.returncode: int = returncode
+        self.stdout: str = stdout
+        self.stderr: str = stderr
+
+
 def run_tests(
     project_dir: str,
     test_folder: str,
@@ -81,7 +113,9 @@ def run_tests(
         # Handle virtual environment activation
         if venv_path:
             if not os.path.exists(venv_path):
-                raise Exception(f"Virtual environment path does not exist: {venv_path}")
+                raise FileNotFoundError(
+                    f"Virtual environment path does not exist: {venv_path}"
+                )
 
             # Locate the Python executable in the virtual environment
             if os.name == "nt":  # Windows
@@ -90,7 +124,7 @@ def run_tests(
                 venv_python = os.path.join(venv_path, "bin", "python")
 
             if not os.path.exists(venv_python):
-                raise Exception(
+                raise FileNotFoundError(
                     f"Python executable not found in virtual environment: {venv_python}"
                 )
 
@@ -160,21 +194,31 @@ def run_tests(
             # Print command for debugging
             print(f"Running command: {' '.join(command)}")
 
-            # Run with timeout to prevent hanging
-            try:
-                process = subprocess.run(
-                    command,
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                    cwd=project_dir,
-                    env=env,
-                    timeout=30,  # 30 second timeout
-                )
-                print(f"Command completed with return code: {process.returncode}")
-            except subprocess.TimeoutExpired as e:
-                print(f"Command timed out after 30 seconds: {' '.join(command)}")
-                raise Exception(f"Subprocess timed out: {' '.join(command)}") from e
+            # Execute the subprocess using subprocess_runner
+            subprocess_result = execute_command(
+                command=command,
+                cwd=project_dir,
+                timeout_seconds=300,  # 300 second timeout
+                env=env,
+            )
+
+            print(
+                f"Command completed with return code: {subprocess_result.return_code}"
+            )
+
+            # Handle subprocess execution errors
+            if subprocess_result.execution_error:
+                raise RuntimeError(subprocess_result.execution_error)
+
+            if subprocess_result.timed_out:
+                print(f"Command timed out after 300 seconds: {' '.join(command)}")
+                raise TimeoutError(f"Subprocess timed out: {' '.join(command)}")
+
+            process = ProcessResult(
+                subprocess_result.return_code,
+                subprocess_result.stdout,
+                subprocess_result.stderr,
+            )
 
             output = process.stdout
             error_output = process.stderr
@@ -190,42 +234,65 @@ def run_tests(
                     "pytest-json-report plugin not found, attempting to install it..."
                 )
                 try:
-                    subprocess.run(
-                        [py_executable, "-m", "pip", "install", "pytest-json-report"],
-                        check=True,
-                        capture_output=True,
-                        text=True,
-                        timeout=60,  # Give it time to install
-                    )
-                    print("Installed pytest-json-report, retrying...")
-                    # Retry the command
-                    process = subprocess.run(
-                        command,
-                        capture_output=True,
-                        text=True,
-                        check=False,
+                    install_result = execute_command(
+                        command=[
+                            py_executable,
+                            "-m",
+                            "pip",
+                            "install",
+                            "pytest-json-report",
+                        ],
                         cwd=project_dir,
+                        timeout_seconds=60,  # Give it time to install
                         env=env,
-                        timeout=30,
+                    )
+
+                    if (
+                        install_result.return_code != 0
+                        or install_result.execution_error
+                    ):
+                        print(
+                            f"Failed to install pytest-json-report: {install_result.stderr}"
+                        )
+                        raise RuntimeError(
+                            "Failed to install the required pytest-json-report plugin"
+                        )
+
+                    print("Installed pytest-json-report, retrying...")
+
+                    # Retry the command
+                    retry_result = execute_command(
+                        command=command,
+                        cwd=project_dir,
+                        timeout_seconds=300,
+                        env=env,
+                    )
+
+                    if retry_result.timed_out:
+                        print("Retry timed out")
+                        raise TimeoutError(
+                            "Timed out while retrying the test after installing pytest-json-report"
+                        )
+
+                    # Update process object with retry results
+                    process = ProcessResult(
+                        retry_result.return_code,
+                        retry_result.stdout,
+                        retry_result.stderr,
                     )
                     output = process.stdout
                     error_output = process.stderr
                     combined_output = f"{output}\n{error_output}"
-                except subprocess.CalledProcessError as install_error:
-                    print(f"Failed to install pytest-json-report: {install_error}")
-                    raise Exception(
-                        "Failed to install the required pytest-json-report plugin"
-                    )
-                except subprocess.TimeoutExpired:
-                    print("Installation or retry timed out")
-                    raise Exception(
-                        "Timed out while installing pytest-json-report or retrying the test"
-                    )
+                except Exception as install_error:
+                    print(f"Error during installation or retry: {install_error}")
+                    raise
 
             # Check specifically for 'no tests found' case
             if "collected 0 items" in combined_output or process.returncode == 5:
                 print("No tests found, raising specific exception")
-                raise Exception("No Tests Found: Pytest did not find any tests to run.")
+                raise ValueError(
+                    "No Tests Found: Pytest did not find any tests to run."
+                )
 
             # Create error context if needed
             error_context = None
@@ -249,13 +316,13 @@ def run_tests(
             # Handle other error cases
             elif process.returncode == 3:
                 print(combined_output)
-                raise Exception(
+                raise RuntimeError(
                     f"Internal Error: {error_context.exit_code_meaning if error_context else 'Pytest encountered an internal error'}. "
                     f"Suggestion: {error_context.suggestion if error_context else 'Check pytest version compatibility'}"
                 )
             elif process.returncode == 4:
                 print(combined_output)
-                raise Exception(
+                raise ValueError(
                     f"Usage Error: {error_context.exit_code_meaning if error_context else 'Pytest was used incorrectly'}. "
                     f"Suggestion: {error_context.suggestion if error_context else 'Verify command-line arguments'}"
                 )
@@ -267,7 +334,7 @@ def run_tests(
             elif process.returncode > 5:
                 # Handle plugin-specific exit codes
                 print(combined_output)
-                raise Exception(
+                raise RuntimeError(
                     f"Plugin Error: {error_context.exit_code_meaning if error_context else f'Pytest plugin returned exit code {process.returncode}'}. "
                     f"Suggestion: {error_context.suggestion if error_context else 'Check plugin documentation'}"
                 )
@@ -276,11 +343,11 @@ def run_tests(
             if not report_exists:
                 print(combined_output)
                 if "collected 0 items" in combined_output:
-                    raise Exception(
+                    raise ValueError(
                         "No Tests Found: Pytest did not find any tests to run."
                     )
                 else:
-                    raise Exception(
+                    raise RuntimeError(
                         "Test execution completed but no report file was generated. "
                         "Check for configuration errors in pytest.ini or pytest plugins."
                     )
@@ -332,7 +399,6 @@ def run_tests(
                 )
 
 
-@log_function_call
 def check_code_with_pytest(
     project_dir: str,
     test_folder: str = "tests",
@@ -389,8 +455,18 @@ def check_code_with_pytest(
             keep_temp_files,
         )
 
-        # CRITICAL FIX: Use get_test_summary to get formatted string, not a dictionary
+        # Get formatted summary text for display
         summary_text = get_test_summary(test_results)
+
+        # Also create a summary dict for compatibility with server.py
+        summary_dict = {
+            "passed": test_results.summary.passed,
+            "failed": test_results.summary.failed,
+            "error": test_results.summary.error,
+            "skipped": test_results.summary.skipped,
+            "collected": test_results.summary.collected,
+            "duration": test_results.duration,
+        }
 
         structured_logger.info(
             "Pytest code check completed",
@@ -401,9 +477,10 @@ def check_code_with_pytest(
         )
 
         failed_tests_prompt = None
-        if (test_results.summary.failed and test_results.summary.failed > 0) or (
-            test_results.summary.error and test_results.summary.error > 0
-        ):
+        failed_count = test_results.summary.failed or 0
+        error_count = test_results.summary.error or 0
+
+        if failed_count > 0 or error_count > 0:
             failed_tests_prompt = create_prompt_for_failed_tests(test_results)
 
         environment_info = None
@@ -429,10 +506,11 @@ def check_code_with_pytest(
                 "collection_errors": test_results.error_context.collection_errors,
             }
 
-        # CRITICAL FIX: Return summary_text (string) not dictionary
+        # Return both summary dict and formatted text
         return {
             "success": True,
-            "summary": summary_text,  # This is the formatted string from get_test_summary()
+            "summary": summary_dict,  # Dictionary for server.py compatibility
+            "summary_text": summary_text,  # Formatted string for display
             "failed_tests_prompt": failed_tests_prompt,
             "test_results": test_results,
             "environment_info": environment_info,

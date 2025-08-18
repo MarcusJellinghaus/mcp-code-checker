@@ -39,7 +39,24 @@ class CommandResult:
 
 @dataclass
 class CommandOptions:
-    """Configuration options for command execution."""
+    """Configuration options for command execution.
+
+    Attributes:
+        cwd: Working directory for the subprocess
+        timeout_seconds: Maximum time to wait for process completion
+        env: Environment variables for the subprocess. May contain internal
+             testing flags prefixed with underscore (e.g., _DISABLE_STDIO_ISOLATION)
+             that should NEVER be used in production code.
+        capture_output: Whether to capture stdout and stderr
+        text: Whether to decode output as text
+        check: Whether to raise exception on non-zero exit code
+        shell: Whether to execute through shell
+        input_data: Data to send to subprocess stdin
+
+    Warning:
+        Environment variables starting with underscore (_) are internal testing
+        flags that bypass safety mechanisms. They must not be used in production.
+    """
 
     cwd: str | None = None
     timeout_seconds: int = 120
@@ -139,13 +156,15 @@ def _run_subprocess(
             stderr_file = Path(temp_dir) / "stderr.txt"
 
             process = None
-            timed_out = False
+            stdout_f = None
+            stderr_f = None
 
             try:
-                with (
-                    open(stdout_file, "w", encoding="utf-8") as stdout_f,
-                    open(stderr_file, "w", encoding="utf-8") as stderr_f,
-                ):
+                # Open files
+                stdout_f = open(stdout_file, "w", encoding="utf-8")
+                stderr_f = open(stderr_file, "w", encoding="utf-8")
+
+                try:
                     process = subprocess.run(
                         command,
                         stdout=stdout_f,
@@ -159,23 +178,44 @@ def _run_subprocess(
                         input=options.input_data,
                         start_new_session=start_new_session,
                         preexec_fn=preexec_fn,
+                        check=False,  # We handle errors manually
                     )
-            except subprocess.TimeoutExpired as e:
-                # Mark timeout and set process info
-                timed_out = True
-                process = subprocess.CompletedProcess(
-                    args=command,
-                    returncode=1,
-                    stdout="",
-                    stderr="",
-                )
-                # Re-raise to be handled by the caller
+                except subprocess.TimeoutExpired:
+                    # Close files before re-raising to prevent Windows file locking
+                    if stdout_f:
+                        stdout_f.flush()
+                        stdout_f.close()
+                    if stderr_f:
+                        stderr_f.flush()
+                        stderr_f.close()
+
+                    # On Windows, add a small delay to help with file handle cleanup
+                    if os.name == "nt":
+                        time.sleep(0.1)  # Give Windows time to release handles
+
+                    # Re-raise to be handled by the caller
+                    raise
+                finally:
+                    # Ensure files are closed
+                    if stdout_f and not stdout_f.closed:
+                        stdout_f.close()
+                    if stderr_f and not stderr_f.closed:
+                        stderr_f.close()
+            except subprocess.TimeoutExpired:
+                # This will be caught by the outer execute_subprocess
+                raise
+            except Exception:
+                # For any other exception, ensure files are closed
+                if stdout_f and not stdout_f.closed:
+                    stdout_f.close()
+                if stderr_f and not stderr_f.closed:
+                    stderr_f.close()
                 raise
 
             # Read output files after process completes
             # Use a small delay on Windows to avoid file locking issues
-            if os.name == "nt" and not timed_out:
-                time.sleep(0.1)
+            if os.name == "nt":
+                time.sleep(0.2)  # Increased delay for Windows
 
             # Read output files, handling potential errors
             stdout = ""
@@ -184,16 +224,16 @@ def _run_subprocess(
             try:
                 if stdout_file.exists():
                     stdout = stdout_file.read_text(encoding="utf-8")
-            except (OSError, PermissionError):
+            except (OSError, PermissionError) as exc:
                 # If we can't read the file, leave stdout empty
-                pass
+                logger.debug("Could not read stdout file: %s", exc)
 
             try:
                 if stderr_file.exists():
                     stderr = stderr_file.read_text(encoding="utf-8")
-            except (OSError, PermissionError):
+            except (OSError, PermissionError) as exc:
                 # If we can't read the file, leave stderr empty
-                pass
+                logger.debug("Could not read stderr file: %s", exc)
 
             if process is None:
                 # This should not happen, but handle it gracefully
@@ -206,7 +246,7 @@ def _run_subprocess(
 
             return subprocess.CompletedProcess(
                 args=command,
-                returncode=process.returncode,
+                returncode=process.returncode if process else 1,
                 stdout=stdout,
                 stderr=stderr,
             )
@@ -224,10 +264,10 @@ def _run_subprocess(
             input=options.input_data,
             start_new_session=start_new_session,
             preexec_fn=preexec_fn,
+            check=False,  # We handle return codes in execute_subprocess
         )
 
 
-@log_function_call
 def execute_subprocess(
     command: list[str], options: CommandOptions | None = None
 ) -> CommandResult:
@@ -250,7 +290,35 @@ def execute_subprocess(
     start_time = time.time()
 
     # Determine if we need STDIO isolation
-    use_isolation = is_python_command(command)
+    # INTERNAL TESTING FLAG: _DISABLE_STDIO_ISOLATION
+    # ================================================
+    # This flag is ONLY for internal testing purposes to disable STDIO isolation
+    # for Python commands. It allows tests to verify subprocess behavior without
+    # the file-based STDIO redirection that's normally applied to Python commands.
+    #
+    # WHEN TO USE:
+    # - Only in unit tests that need to test raw subprocess behavior
+    # - When testing concurrent subprocess execution where file locking might interfere
+    # - For performance testing where STDIO isolation overhead needs to be excluded
+    #
+    # HOW IT WORKS:
+    # - Set environment variable _DISABLE_STDIO_ISOLATION=1 to disable isolation
+    # - Python commands will then use direct subprocess pipes instead of temp files
+    # - This bypasses the MCP STDIO conflict prevention mechanism
+    #
+    # WARNING: DO NOT USE IN PRODUCTION!
+    # - This flag bypasses important isolation mechanisms
+    # - Using it in production may cause STDIO conflicts with MCP servers
+    # - It can lead to output corruption when Python subprocesses are involved
+    # - This is an internal implementation detail that may change without notice
+    #
+    # Example (TEST ONLY):
+    #   options = CommandOptions(env={"_DISABLE_STDIO_ISOLATION": "1"})
+    #   result = execute_subprocess([sys.executable, "script.py"], options)
+    disable_isolation = (
+        options.env and options.env.get("_DISABLE_STDIO_ISOLATION") == "1"
+    )
+    use_isolation = is_python_command(command) and not disable_isolation
 
     structured_logger.debug(
         "Starting subprocess execution",

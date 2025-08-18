@@ -155,8 +155,13 @@ def test_check_code_with_pytest(mock_run_tests: MagicMock) -> None:
     # Verify the results
     assert result["success"] is True
     assert "summary" in result
-    assert "Collected 2 tests" in result["summary"]
-    assert "✅ Passed: 2" in result["summary"]
+    assert isinstance(result["summary"], dict)
+    assert result["summary"]["collected"] == 2
+    assert result["summary"]["passed"] == 2
+    assert result["summary"]["failed"] == 0
+    # Check for summary_text if it exists
+    if "summary_text" in result:
+        assert "✅ Passed: 2" in result["summary_text"]
     assert result["failed_tests_prompt"] is None
     assert result["test_results"] == mock_report
 
@@ -275,9 +280,15 @@ def test_check_code_with_pytest_with_failed_tests(mock_run_tests: MagicMock) -> 
     # Verify the results
     assert result["success"] is True
     assert "summary" in result
-    assert "Collected 4 tests" in result["summary"]
-    assert "✅ Passed: 2" in result["summary"]
-    assert "❌ Failed: 2" in result["summary"]
+    assert isinstance(result["summary"], dict)
+    assert result["summary"]["collected"] == 4
+    assert result["summary"]["passed"] == 2
+    assert result["summary"]["failed"] == 2
+    # Check for summary_text if it exists
+    if "summary_text" in result:
+        assert "Collected 4 tests" in result["summary_text"]
+        assert "✅ Passed: 2" in result["summary_text"]
+        assert "❌ Failed: 2" in result["summary_text"]
     assert result["failed_tests_prompt"] is not None
     assert "test_file.py::test_failing" in result["failed_tests_prompt"]
     assert result["test_results"] == mock_report
