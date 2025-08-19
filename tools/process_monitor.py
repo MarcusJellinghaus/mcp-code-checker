@@ -70,18 +70,27 @@ def format_time(timestamp: float) -> str:
     return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
 
-def print_header():
+def print_header(cmdline_length: int = 50):
     """Print the table header"""
-    header = f"{'PID':<8} {'Name':<25} {'Status':<12} {'Type':<15} {'CPU%':<8} {'Memory%':<10} {'Memory':<12} {'Threads':<8} {'User':<15} {'Started':<19} {'Command Line':<50}"
+    if cmdline_length == -1:
+        header = f"{'PID':<8} {'Name':<25} {'Status':<12} {'Type':<15} {'CPU%':<8} {'Memory%':<10} {'Memory':<12} {'Threads':<8} {'User':<15} {'Started':<19} {'Command Line'}"
+    else:
+        header = f"{'PID':<8} {'Name':<25} {'Status':<12} {'Type':<15} {'CPU%':<8} {'Memory%':<10} {'Memory':<12} {'Threads':<8} {'User':<15} {'Started':<19} {'Command Line':<{cmdline_length}}"
     print(header)
     print("-" * len(header))
 
 
-def print_process_row(info: Dict[str, Any], indent_level: int = 0):
+def print_process_row(info: Dict[str, Any], indent_level: int = 0, cmdline_length: int = 50):
     """Print a single process row with tree indentation"""
     memory_mb = info['memory_info'].rss / (1024 * 1024)
     started_time = format_time(info['create_time'])
-    cmdline = info['cmdline'][:47] + "..." if len(info['cmdline']) > 50 else info['cmdline']
+
+    # Handle command line truncation based on cmdline_length parameter
+    if cmdline_length == -1:  # No truncation
+        cmdline = info['cmdline']
+    else:
+        truncate_at = cmdline_length - 3  # Leave room for "..."
+        cmdline = info['cmdline'][:truncate_at] + "..." if len(info['cmdline']) > cmdline_length else info['cmdline']
 
     # Create tree indentation
     tree_prefix = "  " * indent_level
@@ -92,7 +101,13 @@ def print_process_row(info: Dict[str, Any], indent_level: int = 0):
     name_field_width = max(25 - len(tree_prefix), 10)
     process_name = tree_prefix + info['name'][:name_field_width]
 
-    row = f"{info['pid']:<8} {process_name:<25} {info['status']:<12} {info['type']:<15} {info['cpu_percent']:<8.1f} {info['memory_percent']:<10.1f} {memory_mb:<12.1f} {info['num_threads']:<8} {info['username'][:12]:<15} {started_time:<19} {cmdline:<50}"
+    # Format the row - adjust command line field width
+    if cmdline_length == -1:
+        # No truncation - let command line extend naturally
+        row = f"{info['pid']:<8} {process_name:<25} {info['status']:<12} {info['type']:<15} {info['cpu_percent']:<8.1f} {info['memory_percent']:<10.1f} {memory_mb:<12.1f} {info['num_threads']:<8} {info['username'][:12]:<15} {started_time:<19} {cmdline}"
+    else:
+        row = f"{info['pid']:<8} {process_name:<25} {info['status']:<12} {info['type']:<15} {info['cpu_percent']:<8.1f} {info['memory_percent']:<10.1f} {memory_mb:<12.1f} {info['num_threads']:<8} {info['username'][:12]:<15} {started_time:<19} {cmdline:<{cmdline_length}}"
+
     print(row)
 
 
@@ -142,7 +157,8 @@ def print_process_tree(children_dict: Dict[int, List[Dict[str, Any]]],
                        process_dict: Dict[int, Dict[str, Any]],
                        parent_pid: int = None,
                        indent_level: int = 0,
-                       visited: set = None):
+                       visited: set = None,
+                       cmdline_length: int = 50):
     """Recursively print the process tree"""
     if visited is None:
         visited = set()
@@ -163,12 +179,12 @@ def print_process_tree(children_dict: Dict[int, List[Dict[str, Any]]],
         child_pid = child['pid']
 
         # Print the current process
-        print_process_row(child, indent_level)
+        print_process_row(child, indent_level, cmdline_length)
 
         # Recursively print children
         if child_pid in children_dict and children_dict[child_pid]:
             print_process_tree(children_dict, process_dict, child_pid,
-                               indent_level + 1, visited.copy())
+                               indent_level + 1, visited.copy(), cmdline_length)
 
 
 def find_root_processes(processes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -184,7 +200,7 @@ def find_root_processes(processes: List[Dict[str, Any]]) -> List[Dict[str, Any]]
     return roots
 
 
-def main(tree_view: bool = False):
+def main(tree_view: bool = False, cmdline_length: int = 50):
     """Main function to display process information"""
     try:
         # Display system information
@@ -195,6 +211,12 @@ def main(tree_view: bool = False):
             print("PROCESS TREE VIEW")
         else:
             print("PROCESS LIST")
+
+        if cmdline_length == -1:
+            print("(Command lines shown in full - no truncation)")
+        elif cmdline_length != 50:
+            print(f"(Command lines truncated at {cmdline_length} characters)")
+
         print("=" * 120)
 
         processes = []
@@ -204,7 +226,7 @@ def main(tree_view: bool = False):
                 processes.append(info)
 
         # Print header
-        print_header()
+        print_header(cmdline_length)
 
         if tree_view:
             # Build process tree
@@ -217,7 +239,7 @@ def main(tree_view: bool = False):
 
             # Print tree starting from roots
             for root in root_processes:
-                print_process_tree(children_dict, process_dict, root['pid'], 0)
+                print_process_tree(children_dict, process_dict, root['pid'], 0, None, cmdline_length)
 
             # Print orphaned processes (those with parents not in our list)
             orphaned = children_dict.get(None, [])
@@ -226,14 +248,14 @@ def main(tree_view: bool = False):
                 print("ORPHANED PROCESSES (parent not in current process list)")
                 print("-" * 120)
                 for proc in sorted(orphaned, key=lambda x: x['cpu_percent'], reverse=True):
-                    print_process_row(proc, 0)
+                    print_process_row(proc, 0, cmdline_length)
         else:
             # Sort by CPU usage (descending) for flat view
             processes.sort(key=lambda x: x['cpu_percent'], reverse=True)
 
             # Print each process
             for info in processes:
-                print_process_row(info)
+                print_process_row(info, 0, cmdline_length)
 
         # Summary statistics
         total_processes = len(processes)
@@ -253,12 +275,12 @@ def main(tree_view: bool = False):
         print(f"Error: {e}")
 
 
-def monitor_mode(tree_view: bool = False):
+def monitor_mode(tree_view: bool = False, cmdline_length: int = 50):
     """Continuous monitoring mode (updates every 5 seconds)"""
     try:
         while True:
             os.system('cls' if os.name == 'nt' else 'clear')  # Clear screen
-            main(tree_view)
+            main(tree_view, cmdline_length)
             print(f"\nPress Ctrl+C to exit. Refreshing in 5 seconds... (Mode: {'Tree' if tree_view else 'List'})")
             time.sleep(5)
     except KeyboardInterrupt:
@@ -333,12 +355,41 @@ if __name__ == "__main__":
     tree_view = '--tree' in sys.argv
     monitor = '--monitor' in sys.argv
 
+    # Handle command line length options
+    cmdline_length = 50  # default
+    if '--full-cmd' in sys.argv:
+        cmdline_length = -1  # no truncation
+    elif '--long-cmd' in sys.argv:
+        cmdline_length = 100  # double length
+    elif '--cmd-length' in sys.argv:
+        # Custom length: --cmd-length 150
+        try:
+            idx = sys.argv.index('--cmd-length')
+            if idx + 1 < len(sys.argv):
+                cmdline_length = int(sys.argv[idx + 1])
+            else:
+                print("Error: --cmd-length requires a number")
+                sys.exit(1)
+        except (ValueError, IndexError):
+            print("Error: --cmd-length requires a valid number")
+            sys.exit(1)
+
     if monitor:
         print(f"Starting continuous monitoring mode ({'Tree' if tree_view else 'List'} view)...")
-        monitor_mode(tree_view)
+        if cmdline_length == -1:
+            print("Command lines will be shown in full (no truncation)")
+        elif cmdline_length != 50:
+            print(f"Command lines will be truncated at {cmdline_length} characters")
+        monitor_mode(tree_view, cmdline_length)
     else:
-        main(tree_view)
+        main(tree_view, cmdline_length)
         print("\nAvailable options:")
-        print("  --tree     : Show processes in tree view (grouped by parent-child)")
-        print("  --monitor  : Continuous monitoring mode (refreshes every 5 seconds)")
-        print("  --tree --monitor : Tree view with continuous monitoring")
+        print("  --tree        : Show processes in tree view (grouped by parent-child)")
+        print("  --monitor     : Continuous monitoring mode (refreshes every 5 seconds)")
+        print("  --full-cmd    : Show full command lines (no truncation)")
+        print("  --long-cmd    : Show longer command lines (100 chars vs default 50)")
+        print("  --cmd-length N: Custom command line length (e.g., --cmd-length 150)")
+        print("\nExamples:")
+        print("  python -m tools.process_monitor --tree --full-cmd")
+        print("  python -m tools.process_monitor --monitor --long-cmd")
+        print("  python -m tools.process_monitor --tree --cmd-length 200")
