@@ -200,8 +200,14 @@ def find_root_processes(processes: List[Dict[str, Any]]) -> List[Dict[str, Any]]
     return roots
 
 
-def main(tree_view: bool = False, cmdline_length: int = 50):
-    """Main function to display process information"""
+def main(tree_view: bool = False, cmdline_length: int = 50, command_line_filter: str = None):
+    """Main function to display process information
+    
+    Args:
+        tree_view: Whether to show processes in tree view
+        cmdline_length: Maximum length for command line display (-1 for no truncation)
+        command_line_filter: Filter string to only show processes with this text in their command line
+    """
     try:
         # Display system information
         get_system_info()
@@ -212,6 +218,9 @@ def main(tree_view: bool = False, cmdline_length: int = 50):
         else:
             print("PROCESS LIST")
 
+        if command_line_filter:
+            print(f"(Filtering by command line containing: '{command_line_filter}')")
+        
         if cmdline_length == -1:
             print("(Command lines shown in full - no truncation)")
         elif cmdline_length != 50:
@@ -223,7 +232,12 @@ def main(tree_view: bool = False, cmdline_length: int = 50):
         for proc in psutil.process_iter():
             info = get_process_info(proc)
             if info:
-                processes.append(info)
+                # Apply command line filter if specified
+                if command_line_filter:
+                    if command_line_filter.lower() in info['cmdline'].lower():
+                        processes.append(info)
+                else:
+                    processes.append(info)
 
         # Print header
         print_header(cmdline_length)
@@ -275,63 +289,20 @@ def main(tree_view: bool = False, cmdline_length: int = 50):
         print(f"Error: {e}")
 
 
-def monitor_mode(tree_view: bool = False, cmdline_length: int = 50):
-    """Continuous monitoring mode (updates every 5 seconds)"""
+def monitor_mode(tree_view: bool = False, cmdline_length: int = 50, command_line_filter: str = None):
+    """Continuous monitoring mode (updates every 5 seconds)
+    
+    Args:
+        tree_view: Whether to show processes in tree view
+        cmdline_length: Maximum length for command line display (-1 for no truncation)
+        command_line_filter: Filter string to only show processes with this text in their command line
+    """
     try:
         while True:
             os.system('cls' if os.name == 'nt' else 'clear')  # Clear screen
-            main(tree_view, cmdline_length)
-            print(f"\nPress Ctrl+C to exit. Refreshing in 5 seconds... (Mode: {'Tree' if tree_view else 'List'})")
-            time.sleep(5)
-    except KeyboardInterrupt:
-        print("\nMonitoring stopped.")
-    """Main function to display process information"""
-    try:
-        # Display system information
-        get_system_info()
-
-        # Get all processes
-        print("PROCESS LIST")
-        print("=" * 120)
-
-        processes = []
-        for proc in psutil.process_iter():
-            info = get_process_info(proc)
-            if info:
-                processes.append(info)
-
-        # Sort by CPU usage (descending)
-        processes.sort(key=lambda x: x['cpu_percent'], reverse=True)
-
-        # Print header
-        print_header()
-
-        # Print each process
-        for info in processes:
-            print_process_row(info)
-
-        # Summary statistics
-        total_processes = len(processes)
-        total_threads = sum(p['num_threads'] for p in processes)
-        avg_cpu = sum(p['cpu_percent'] for p in processes) / total_processes if processes else 0
-
-        print("\n" + "=" * 120)
-        print(f"SUMMARY: {total_processes} processes, {total_threads} threads, Average CPU: {avg_cpu:.1f}%")
-        print("=" * 120)
-
-    except KeyboardInterrupt:
-        print("\nExiting...")
-    except Exception as e:
-        print(f"Error: {e}")
-
-
-def monitor_mode():
-    """Continuous monitoring mode (updates every 5 seconds)"""
-    try:
-        while True:
-            os.system('cls' if os.name == 'nt' else 'clear')  # Clear screen
-            main()
-            print("\nPress Ctrl+C to exit. Refreshing in 5 seconds...")
+            main(tree_view, cmdline_length, command_line_filter)
+            filter_info = f" | Filter: '{command_line_filter}'" if command_line_filter else ""
+            print(f"\nPress Ctrl+C to exit. Refreshing in 5 seconds... (Mode: {'Tree' if tree_view else 'List'}{filter_info})")
             time.sleep(5)
     except KeyboardInterrupt:
         print("\nMonitoring stopped.")
@@ -373,23 +344,41 @@ if __name__ == "__main__":
         except (ValueError, IndexError):
             print("Error: --cmd-length requires a valid number")
             sys.exit(1)
+    
+    # Handle command line filter option
+    command_line_filter = None
+    if '--filter' in sys.argv:
+        try:
+            idx = sys.argv.index('--filter')
+            if idx + 1 < len(sys.argv):
+                command_line_filter = sys.argv[idx + 1]
+            else:
+                print("Error: --filter requires a filter string")
+                sys.exit(1)
+        except IndexError:
+            print("Error: --filter requires a filter string")
+            sys.exit(1)
 
     if monitor:
         print(f"Starting continuous monitoring mode ({'Tree' if tree_view else 'List'} view)...")
+        if command_line_filter:
+            print(f"Filtering processes with command line containing: '{command_line_filter}'")
         if cmdline_length == -1:
             print("Command lines will be shown in full (no truncation)")
         elif cmdline_length != 50:
             print(f"Command lines will be truncated at {cmdline_length} characters")
-        monitor_mode(tree_view, cmdline_length)
+        monitor_mode(tree_view, cmdline_length, command_line_filter)
     else:
-        main(tree_view, cmdline_length)
+        main(tree_view, cmdline_length, command_line_filter)
         print("\nAvailable options:")
         print("  --tree        : Show processes in tree view (grouped by parent-child)")
         print("  --monitor     : Continuous monitoring mode (refreshes every 5 seconds)")
+        print("  --filter STR  : Only show processes with STR in their command line")
         print("  --full-cmd    : Show full command lines (no truncation)")
         print("  --long-cmd    : Show longer command lines (100 chars vs default 50)")
         print("  --cmd-length N: Custom command line length (e.g., --cmd-length 150)")
         print("\nExamples:")
-        print("  python -m tools.process_monitor --tree --full-cmd")
-        print("  python -m tools.process_monitor --monitor --long-cmd")
+        print("  python -m tools.process_monitor --filter python")
+        print("  python -m tools.process_monitor --tree --filter java --full-cmd")
+        print("  python -m tools.process_monitor --monitor --filter chrome")
         print("  python -m tools.process_monitor --tree --cmd-length 200")
