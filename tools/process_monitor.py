@@ -299,10 +299,31 @@ def monitor_mode(tree_view: bool = False, cmdline_length: int = 50, command_line
     """
     try:
         while True:
-            os.system('cls' if os.name == 'nt' else 'clear')  # Clear screen
-            main(tree_view, cmdline_length, command_line_filter)
-            filter_info = f" | Filter: '{command_line_filter}'" if command_line_filter else ""
-            print(f"\nPress Ctrl+C to exit. Refreshing in 5 seconds... (Mode: {'Tree' if tree_view else 'List'}{filter_info})")
+            # Capture the new output first
+            output_buffer = []
+            
+            # Redirect stdout to capture the output
+            import io
+            old_stdout = sys.stdout
+            sys.stdout = io.StringIO()
+            
+            try:
+                # Generate the new output
+                main(tree_view, cmdline_length, command_line_filter)
+                filter_info = f" | Filter: '{command_line_filter}'" if command_line_filter else ""
+                print(f"\nPress Ctrl+C to exit. Refreshing in 5 seconds... (Mode: {'Tree' if tree_view else 'List'}{filter_info})")
+                
+                # Capture the complete output
+                output = sys.stdout.getvalue()
+            finally:
+                # Restore stdout
+                sys.stdout = old_stdout
+            
+            # Now clear the screen and display the new output
+            os.system('cls' if os.name == 'nt' else 'clear')
+            print(output, end='')  # Print without extra newline
+            
+            # Wait for the next refresh
             time.sleep(5)
     except KeyboardInterrupt:
         print("\nMonitoring stopped.")
