@@ -80,6 +80,7 @@ def run_tests(
         env_vars: Optional dictionary of environment variables to set for the subprocess. Example: {'DEBUG': '1'}
         venv_path: Optional path to a virtual environment to activate. When provided, this venv's Python will be used
         keep_temp_files: Whether to keep temporary files after execution (useful for debugging failures)
+        timeout_seconds: Maximum time in seconds to wait for test execution. Default is 300 seconds
 
 
     Returns:
@@ -213,7 +214,7 @@ def run_tests(
             subprocess_result = execute_command(
                 command=command,
                 cwd=project_dir,
-                timeout_seconds=300,  # 300 second timeout
+                timeout_seconds=timeout_seconds,  # Use configurable timeout
                 env=env,
             )
 
@@ -226,7 +227,7 @@ def run_tests(
                 raise RuntimeError(subprocess_result.execution_error)
 
             if subprocess_result.timed_out:
-                print(f"Command timed out after 300 seconds: {' '.join(command)}")
+                print(f"Command timed out after {timeout_seconds} seconds: {' '.join(command)}")
                 raise TimeoutError(f"Subprocess timed out: {' '.join(command)}")
 
             process = ProcessResult(
@@ -279,7 +280,7 @@ def run_tests(
                     retry_result = execute_command(
                         command=command,
                         cwd=project_dir,
-                        timeout_seconds=300,
+                        timeout_seconds=timeout_seconds,
                         env=env,
                     )
 
@@ -424,6 +425,7 @@ def check_code_with_pytest(
     env_vars: Optional[Dict[str, str]] = None,
     venv_path: Optional[str] = None,
     keep_temp_files: bool = False,
+    timeout_seconds: int = 300,
 ) -> Dict[str, Any]:
     """
     Run pytest on the specified project and return results.
@@ -438,6 +440,7 @@ def check_code_with_pytest(
         env_vars: Optional dictionary of environment variables for the subprocess. Example: {'DEBUG': '1', 'PYTHONPATH': '/custom/path'}
         venv_path: Optional path to a virtual environment to activate for running tests. When specified, the Python executable from this venv will be used instead of python_executable
         keep_temp_files: Whether to keep temporary files after test execution. Useful for debugging when tests fail
+        timeout_seconds: Maximum time in seconds to wait for test execution. Default is 300 seconds
 
 
     Returns:
@@ -468,6 +471,7 @@ def check_code_with_pytest(
             env_vars,
             venv_path,
             keep_temp_files,
+            timeout_seconds,
         )
 
         # Get formatted summary text for display

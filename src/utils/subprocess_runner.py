@@ -7,6 +7,7 @@ timeout handling and STDIO isolation for Python commands in MCP server contexts.
 
 import logging
 import os
+import signal
 import subprocess
 import sys
 import tempfile
@@ -207,15 +208,19 @@ def _run_subprocess(
                                         capture_output=True,
                                         timeout=5
                                     )
-                                except:
+                                except (subprocess.SubprocessError, subprocess.TimeoutExpired, Exception) as e:
                                     # Fallback to terminate/kill
+                                    structured_logger.debug(
+                                        "Taskkill failed, using fallback",
+                                        error=str(e),
+                                        pid=popen_proc.pid
+                                    )
                                     popen_proc.terminate()
                                     time.sleep(0.5)
                                     if popen_proc.poll() is None:
                                         popen_proc.kill()
                             else:
                                 # On Unix, kill the process group
-                                import signal
                                 try:
                                     # Check if killpg and getpgid are available (Unix-only)
                                     if hasattr(os, 'killpg') and hasattr(os, 'getpgid'):
@@ -229,8 +234,13 @@ def _run_subprocess(
                                         time.sleep(0.5)
                                         if popen_proc.poll() is None:
                                             popen_proc.kill()
-                                except:
+                                except (OSError, ProcessLookupError, AttributeError) as e:
                                     # Fallback to terminate/kill
+                                    structured_logger.debug(
+                                        "Process group kill failed, using fallback",
+                                        error=str(e),
+                                        pid=popen_proc.pid
+                                    )
                                     popen_proc.terminate()
                                     time.sleep(0.5)
                                     if popen_proc.poll() is None:
@@ -361,18 +371,27 @@ def _run_subprocess(
                                     capture_output=True,
                                     timeout=5
                                 )
-                            except:
+                            except (subprocess.SubprocessError, subprocess.TimeoutExpired, Exception) as e:
+                                structured_logger.debug(
+                                    "Taskkill failed in regular execution, using kill",
+                                    error=str(e),
+                                    pid=popen_proc.pid
+                                )
                                 popen_proc.kill()
                         else:
                             # Unix: Kill process group
-                            import signal
                             try:
                                 # Check if killpg and getpgid are available (Unix-only)
                                 if hasattr(os, 'killpg') and hasattr(os, 'getpgid') and hasattr(signal, 'SIGKILL'):
                                     os.killpg(os.getpgid(popen_proc.pid), signal.SIGKILL)  # type: ignore[attr-defined]
                                 else:
                                     popen_proc.kill()
-                            except:
+                            except (OSError, ProcessLookupError, AttributeError) as e:
+                                structured_logger.debug(
+                                    "Process group kill failed in regular execution, using kill",
+                                    error=str(e),
+                                    pid=popen_proc.pid
+                                )
                                 popen_proc.kill()
                         
                         # Wait for cleanup
