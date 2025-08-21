@@ -23,6 +23,14 @@ def create_mypy_prompt(result: MypyResult) -> str | None:
     if not result.messages:
         return None
 
+    # Calculate summary statistics
+    total_errors = len([m for m in result.messages if m.severity == "error"])
+    total_warnings = len([m for m in result.messages if m.severity == "warning"])
+    total_notes = len([m for m in result.messages if m.severity == "note"])
+    
+    # Get unique files with issues
+    files_with_issues = len(set(msg.file for msg in result.messages))
+    
     # Group messages by error code
     by_code: dict[str, list[MypyMessage]] = {}
     for msg in result.messages:
@@ -31,8 +39,20 @@ def create_mypy_prompt(result: MypyResult) -> str | None:
             by_code[code] = []
         by_code[code].append(msg)
 
-    # Build prompt
-    lines = [f"Mypy found {len(result.messages)} type issues that need attention:\n"]
+    # Build prompt with summary
+    lines = [f"Mypy found {len(result.messages)} type issues that need attention:"]
+    
+    # Add summary statistics
+    lines.append("\n**Summary:**")
+    lines.append(f"- Total issues: {len(result.messages)}")
+    lines.append(f"- Errors: {total_errors}")
+    if total_warnings > 0:
+        lines.append(f"- Warnings: {total_warnings}")
+    if total_notes > 0:
+        lines.append(f"- Notes: {total_notes}")
+    lines.append(f"- Files affected: {files_with_issues}")
+    lines.append(f"- Error categories: {len(by_code)}")
+    lines.append("")
 
     # Sort by error code for consistent output
     for code in sorted(by_code.keys()):

@@ -77,7 +77,7 @@ def test_parse_mypy_json_output_malformed_json_object() -> None:
     json_output = """{"incomplete": "json"
 {"file": "test.py", "line": 10}"""
 
-    messages, error = parse_mypy_json_output(json_output)
+    messages, _ = parse_mypy_json_output(json_output)
 
     # Should parse the second valid JSON even if first is incomplete
     assert len(messages) == 1

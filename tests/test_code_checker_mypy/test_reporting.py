@@ -56,6 +56,16 @@ def test_create_mypy_prompt_with_messages() -> None:
 
     assert prompt is not None
     assert "Mypy found 4 type issues" in prompt
+    
+    # Check summary statistics
+    assert "**Summary:**" in prompt
+    assert "Total issues: 4" in prompt
+    assert "Errors: 3" in prompt
+    assert "Warnings: 1" in prompt
+    assert "Files affected: 3" in prompt  # test.py, utils.py, main.py
+    assert "Error categories: 4" in prompt  # return, return-value, import, other
+    
+    # Check issue grouping
     assert "**return (1 issues)**" in prompt
     assert "**return-value (1 issues)**" in prompt
     assert "**import (1 issues)**" in prompt
@@ -98,14 +108,56 @@ def test_create_mypy_prompt_execution_error() -> None:
 
     # Mock the run_mypy_check to return an error
     class MockResult:
-        return_code = 1
+        return_code: int = 1
         messages: list[MypyMessage] = []
-        error = "Mypy not found in PATH"
+        error: str = "Mypy not found in PATH"
 
     # We can't easily mock here, but we test the logic path
     result = MockResult()  # type: ignore
     prompt = create_mypy_prompt(result)  # type: ignore
     assert prompt is None  # No messages means no prompt
+
+
+def test_create_mypy_prompt_summary_statistics() -> None:
+    """Test that summary statistics are included in the prompt."""
+    messages = [
+        MypyMessage(
+            file="app.py",
+            line=10,
+            column=5,
+            severity="error",
+            message="Type error 1",
+            code="type",
+        ),
+        MypyMessage(
+            file="app.py",
+            line=20,
+            column=5,
+            severity="error",
+            message="Type error 2",
+            code="type",
+        ),
+        MypyMessage(
+            file="utils.py",
+            line=30,
+            column=5,
+            severity="error",
+            message="Import error",
+            code="import",
+        ),
+    ]
+
+    result = MypyResult(return_code=1, messages=messages, errors_found=3)
+    prompt = create_mypy_prompt(result)
+
+    assert prompt is not None
+    assert "**Summary:**" in prompt
+    assert "Total issues: 3" in prompt
+    assert "Errors: 3" in prompt
+    assert "Warnings:" not in prompt  # No warnings, so shouldn't be shown
+    assert "Notes:" not in prompt  # No notes, so shouldn't be shown
+    assert "Files affected: 2" in prompt  # app.py and utils.py
+    assert "Error categories: 2" in prompt  # type and import
 
 
 def test_mypy_result_methods() -> None:
