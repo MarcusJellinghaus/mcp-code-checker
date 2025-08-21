@@ -47,13 +47,6 @@ dev = [
 testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
 pythonpath = ["."]
-# Markers for categorizing tests
-markers = [
-    "integration: Integration tests that spawn pytest subprocesses (deselect with '-m not integration')",
-    "unit: Unit tests that use mocks and don't spawn subprocesses",
-]
-# By default, show markers in test output
-addopts = "--strict-markers"
 
 
 [tool.black]

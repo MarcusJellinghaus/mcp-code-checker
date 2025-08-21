@@ -15,7 +15,6 @@ from tests.test_code_checker.test_code_checker_pytest_common import (
 )
 
 
-@pytest.mark.integration
 def test_run_tests() -> None:
     """Integration test for run_tests function with a sample project."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -61,7 +60,6 @@ def test_run_tests() -> None:
             _cleanup_test_project(test_dir)
 
 
-@pytest.mark.integration
 def test_run_tests_with_custom_parameters() -> None:
     """Test run_tests function with custom parameters."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -104,7 +102,6 @@ def test_slow():
             _cleanup_test_project(test_dir)
 
 
-@pytest.mark.integration
 def test_run_tests_no_tests_found() -> None:
     """Test the run_tests function when no tests are found."""
     with tempfile.TemporaryDirectory() as tmpdir:
