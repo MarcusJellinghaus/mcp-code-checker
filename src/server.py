@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Protocol, TypeVar
 import structlog
 
 # Import all code checking modules at the top
+from src.code_checker_mypy import MypyResult, get_mypy_prompt
 from src.code_checker_pylint import PylintMessageType, get_pylint_prompt
 from src.code_checker_pytest.reporting import create_prompt_for_failed_tests
 from src.code_checker_pytest.runners import check_code_with_pytest
@@ -98,6 +99,12 @@ class CodeCheckerServer:
             return (
                 f"Pytest check completed. All {passed_count} tests passed successfully."
             )
+
+    def _format_mypy_result(self, mypy_prompt: str | None) -> str:
+        """Format mypy check result."""
+        if mypy_prompt is None:
+            return "Mypy check completed. No type errors found."
+        return f"Mypy found type issues that need attention:\n\n{mypy_prompt}"
 
     def _parse_pylint_categories(
         self, categories: Optional[List[str]]
@@ -274,6 +281,91 @@ class CodeCheckerServer:
 
         @self.mcp.tool()
         @log_function_call
+        def run_mypy_check(
+            strict: bool = True,
+            disable_error_codes: list[str] | None = None,
+            target_directories: list[str] | None = None,
+            follow_imports: str | None = None,
+            cache_dir: str | None = None,
+        ) -> str:
+            """
+            Run mypy type checking on the project code.
+            
+            Args:
+                strict: Use strict mode settings (default: True).
+                    When True, applies comprehensive type checking with flags like
+                    --strict, --warn-redundant-casts, --warn-unused-ignores, etc.
+                disable_error_codes: Optional list of mypy error codes to ignore.
+                    Common codes to disable:
+                    - 'import': Import-related errors
+                    - 'arg-type': Argument type mismatches
+                    - 'no-untyped-def': Missing type annotations
+                    - 'attr-defined': Attribute not defined errors
+                    - 'var-annotated': Missing variable annotations
+                target_directories: Optional list of directories to check relative to project_dir.
+                    Defaults to ["src"] and conditionally "tests" if it exists.
+                    Examples:
+                    - ["src"] - Check only source code
+                    - ["src", "tests"] - Check both source and tests
+                    - ["mypackage"] - Check custom package
+                    - ["."] - Check entire project
+                follow_imports: How to handle imports during type checking.
+                    Options:
+                    - 'normal' (default): Follow and type check imported modules
+                    - 'silent': Follow imports but suppress errors in imported modules
+                    - 'skip': Don't follow imports, only check specified files
+                    - 'error': Error if imports cannot be followed
+                cache_dir: Optional custom cache directory for incremental checking.
+                    Mypy uses caching to speed up subsequent runs.
+                    Defaults to .mypy_cache in the project directory.
+                    
+            Returns:
+                A string containing mypy results or a prompt for an LLM to interpret
+            """
+            try:
+                logger.info(
+                    f"Running mypy check on project directory: {self.project_dir}"
+                )
+                structured_logger.info(
+                    "Starting mypy check",
+                    project_dir=str(self.project_dir),
+                    strict=strict,
+                    disable_error_codes=disable_error_codes,
+                    target_directories=target_directories,
+                )
+                
+                # Run mypy check
+                mypy_prompt = get_mypy_prompt(
+                    str(self.project_dir),
+                    strict=strict,
+                    disable_error_codes=disable_error_codes,
+                    python_executable=self.python_executable,
+                    target_directories=target_directories,
+                )
+                
+                # Format result
+                result = self._format_mypy_result(mypy_prompt)
+                
+                structured_logger.info(
+                    "Mypy check completed",
+                    issues_found=mypy_prompt is not None,
+                    result_length=len(result),
+                )
+                
+                return result
+                
+            except Exception as e:
+                logger.error(f"Error running mypy check: {str(e)}")
+                structured_logger.error(
+                    "Mypy check failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    project_dir=str(self.project_dir),
+                )
+                raise
+
+        @self.mcp.tool()
+        @log_function_call
         def run_all_checks(
             markers: Optional[List[str]] = None,
             verbosity: int = 2,
@@ -281,9 +373,11 @@ class CodeCheckerServer:
             env_vars: Optional[Dict[str, str]] = None,
             categories: Optional[List[str]] = None,
             target_directories: Optional[List[str]] = None,
+            mypy_strict: bool = True,
+            mypy_disable_codes: list[str] | None = None,
         ) -> str:
             """
-            Run all code checks (pylint and pytest) and generate combined results.
+            Run all code checks (pylint, pytest, and mypy) and generate combined results.
 
             Args:
                 markers: Optional list of pytest markers to filter tests. Examples: ['slow', 'integration']
@@ -300,6 +394,8 @@ class CodeCheckerServer:
                     - ["src", "tests"] - Analyze both source and tests (default)
                     - ["mypackage", "tests"] - Custom package structure
                     - ["."] - Analyze entire project (may be slow)
+                mypy_strict: Use strict mode for mypy (default: True)
+                mypy_disable_codes: Optional list of mypy error codes to disable
 
             Returns:
                 A string containing results from all checks and/or LLM prompts
@@ -335,20 +431,32 @@ class CodeCheckerServer:
                     venv_path=self.venv_path,
                     keep_temp_files=self.keep_temp_files,
                 )
+                
+                # Run mypy
+                mypy_prompt = get_mypy_prompt(
+                    str(self.project_dir),
+                    strict=mypy_strict,
+                    disable_error_codes=mypy_disable_codes,
+                    python_executable=self.python_executable,
+                    target_directories=target_directories,
+                )
 
                 # Format results
                 pylint_result = self._format_pylint_result(pylint_prompt)
                 pytest_result = self._format_pytest_result(test_results)
+                mypy_result = self._format_mypy_result(mypy_prompt)
 
                 # Combine results
                 result = "All code checks completed:\n\n"
                 result += f"1. Pylint: {pylint_result}\n\n"
-                result += f"2. Pytest: {pytest_result}"
+                result += f"2. Pytest: {pytest_result}\n\n"
+                result += f"3. Mypy: {mypy_result}"
 
                 structured_logger.info(
                     "All code checks completed",
                     pylint_issues_found=pylint_prompt is not None,
                     pytest_success=test_results.get("success", False),
+                    mypy_issues_found=mypy_prompt is not None,
                 )
 
                 return result
