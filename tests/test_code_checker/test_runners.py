@@ -225,6 +225,7 @@ def test_check_code_with_pytest_with_custom_parameters(
         custom_env,
         None,  # venv_path
         True,  # keep_temp_files
+        300,  # timeout_seconds (default value)
     )
 
     # Verify result is correct

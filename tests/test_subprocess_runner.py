@@ -221,8 +221,8 @@ class TestExecuteSubprocess:
 
     def test_execute_command_permission_error(self) -> None:
         """Test handling permission errors."""
-        with patch("subprocess.run") as mock_run:
-            mock_run.side_effect = PermissionError("Access denied")
+        with patch("subprocess.Popen") as mock_popen:
+            mock_popen.side_effect = PermissionError("Access denied")
 
             result = execute_subprocess(["test_command"])
 
@@ -234,8 +234,8 @@ class TestExecuteSubprocess:
 
     def test_execute_command_unexpected_error(self) -> None:
         """Test handling unexpected errors."""
-        with patch("subprocess.run") as mock_run:
-            mock_run.side_effect = RuntimeError("Unexpected error")
+        with patch("subprocess.Popen") as mock_popen:
+            mock_popen.side_effect = RuntimeError("Unexpected error")
 
             result = execute_subprocess(["test_command"])
 
