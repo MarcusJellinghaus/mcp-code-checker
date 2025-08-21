@@ -223,7 +223,7 @@ def _run_subprocess(
                                 # On Unix, kill the process group
                                 try:
                                     # Check if killpg and getpgid are available (Unix-only)
-                                    if hasattr(os, 'killpg') and hasattr(os, 'getpgid'):
+                                    if hasattr(os, 'killpg') and hasattr(os, 'getpgid') and hasattr(signal, 'SIGTERM') and hasattr(signal, 'SIGKILL'):
                                         os.killpg(os.getpgid(popen_proc.pid), signal.SIGTERM)  # type: ignore[attr-defined]
                                         time.sleep(0.5)
                                         if popen_proc.poll() is None:
@@ -382,8 +382,13 @@ def _run_subprocess(
                             # Unix: Kill process group
                             try:
                                 # Check if killpg and getpgid are available (Unix-only)
-                                if hasattr(os, 'killpg') and hasattr(os, 'getpgid') and hasattr(signal, 'SIGKILL'):
-                                    os.killpg(os.getpgid(popen_proc.pid), signal.SIGKILL)  # type: ignore[attr-defined]
+                                if hasattr(os, 'killpg') and hasattr(os, 'getpgid') and hasattr(signal, 'SIGTERM') and hasattr(signal, 'SIGKILL'):
+                                    # Try graceful termination first (consistent with first timeout block)
+                                    os.killpg(os.getpgid(popen_proc.pid), signal.SIGTERM)  # type: ignore[attr-defined]
+                                    time.sleep(0.5)
+                                    if popen_proc.poll() is None:
+                                        # Force kill if still running
+                                        os.killpg(os.getpgid(popen_proc.pid), signal.SIGKILL)  # type: ignore[attr-defined]
                                 else:
                                     popen_proc.kill()
                             except (OSError, ProcessLookupError, AttributeError) as e:
