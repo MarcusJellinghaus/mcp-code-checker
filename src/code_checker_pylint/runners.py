@@ -105,7 +105,6 @@ def get_pylint_results(
         "-m",
         "pylint",
         "--output-format=json",
-        "--jobs=1",  # Force single-threaded execution to prevent process proliferation
     ]
 
     if disable_codes and len(disable_codes) > 0:
