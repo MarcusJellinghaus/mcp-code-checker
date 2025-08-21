@@ -51,9 +51,9 @@ class ProcessResult:
     """
 
     def __init__(self, returncode: int, stdout: str, stderr: str) -> None:
-        self.returncode: int = returncode
-        self.stdout: str = stdout
-        self.stderr: str = stderr
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
 
 
 def run_tests(
@@ -66,6 +66,7 @@ def run_tests(
     env_vars: Optional[Dict[str, str]] = None,
     venv_path: Optional[str] = None,
     keep_temp_files: bool = False,
+    timeout_seconds: int = 300,
 ) -> PytestReport:
     """
     Run pytest tests in the specified project directory and test folder and returns the results.
