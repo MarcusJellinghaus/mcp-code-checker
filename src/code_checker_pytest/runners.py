@@ -109,11 +109,11 @@ def run_tests(
     )
 
     # Check for recursive pytest execution
-    if os.environ.get('PYTEST_SUBPROCESS_DEPTH', '0') != '0':
+    if os.environ.get("PYTEST_SUBPROCESS_DEPTH", "0") != "0":
         structured_logger.warning(
             "Detected nested pytest execution",
-            depth=os.environ.get('PYTEST_SUBPROCESS_DEPTH'),
-            project_dir=project_dir
+            depth=os.environ.get("PYTEST_SUBPROCESS_DEPTH"),
+            project_dir=project_dir,
         )
         # Log warning but continue - this might be intentional in some test scenarios
         # If you want to prevent it entirely, raise an exception here:
@@ -190,10 +190,10 @@ def run_tests(
         env = os.environ.copy()
         if env_vars:
             env.update(env_vars)
-        
+
         # Add subprocess depth tracking to prevent infinite recursion
-        current_depth = int(os.environ.get('PYTEST_SUBPROCESS_DEPTH', '0'))
-        env['PYTEST_SUBPROCESS_DEPTH'] = str(current_depth + 1)
+        current_depth = int(os.environ.get("PYTEST_SUBPROCESS_DEPTH", "0"))
+        env["PYTEST_SUBPROCESS_DEPTH"] = str(current_depth + 1)
 
         # If using a virtual environment, adjust PATH to prioritize it
         if venv_path:
@@ -228,7 +228,9 @@ def run_tests(
                 raise RuntimeError(subprocess_result.execution_error)
 
             if subprocess_result.timed_out:
-                print(f"Command timed out after {timeout_seconds} seconds: {' '.join(command)}")
+                print(
+                    f"Command timed out after {timeout_seconds} seconds: {' '.join(command)}"
+                )
                 raise TimeoutError(f"Subprocess timed out: {' '.join(command)}")
 
             process = ProcessResult(

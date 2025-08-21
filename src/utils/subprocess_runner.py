@@ -172,7 +172,11 @@ def _run_subprocess(
                         command,
                         stdout=stdout_f,
                         stderr=stderr_f,
-                        stdin=stdin_value if options.input_data is None else subprocess.PIPE,
+                        stdin=(
+                            stdin_value
+                            if options.input_data is None
+                            else subprocess.PIPE
+                        ),
                         cwd=options.cwd,
                         text=options.text,
                         env=env,
@@ -180,10 +184,12 @@ def _run_subprocess(
                         start_new_session=start_new_session,
                         preexec_fn=preexec_fn,
                     )
-                    
+
                     # Communicate with timeout
                     try:
-                        _, _ = popen_proc.communicate(input=options.input_data, timeout=options.timeout_seconds)
+                        _, _ = popen_proc.communicate(
+                            input=options.input_data, timeout=options.timeout_seconds
+                        )
                         process = subprocess.CompletedProcess(
                             args=command,
                             returncode=popen_proc.returncode,
@@ -196,24 +202,34 @@ def _run_subprocess(
                             structured_logger.warning(
                                 "Killing timed out process",
                                 pid=popen_proc.pid,
-                                command=command[:3] if command else None
+                                command=command[:3] if command else None,
                             )
-                            
+
                             # On Windows, use taskkill to kill process tree
-                            if os.name == 'nt':
+                            if os.name == "nt":
                                 try:
                                     # Kill process tree on Windows
                                     subprocess.run(
-                                        ['taskkill', '/F', '/T', '/PID', str(popen_proc.pid)],
+                                        [
+                                            "taskkill",
+                                            "/F",
+                                            "/T",
+                                            "/PID",
+                                            str(popen_proc.pid),
+                                        ],
                                         capture_output=True,
-                                        timeout=5
+                                        timeout=5,
                                     )
-                                except (subprocess.SubprocessError, subprocess.TimeoutExpired, Exception) as e:
+                                except (
+                                    subprocess.SubprocessError,
+                                    subprocess.TimeoutExpired,
+                                    Exception,
+                                ) as e:
                                     # Fallback to terminate/kill
                                     structured_logger.debug(
                                         "Taskkill failed, using fallback",
                                         error=str(e),
-                                        pid=popen_proc.pid
+                                        pid=popen_proc.pid,
                                     )
                                     popen_proc.terminate()
                                     time.sleep(0.5)
@@ -223,7 +239,12 @@ def _run_subprocess(
                                 # On Unix, kill the process group
                                 try:
                                     # Check if killpg and getpgid are available (Unix-only)
-                                    if hasattr(os, 'killpg') and hasattr(os, 'getpgid') and hasattr(signal, 'SIGTERM') and hasattr(signal, 'SIGKILL'):
+                                    if (
+                                        hasattr(os, "killpg")
+                                        and hasattr(os, "getpgid")
+                                        and hasattr(signal, "SIGTERM")
+                                        and hasattr(signal, "SIGKILL")
+                                    ):
                                         os.killpg(os.getpgid(popen_proc.pid), signal.SIGTERM)  # type: ignore[attr-defined]
                                         time.sleep(0.5)
                                         if popen_proc.poll() is None:
@@ -234,27 +255,31 @@ def _run_subprocess(
                                         time.sleep(0.5)
                                         if popen_proc.poll() is None:
                                             popen_proc.kill()
-                                except (OSError, ProcessLookupError, AttributeError) as e:
+                                except (
+                                    OSError,
+                                    ProcessLookupError,
+                                    AttributeError,
+                                ) as e:
                                     # Fallback to terminate/kill
                                     structured_logger.debug(
                                         "Process group kill failed, using fallback",
                                         error=str(e),
-                                        pid=popen_proc.pid
+                                        pid=popen_proc.pid,
                                     )
                                     popen_proc.terminate()
                                     time.sleep(0.5)
                                     if popen_proc.poll() is None:
                                         popen_proc.kill()
-                            
+
                             # Wait a bit for cleanup
                             try:
                                 popen_proc.wait(timeout=2)
                             except subprocess.TimeoutExpired:
                                 pass
-                        
+
                         # Re-raise the timeout exception
                         raise
-                    
+
                 except subprocess.TimeoutExpired:
                     # Close files before re-raising to prevent Windows file locking
                     if stdout_f:
@@ -334,7 +359,9 @@ def _run_subprocess(
                     command,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
-                    stdin=stdin_value if options.input_data is None else subprocess.PIPE,
+                    stdin=(
+                        stdin_value if options.input_data is None else subprocess.PIPE
+                    ),
                     cwd=options.cwd,
                     text=options.text,
                     env=env,
@@ -342,11 +369,10 @@ def _run_subprocess(
                     start_new_session=start_new_session,
                     preexec_fn=preexec_fn,
                 )
-                
+
                 try:
                     stdout, stderr = popen_proc.communicate(
-                        input=options.input_data, 
-                        timeout=options.timeout_seconds
+                        input=options.input_data, timeout=options.timeout_seconds
                     )
                     return subprocess.CompletedProcess(
                         args=command,
@@ -360,29 +386,44 @@ def _run_subprocess(
                         structured_logger.warning(
                             "Killing timed out process (regular execution)",
                             pid=popen_proc.pid,
-                            command=command[:3] if command else None
+                            command=command[:3] if command else None,
                         )
-                        
-                        if os.name == 'nt':
+
+                        if os.name == "nt":
                             # Windows: Kill process tree
                             try:
                                 subprocess.run(
-                                    ['taskkill', '/F', '/T', '/PID', str(popen_proc.pid)],
+                                    [
+                                        "taskkill",
+                                        "/F",
+                                        "/T",
+                                        "/PID",
+                                        str(popen_proc.pid),
+                                    ],
                                     capture_output=True,
-                                    timeout=5
+                                    timeout=5,
                                 )
-                            except (subprocess.SubprocessError, subprocess.TimeoutExpired, Exception) as e:
+                            except (
+                                subprocess.SubprocessError,
+                                subprocess.TimeoutExpired,
+                                Exception,
+                            ) as e:
                                 structured_logger.debug(
                                     "Taskkill failed in regular execution, using kill",
                                     error=str(e),
-                                    pid=popen_proc.pid
+                                    pid=popen_proc.pid,
                                 )
                                 popen_proc.kill()
                         else:
                             # Unix: Kill process group
                             try:
                                 # Check if killpg and getpgid are available (Unix-only)
-                                if hasattr(os, 'killpg') and hasattr(os, 'getpgid') and hasattr(signal, 'SIGTERM') and hasattr(signal, 'SIGKILL'):
+                                if (
+                                    hasattr(os, "killpg")
+                                    and hasattr(os, "getpgid")
+                                    and hasattr(signal, "SIGTERM")
+                                    and hasattr(signal, "SIGKILL")
+                                ):
                                     # Try graceful termination first (consistent with first timeout block)
                                     os.killpg(os.getpgid(popen_proc.pid), signal.SIGTERM)  # type: ignore[attr-defined]
                                     time.sleep(0.5)
@@ -395,10 +436,10 @@ def _run_subprocess(
                                 structured_logger.debug(
                                     "Process group kill failed in regular execution, using kill",
                                     error=str(e),
-                                    pid=popen_proc.pid
+                                    pid=popen_proc.pid,
                                 )
                                 popen_proc.kill()
-                        
+
                         # Wait for cleanup
                         try:
                             popen_proc.wait(timeout=2)
