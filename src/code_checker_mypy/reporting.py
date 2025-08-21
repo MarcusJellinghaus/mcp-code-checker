@@ -27,10 +27,10 @@ def create_mypy_prompt(result: MypyResult) -> str | None:
     total_errors = len([m for m in result.messages if m.severity == "error"])
     total_warnings = len([m for m in result.messages if m.severity == "warning"])
     total_notes = len([m for m in result.messages if m.severity == "note"])
-    
+
     # Get unique files with issues
     files_with_issues = len(set(msg.file for msg in result.messages))
-    
+
     # Group messages by error code
     by_code: dict[str, list[MypyMessage]] = {}
     for msg in result.messages:
@@ -41,7 +41,7 @@ def create_mypy_prompt(result: MypyResult) -> str | None:
 
     # Build prompt with summary
     lines = [f"Mypy found {len(result.messages)} type issues that need attention:"]
-    
+
     # Add summary statistics
     lines.append("\n**Summary:**")
     lines.append(f"- Total issues: {len(result.messages)}")
@@ -72,7 +72,9 @@ def create_mypy_prompt(result: MypyResult) -> str | None:
     lines.append("1. Add missing type annotations where indicated")
     lines.append("2. Ensure all function arguments and return types are properly typed")
     lines.append("3. Fix any import errors or undefined attributes")
-    lines.append("4. Review the specific error messages and adjust your code accordingly")
+    lines.append(
+        "4. Review the specific error messages and adjust your code accordingly"
+    )
 
     return "\n".join(lines)
 

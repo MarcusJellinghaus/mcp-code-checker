@@ -42,7 +42,9 @@ async def test_run_pytest_check_parameters(mock_project_dir: Path) -> None:
 
         # Get the run_pytest_check function (it's the second tool registered)
         # Order: run_pylint_check (0), run_pytest_check (1)
-        assert len(mock_tool.call_args_list) >= 2, "Expected at least 2 tools to be registered"
+        assert (
+            len(mock_tool.call_args_list) >= 2
+        ), "Expected at least 2 tools to be registered"
         run_pytest_check = mock_tool.call_args_list[1][0][0]
 
         # Call with only the dynamic parameters (without test_folder and keep_temp_files)
@@ -103,7 +105,9 @@ async def test_run_all_checks_parameters(mock_project_dir: Path) -> None:
 
         # Get the run_all_checks function (it's decorated by mock_tool)
         # Order: run_pylint_check (0), run_pytest_check (1), run_mypy_check (2), run_all_checks (3)
-        assert len(mock_tool.call_args_list) >= 4, "Expected at least 4 tools to be registered"
+        assert (
+            len(mock_tool.call_args_list) >= 4
+        ), "Expected at least 4 tools to be registered"
         run_all_checks = mock_tool.call_args_list[3][0][0]
 
         # Call with only the dynamic parameters (without test_folder and keep_temp_files)

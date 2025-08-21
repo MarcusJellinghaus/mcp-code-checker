@@ -290,7 +290,7 @@ class CodeCheckerServer:
         ) -> str:
             """
             Run mypy type checking on the project code.
-            
+
             Args:
                 strict: Use strict mode settings (default: True).
                     When True, applies comprehensive type checking with flags like
@@ -318,7 +318,7 @@ class CodeCheckerServer:
                 cache_dir: Optional custom cache directory for incremental checking.
                     Mypy uses caching to speed up subsequent runs.
                     Defaults to .mypy_cache in the project directory.
-                    
+
             Returns:
                 A string containing mypy results or a prompt for an LLM to interpret
             """
@@ -333,7 +333,7 @@ class CodeCheckerServer:
                     disable_error_codes=disable_error_codes,
                     target_directories=target_directories,
                 )
-                
+
                 # Run mypy check
                 mypy_prompt = get_mypy_prompt(
                     str(self.project_dir),
@@ -342,18 +342,18 @@ class CodeCheckerServer:
                     python_executable=self.python_executable,
                     target_directories=target_directories,
                 )
-                
+
                 # Format result
                 result = self._format_mypy_result(mypy_prompt)
-                
+
                 structured_logger.info(
                     "Mypy check completed",
                     issues_found=mypy_prompt is not None,
                     result_length=len(result),
                 )
-                
+
                 return result
-                
+
             except Exception as e:
                 logger.error(f"Error running mypy check: {str(e)}")
                 structured_logger.error(
@@ -431,7 +431,7 @@ class CodeCheckerServer:
                     venv_path=self.venv_path,
                     keep_temp_files=self.keep_temp_files,
                 )
-                
+
                 # Run mypy
                 mypy_prompt = get_mypy_prompt(
                     str(self.project_dir),

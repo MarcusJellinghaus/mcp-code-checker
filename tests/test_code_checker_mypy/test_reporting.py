@@ -56,7 +56,7 @@ def test_create_mypy_prompt_with_messages() -> None:
 
     assert prompt is not None
     assert "Mypy found 4 type issues" in prompt
-    
+
     # Check summary statistics
     assert "**Summary:**" in prompt
     assert "Total issues: 4" in prompt
@@ -64,7 +64,7 @@ def test_create_mypy_prompt_with_messages() -> None:
     assert "Warnings: 1" in prompt
     assert "Files affected: 3" in prompt  # test.py, utils.py, main.py
     assert "Error categories: 4" in prompt  # return, return-value, import, other
-    
+
     # Check issue grouping
     assert "**return (1 issues)**" in prompt
     assert "**return-value (1 issues)**" in prompt
