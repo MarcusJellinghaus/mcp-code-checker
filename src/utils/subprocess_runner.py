@@ -164,22 +164,87 @@ def _run_subprocess(
                 stdout_f = open(stdout_file, "w", encoding="utf-8")
                 stderr_f = open(stderr_file, "w", encoding="utf-8")
 
+                # Use Popen for better process control
+                popen_proc = None
                 try:
-                    process = subprocess.run(
+                    popen_proc = subprocess.Popen(
                         command,
                         stdout=stdout_f,
                         stderr=stderr_f,
+                        stdin=stdin_value if options.input_data is None else subprocess.PIPE,
                         cwd=options.cwd,
                         text=options.text,
-                        timeout=options.timeout_seconds,
                         env=env,
                         shell=options.shell,
-                        stdin=stdin_value,
-                        input=options.input_data,
                         start_new_session=start_new_session,
                         preexec_fn=preexec_fn,
-                        check=False,  # We handle errors manually
                     )
+                    
+                    # Communicate with timeout
+                    try:
+                        _, _ = popen_proc.communicate(input=options.input_data, timeout=options.timeout_seconds)
+                        process = subprocess.CompletedProcess(
+                            args=command,
+                            returncode=popen_proc.returncode,
+                            stdout="",  # Will be read from file
+                            stderr="",  # Will be read from file
+                        )
+                    except subprocess.TimeoutExpired:
+                        # Kill the process and all children
+                        if popen_proc:
+                            structured_logger.warning(
+                                "Killing timed out process",
+                                pid=popen_proc.pid,
+                                command=command[:3] if command else None
+                            )
+                            
+                            # On Windows, use taskkill to kill process tree
+                            if os.name == 'nt':
+                                try:
+                                    # Kill process tree on Windows
+                                    subprocess.run(
+                                        ['taskkill', '/F', '/T', '/PID', str(popen_proc.pid)],
+                                        capture_output=True,
+                                        timeout=5
+                                    )
+                                except:
+                                    # Fallback to terminate/kill
+                                    popen_proc.terminate()
+                                    time.sleep(0.5)
+                                    if popen_proc.poll() is None:
+                                        popen_proc.kill()
+                            else:
+                                # On Unix, kill the process group
+                                import signal
+                                try:
+                                    # Check if killpg and getpgid are available (Unix-only)
+                                    if hasattr(os, 'killpg') and hasattr(os, 'getpgid'):
+                                        os.killpg(os.getpgid(popen_proc.pid), signal.SIGTERM)  # type: ignore[attr-defined]
+                                        time.sleep(0.5)
+                                        if popen_proc.poll() is None:
+                                            os.killpg(os.getpgid(popen_proc.pid), signal.SIGKILL)  # type: ignore[attr-defined]
+                                    else:
+                                        # Fallback for systems without killpg/getpgid
+                                        popen_proc.terminate()
+                                        time.sleep(0.5)
+                                        if popen_proc.poll() is None:
+                                            popen_proc.kill()
+                                except:
+                                    # Fallback to terminate/kill
+                                    popen_proc.terminate()
+                                    time.sleep(0.5)
+                                    if popen_proc.poll() is None:
+                                        popen_proc.kill()
+                            
+                            # Wait a bit for cleanup
+                            try:
+                                popen_proc.wait(timeout=2)
+                            except subprocess.TimeoutExpired:
+                                pass
+                        
+                        # Re-raise the timeout exception
+                        raise
+                    
                 except subprocess.TimeoutExpired:
                     # Close files before re-raising to prevent Windows file locking
                     if stdout_f:
@@ -251,21 +316,91 @@ def _run_subprocess(
                 stderr=stderr,
             )
     else:
-        # Regular execution
-        return subprocess.run(
-            command,
-            capture_output=options.capture_output,
-            cwd=options.cwd,
-            text=options.text,
-            timeout=options.timeout_seconds,
-            env=env,
-            shell=options.shell,
-            stdin=stdin_value,
-            input=options.input_data,
-            start_new_session=start_new_session,
-            preexec_fn=preexec_fn,
-            check=False,  # We handle return codes in execute_subprocess
-        )
+        # Regular execution with better process cleanup
+        popen_proc = None
+        try:
+            if options.capture_output:
+                popen_proc = subprocess.Popen(
+                    command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    stdin=stdin_value if options.input_data is None else subprocess.PIPE,
+                    cwd=options.cwd,
+                    text=options.text,
+                    env=env,
+                    shell=options.shell,
+                    start_new_session=start_new_session,
+                    preexec_fn=preexec_fn,
+                )
+                
+                try:
+                    stdout, stderr = popen_proc.communicate(
+                        input=options.input_data, 
+                        timeout=options.timeout_seconds
+                    )
+                    return subprocess.CompletedProcess(
+                        args=command,
+                        returncode=popen_proc.returncode,
+                        stdout=stdout or "",
+                        stderr=stderr or "",
+                    )
+                except subprocess.TimeoutExpired:
+                    # Kill the process tree on timeout
+                    if popen_proc:
+                        structured_logger.warning(
+                            "Killing timed out process (regular execution)",
+                            pid=popen_proc.pid,
+                            command=command[:3] if command else None
+                        )
+                        
+                        if os.name == 'nt':
+                            # Windows: Kill process tree
+                            try:
+                                subprocess.run(
+                                    ['taskkill', '/F', '/T', '/PID', str(popen_proc.pid)],
+                                    capture_output=True,
+                                    timeout=5
+                                )
+                            except:
+                                popen_proc.kill()
+                        else:
+                            # Unix: Kill process group
+                            import signal
+                            try:
+                                # Check if killpg and getpgid are available (Unix-only)
+                                if hasattr(os, 'killpg') and hasattr(os, 'getpgid') and hasattr(signal, 'SIGKILL'):
+                                    os.killpg(os.getpgid(popen_proc.pid), signal.SIGKILL)  # type: ignore[attr-defined]
+                                else:
+                                    popen_proc.kill()
+                            except:
+                                popen_proc.kill()
+                        
+                        # Wait for cleanup
+                        try:
+                            popen_proc.wait(timeout=2)
+                        except subprocess.TimeoutExpired:
+                            pass
+                    raise
+            else:
+                # No output capture needed
+                return subprocess.run(
+                    command,
+                    capture_output=False,
+                    cwd=options.cwd,
+                    text=options.text,
+                    timeout=options.timeout_seconds,
+                    env=env,
+                    shell=options.shell,
+                    stdin=stdin_value,
+                    input=options.input_data,
+                    start_new_session=start_new_session,
+                    preexec_fn=preexec_fn,
+                    check=False,
+                )
+        except subprocess.TimeoutExpired:
+            raise  # Re-raise for handling in execute_subprocess
+        except Exception:
+            raise
 
 
 def execute_subprocess(

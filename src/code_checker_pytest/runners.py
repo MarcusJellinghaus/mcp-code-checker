@@ -106,6 +106,17 @@ def run_tests(
         venv_path=venv_path,
     )
 
+    # Check for recursive pytest execution
+    if os.environ.get('PYTEST_SUBPROCESS_DEPTH', '0') != '0':
+        structured_logger.warning(
+            "Detected nested pytest execution",
+            depth=os.environ.get('PYTEST_SUBPROCESS_DEPTH'),
+            project_dir=project_dir
+        )
+        # Log warning but continue - this might be intentional in some test scenarios
+        # If you want to prevent it entirely, raise an exception here:
+        # raise RuntimeError("Recursive pytest execution detected! This usually indicates a test configuration problem.")
+
     try:
         # Determine Python executable
         py_executable = python_executable
@@ -177,6 +188,10 @@ def run_tests(
         env = os.environ.copy()
         if env_vars:
             env.update(env_vars)
+        
+        # Add subprocess depth tracking to prevent infinite recursion
+        current_depth = int(os.environ.get('PYTEST_SUBPROCESS_DEPTH', '0'))
+        env['PYTEST_SUBPROCESS_DEPTH'] = str(current_depth + 1)
 
         # If using a virtual environment, adjust PATH to prioritize it
         if venv_path:
