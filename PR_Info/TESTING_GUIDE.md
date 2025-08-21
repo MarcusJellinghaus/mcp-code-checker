@@ -69,12 +69,7 @@ If you see too many processes:
    pytest --collect-only -m integration
    ```
 
-2. Run with subprocess tracking:
-   ```bash
-   python test_circular_check.py  # While tests are running
-   ```
-
-3. Check the logs for recursion warnings
+2. Check the logs for recursion warnings
 
 ## File Structure
 

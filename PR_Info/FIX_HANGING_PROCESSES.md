@@ -60,7 +60,6 @@ except subprocess.TimeoutExpired:
 ### 3. Additional Safeguards
 
 - Added subprocess depth tracking (`PYTEST_SUBPROCESS_DEPTH`)
-- Created cleanup utility script (`tools/cleanup_pytest.py`)
 - Added test markers to separate integration tests
 - Improved logging for process lifecycle
 
@@ -75,23 +74,8 @@ pytest -m "not integration"
 pytest
 ```
 
-### If Processes Get Stuck
-```bash
-# Manual cleanup
-python tools/cleanup_pytest.py
-
-# Auto-cleanup without confirmation
-python tools/cleanup_pytest.py --auto
-
-# Monitor mode
-python tools/cleanup_pytest.py --loop
-```
-
 ### Debugging Process Issues
 ```bash
-# Check for hanging processes
-python test_process_leak.py
-
 # Run tests with verbose subprocess tracking
 PYTEST_SUBPROCESS_DEPTH=0 pytest -v
 ```
@@ -126,4 +110,3 @@ After applying the fix, running the test suite should:
 1. **Use mocks when possible**: Reduce integration tests that spawn real subprocesses
 2. **Set appropriate timeouts**: 300 seconds might be too long for most tests
 3. **Monitor CI/CD**: Ensure cleanup works in your CI environment
-4. **Regular cleanup**: Run cleanup script periodically during development
