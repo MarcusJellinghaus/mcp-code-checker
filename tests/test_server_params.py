@@ -96,7 +96,8 @@ async def test_run_all_checks_parameters(
         )
 
         # Get the run_all_checks function (it's decorated by mock_tool)
-        run_all_checks = mock_tool.call_args_list[2][0][0]
+        # Order: run_pylint_check (0), run_pytest_check (1), run_mypy_check (2), run_all_checks (3)
+        run_all_checks = mock_tool.call_args_list[3][0][0]
 
         # Call with only the dynamic parameters (without test_folder and keep_temp_files)
         # The function needs to be invoked to trigger the actual checks
