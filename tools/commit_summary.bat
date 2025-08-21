@@ -1,8 +1,15 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM Create temporary file for output
-set TEMP_FILE=commit_summary_temp.txt
+REM Check if we're in a git repository
+git rev-parse --git-dir >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo Error: Not in a git repository
+    exit /b 1
+)
+
+REM Create temporary file for output with unique name
+set TEMP_FILE=%TEMP%\commit_summary_%RANDOM%_%TIME:~6,2%%TIME:~9,2%.txt
 
 REM Generate git diff including untracked files by adding them with --intent-to-add
 echo Please review the following code changes and create a concise commit message. > %TEMP_FILE%
