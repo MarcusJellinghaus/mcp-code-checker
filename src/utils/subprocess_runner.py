@@ -335,15 +335,8 @@ def _run_subprocess(
                 # If we can't read the file, leave stderr empty
                 logger.debug("Could not read stderr file: %s", exc)
 
-            if process is None:
-                # This should not happen, but handle it gracefully
-                process = subprocess.CompletedProcess(
-                    args=command,
-                    returncode=1,
-                    stdout=stdout,
-                    stderr=stderr,
-                )
-
+            # Update the process with the actual output read from files
+            # If process is None (shouldn't happen), use default returncode of 1
             return subprocess.CompletedProcess(
                 args=command,
                 returncode=process.returncode if process else 1,
