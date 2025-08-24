@@ -41,10 +41,9 @@ After discussion, we determined that an **installation helper would be overkill*
 - **F6**: Cross-platform path handling (forward/backward slashes, spaces in paths)
 - **F7**: Dry run mode - preview changes without applying them
 
-#### Advanced Features (Phase 2)
-- **F10**: Remove server configuration
-- **F11**: Configuration validation and testing (verify paths exist, permissions OK)
-- **F16**: Support for additional MCP clients (extensible architecture)
+#### Additional Features (MVP)
+- **F8**: Remove server configuration cleanly
+- **F9**: Basic configuration validation (project directory exists, appears to be Python project)
 
 ### Non-Functional Requirements
 
@@ -82,10 +81,10 @@ code-checker = "src.server:create_server"             # MCP server discovery (ne
 ### Package Structure
 ```
 src/
-├── config/                          # New configuration tool package
+├── config/                          # Configuration tool package
 │   ├── __init__.py                  
 │   ├── main.py                      # CLI entry point
-│   ├── cli.py                       # Command-line interface
+│   ├── cli.py                       # Command-line interface (setup/remove only)
 │   ├── clients/                     # MCP client support
 │   │   ├── __init__.py
 │   │   ├── base.py                  # Abstract client interface
@@ -94,107 +93,85 @@ src/
 │   │   ├── __init__.py
 │   │   ├── config_manager.py        # Configuration management
 │   │   ├── path_detector.py         # Path auto-detection
-│   │   ├── backup_manager.py        # Backup/restore
-│   │   └── validator.py             # Configuration validation
+│   │   └── backup_manager.py        # Auto-backup only (not manual)
 │   └── utils/                       # Shared utilities
 │       ├── __init__.py
 │       ├── file_utils.py
 │       └── json_utils.py
+
+tests/
+├── test_config/                     # Configuration tool tests
+│   ├── test_cli.py
+│   ├── test_clients/
+│   │   └── test_claude_desktop.py
+│   ├── test_core/
+│   │   ├── test_config_manager.py
+│   │   ├── test_path_detector.py
+│   │   └── test_backup_manager.py
+│   ├── fixtures/
+│   │   ├── sample_configs/
+│   │   └── mock_projects/
+│   └── integration/
+│       └── test_end_to_end.py
 ```
 
-TODO Where are the unit tests?
-Is it in the same repo as the MCP server?
+Unit tests will be located in the same repo under `tests/test_config/` to maintain consistency with the existing project structure.
 
 ### Command-Line Interface Design
 
-#### Basic Commands (Phase 1)
+#### Core Commands (MVP)
 ```bash
-# Add/update server configuration
-mcp-code-checker-config add --project-dir /path/to/project
+# Setup/update server configuration
+mcp-code-checker-config setup --project-dir /path/to/project
 
 # Preview changes without applying (dry run)
-mcp-code-checker-config add --project-dir /path/to/project --dry-run
+mcp-code-checker-config setup --project-dir /path/to/project --dry-run
 
 # Specify custom Python executable
-mcp-code-checker-config add --project-dir /path/to/project --python-exe /path/to/python
+mcp-code-checker-config setup --project-dir /path/to/project --python-exe /path/to/python
 
 # Use virtual environment
-mcp-code-checker-config add --project-dir /path/to/project --venv-path /path/to/venv
+mcp-code-checker-config setup --project-dir /path/to/project --venv-path /path/to/venv
+
+# Remove server configuration (simple - no parameters needed)
+mcp-code-checker-config remove
+
+# Remove with dry run preview
+mcp-code-checker-config remove --dry-run
 ```
-
-#### Management Commands (Phase 2)
-```bash
-# List configured servers
-mcp-code-checker-config list
-
-# Remove server configuration
-mcp-code-checker-config remove --server-name code-checker
-
-# Create backup
-mcp-code-checker-config backup
-
-# Restore from backup
-mcp-code-checker-config restore --backup-file backup.json
-
-# Validate configuration
-mcp-code-checker-config validate
-```
-
-TODO We still need to discuss what should be done
-Do we want to allow for one mcp-code-checker per claude desktop?
-Why would several make sense?
-list would just list the server and other servers?
-remove - why does it need a parameter if we have several?
-Do we want to support sevveral projects? OR just one? KISS!
-Why backup / restore / validate ?
 
 
 ## Implementation Plan
 
-### Phase 1: Core Functionality (MVP) - 2-3 weeks
-**Goal**: Solve 80% of user pain with basic automated configuration
+### Phase 1: Core Functionality (MVP) - 2 weeks
+**Goal**: Solve the main user pain point with minimal complexity
 
 **Tasks**:
 1. **T1.1**: Implement `PathDetector` class for auto-detecting Python executables and project validation
 2. **T1.2**: Create `ClaudeDesktopConfig` class for configuration file location and JSON generation
-3. **T1.3**: Build basic CLI interface with `add` and `--dry-run` commands
-4. **T1.4**: Implement safe configuration merging (preserve existing MCP servers)
+3. **T1.3**: Build basic CLI interface with `setup` and `remove` commands
+4. **T1.4**: Implement safe configuration merging (preserve existing MCP servers, single server entry)
 5. **T1.5**: Add cross-platform path handling and validation
-6. **T1.6**: Create comprehensive unit tests for core functionality
+6. **T1.6**: Create comprehensive unit tests under `tests/test_config/`
 
 **Success Criteria**:
-- Users can run `mcp-code-checker-config add --project-dir .` and get working Claude Desktop configuration
+- Users can run `mcp-code-checker-config setup --project-dir .` and get working Claude Desktop configuration
+- Users can cleanly remove with `mcp-code-checker-config remove`
 - Cross-platform compatibility (Windows/Mac/Linux)
 - Safe merging with existing configurations
+- Automatic backup before changes (safety only)
 - Comprehensive error handling and user feedback
 
-### Phase 2: Configuration Management - 1-2 weeks  
-**Goal**: Add backup/restore and configuration management capabilities
+### Deferred Features (Future Phases)
+**Goal**: Add advanced features based on user feedback
 
-**Tasks**:
-2. **T2.1**: Implement `ConfigBackupManager` with automatic backup creation and filename conflict resolution
-3. **T2.2**: Add `list`, `remove`, and `backup`/`restore` CLI commands
-TODO backup / remove ?
-4. **T2.3**: Build configuration validator for path existence and permission checking
-TODO ??
-6. **T2.5**: Add integration tests for complete workflows
-
-**Success Criteria**:
-- Automatic backup creation before any configuration changes
-- Ability to list, remove, and restore configurations
-- Configuration validation and error reporting
-
-### Phase 3: Advanced Features - 1-2 weeks
-**Goal**: Add professional polish and extensibility
-
-**Tasks**:
-7. **T3.5**: Add comprehensive documentation and examples
-
-**Success Criteria**:
-- Support for multiple configuration profiles
-- Test connectivity to verify MCP server works
-- Clean architecture for adding new MCP clients
-- Professional documentation and user experience
+**Potential Future Features**:
+- Multiple project support
+- Manual backup/restore commands
+- Advanced configuration validation
+- List/management commands
+- Configuration profiles
+- Support for additional MCP clients
 
 ## Path Auto-Detection Strategy
 
@@ -215,13 +192,19 @@ TODO ??
 
 ## Backup Strategy
 
-### Automatic Backups
-- **When**: Before any configuration modification
+### Automatic Backups (Simplified)
+- **When**: Before any configuration modification (setup or remove)
 - **Where**: `~/.mcp-code-checker/backups/`
-- **Naming**: `{client}_{timestamp}.json` (e.g., `claude_desktop_20231215_143022.json`)
+- **Naming**: `claude_desktop_backup_{timestamp}.json`
+- **Purpose**: Safety only - no manual restore commands in MVP
 
-### Conflict Resolution
-- **Filename conflicts**: Append counter (`_001`, `_002`, etc.)
+### Configuration Management Approach
+
+#### Single Server Model
+- One `mcp-code-checker` entry in Claude Desktop config
+- Setup command updates/creates this single entry
+- Remove command cleanly removes only our entry
+- No need for server naming or multiple project tracking
 
 
 ## Testing Strategy
@@ -239,57 +222,56 @@ TODO ??
 - **Real file system**: Test with actual Claude Desktop config files
 
 ### Test Structure
+Tests are located in the same repo under `tests/test_config/` to maintain consistency with the existing project structure.
+
 ```
 tests/
-├── test_config/
-│   ├── test_cli.py
+├── test_config/                     # Configuration tool tests
+│   ├── test_cli.py                  # CLI interface tests
 │   ├── test_clients/
-│   │   └── test_claude_desktop.py
+│   │   └── test_claude_desktop.py   # Claude Desktop client tests
 │   ├── test_core/
-│   │   ├── test_config_manager.py
-│   │   ├── test_path_detector.py
-│   │   └── test_backup_manager.py
+│   │   ├── test_config_manager.py   # Configuration management tests
+│   │   ├── test_path_detector.py    # Path detection tests
+│   │   └── test_backup_manager.py   # Backup functionality tests
 │   ├── fixtures/
-│   │   ├── sample_configs/
-│   │   └── mock_projects/
+│   │   ├── sample_configs/          # Sample configuration files
+│   │   └── mock_projects/           # Mock project structures
 │   └── integration/
-│       └── test_end_to_end.py
+│       └── test_end_to_end.py       # Full workflow tests
 ```
 
 ## Success Metrics
 
 ### User Experience Improvements
 - **Before**: 5-step manual process with JSON editing
-- **After**: 1-command automated setup
+- **After**: 2-command workflow (setup/remove)
 - **Error reduction**: Eliminate JSON syntax and path errors
 - **Cross-platform**: Consistent experience across all platforms
+- **Safety**: Automatic backup before any changes
 
 ### Technical Quality
 - **Test coverage**: >90% for core modules, >85% overall
 - **Performance**: <5 seconds for all configuration operations
-- **Reliability**: Zero data loss with backup/restore system
-- **Maintainability**: Clean, modular architecture
+- **Reliability**: Zero data loss with automatic backup system
+- **Maintainability**: Clean, modular architecture focused on core functionality
 
 ### Adoption Metrics
 - **Documentation updates**: Simplified installation instructions in README
 - **User feedback**: Reduced configuration-related support requests
-- **Extensibility**: Easy addition of new MCP clients in future
+- **Development velocity**: Faster delivery with focused scope
 
 ## Future Considerations
 
-### Potential MCP Clients to Support
-- **Cursor IDE**: If they add MCP support
-- **VS Code extensions**: MCP-enabled extensions
-- **Other AI assistants**: As MCP adoption grows
-
-### Advanced Features for Later
-- **Configuration synchronization**: Sync configs across machines
-- **Team configuration sharing**: Export/import team settings
-- **GUI configuration tool**: Desktop app for non-technical users
-- **Cloud configuration storage**: Remote backup/sync service
+### Potential Future Enhancements
+- **Multiple project support**: Manage multiple MCP Code Checker instances
+- **Additional MCP clients**: Cursor IDE, VS Code extensions, other AI assistants
+- **Advanced configuration management**: Manual backup/restore, validation, profiles
+- **Team features**: Configuration sharing, synchronization across machines
+- **GUI tool**: Desktop app for non-technical users
 
 ## Conclusion
 
-This configuration helper will transform the MCP Code Checker from a technically complex tool requiring manual setup into a professional, user-friendly package that "just works" across platforms. The phased implementation approach ensures we deliver immediate value while building toward a comprehensive configuration management solution.
+This configuration helper will transform the MCP Code Checker from a technically complex tool requiring manual setup into a professional, user-friendly package that "just works" across platforms. The simplified MVP approach ensures we deliver immediate value with minimal complexity.
 
-The key insight from our discussion was focusing on **configuration automation** rather than installation complexity, as the real user pain point is Claude Desktop setup, not package installation. This focused approach will deliver maximum impact with minimal complexity.
+The key insight from our discussion was focusing on **configuration automation** rather than installation complexity, as the real user pain point is Claude Desktop setup, not package installation. By adopting a KISS (Keep It Simple, Stupid) approach with single project support and core commands only, we can deliver 80% of the value with 20% of the complexity, enabling faster development and lower risk while maintaining the ability to add advanced features based on actual user feedback.
