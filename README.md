@@ -61,17 +61,75 @@ Both `run_pytest_check` and `run_all_checks` expose the following parameters for
 
 ## Installation
 
+### Option 1: Direct Installation from GitHub (Recommended)
+
+```bash
+# Install directly from GitHub
+pip install git+https://github.com/MarcusJellinghaus/mcp-code-checker.git
+
+# Or in a virtual environment (recommended)
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install git+https://github.com/MarcusJellinghaus/mcp-code-checker.git
+```
+
+### Option 2: Clone and Install for Development
+
 ```bash
 # Clone the repository
 git clone https://github.com/MarcusJellinghaus/mcp-code-checker.git
 cd mcp-code-checker
 
-# Create and activate a virtual environment (optional but recommended)
+# Create and activate a virtual environment (recommended)
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Install dependencies
+# Install in editable mode
 pip install -e .
+# Or with development dependencies
+pip install -e ".[dev]"
+```
+
+## Using as a Dependency
+
+### In requirements.txt
+
+Add this line to your `requirements.txt`:
+
+```txt
+mcp-code-checker @ git+https://github.com/MarcusJellinghaus/mcp-code-checker.git
+```
+
+### In pyproject.toml
+
+Add to your project dependencies:
+
+```toml
+[project]
+dependencies = [
+    "mcp-code-checker @ git+https://github.com/MarcusJellinghaus/mcp-code-checker.git",
+    # ... other dependencies
+]
+
+# Or as an optional dependency
+[project.optional-dependencies]
+dev = [
+    "mcp-code-checker @ git+https://github.com/MarcusJellinghaus/mcp-code-checker.git",
+]
+```
+
+### Installation Commands
+
+After adding to requirements.txt or pyproject.toml:
+
+```bash
+# Install from requirements.txt
+pip install -r requirements.txt
+
+# Install from pyproject.toml
+pip install .
+# Or with optional dependencies
+pip install ".[dev]"
 ```
 
 ## Running the Server
@@ -241,23 +299,25 @@ The server exposes the following MCP tools:
 
 ## Development
 
-### Setting up the development environment on windows
+### Setting up the development environment
 
-```cmd
-REM Clone the repository
-git clone https://github.com/yourusername/mcp-code-checker.git
+```bash
+# Clone the repository
+git clone https://github.com/MarcusJellinghaus/mcp-code-checker.git
 cd mcp-code-checker
 
-REM Create and activate a virtual environment
+# Create and activate a virtual environment
 python -m venv .venv
+# On Windows:
 .venv\Scripts\activate
+# On Unix/MacOS:
+source .venv/bin/activate
 
-REM Install dependencies
+# Install dependencies
 pip install -e .
 
-REM Install development dependencies
+# Install development dependencies
 pip install -e ".[dev]"
-
 ```
 
 ## Running with MCP Dev Tools
