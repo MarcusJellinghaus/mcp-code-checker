@@ -68,7 +68,7 @@ def validate_required_parameters(
 
     Args:
         server_config: Server configuration with parameter definitions
-        user_params: User-provided parameters (in hyphen format)
+        user_params: User-provided parameters (keys with underscores)
 
     Returns:
         List of validation errors (empty if valid)
@@ -77,8 +77,9 @@ def validate_required_parameters(
 
     for param in server_config.parameters:
         if param.required:
-            # Check using the param.name directly (hyphen format)
-            if param.name not in user_params or user_params[param.name] is None:
+            # Convert parameter name to underscore format to match user_params keys
+            param_key = param.name.replace("-", "_")
+            if param_key not in user_params or user_params[param_key] is None:
                 errors.append(f"{param.name} is required")
 
     return errors

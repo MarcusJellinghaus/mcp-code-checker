@@ -87,22 +87,18 @@ def generate_client_config(
     Raises:
         ValueError: If required parameters are missing or invalid
     """
-    # Convert user_params keys from underscore to hyphen format for validation
-    # (they come from argparse with underscores, but ParameterDef uses hyphens)
-    hyphen_params = {}
-    for key, value in user_params.items():
-        hyphen_key = key.replace("_", "-")
-        hyphen_params[hyphen_key] = value
-
     # Validate required parameters
-    errors = validate_required_parameters(server_config, hyphen_params)
+    # Note: user_params already has underscore format from argparse
+    errors = validate_required_parameters(server_config, user_params)
     if errors:
         raise ValueError(f"Parameter validation failed: {', '.join(errors)}")
 
     # Validate individual parameter values
     for param in server_config.parameters:
-        if param.name in hyphen_params:
-            value = hyphen_params[param.name]
+        # Convert parameter name to underscore format to match user_params
+        param_key = param.name.replace("-", "_")
+        if param_key in user_params:
+            value = user_params[param_key]
             param_errors = validate_parameter_value(param, value)
             if param_errors:
                 errors.extend(param_errors)
@@ -111,7 +107,7 @@ def generate_client_config(
         raise ValueError(f"Parameter validation failed: {', '.join(errors)}")
 
     # Get project directory (required for path normalization)
-    project_dir = Path(hyphen_params.get("project-dir", ".")).resolve()
+    project_dir = Path(user_params.get("project_dir", ".")).resolve()
 
     # Normalize path parameters (convert back to underscore format for generate_args)
     normalized_params = {}
