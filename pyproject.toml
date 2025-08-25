@@ -38,6 +38,9 @@ dev = [
     "psutil>=5.9.0",  # For process monitoring and cleanup utilities
     ]
 
+[project.scripts]
+mcp-config = "src.config.main:main"
+
 [project.urls]
 "Homepage" = "https://github.com/yourusername/mcp-code-checker"
 "Bug Tracker" = "https://github.com/yourusername/mcp-code-checker/issues"
