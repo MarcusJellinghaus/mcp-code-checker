@@ -77,7 +77,7 @@ mcp-config setup <server-type> <server-name> [options]
 ```
 
 **Global Options:**
-- `--client <name>`: Target client (default: claude-desktop)
+- `--client <n>`: Target client (default: claude-desktop)
 - `--dry-run`: Preview changes without applying
 - `--verbose`: Show detailed output
 - `--backup`: Create backup before changes (default: true)
@@ -86,7 +86,7 @@ mcp-config setup <server-type> <server-name> [options]
 - `--project-dir <path>`: Project directory (required)
 - `--python-executable <path>`: Python interpreter path
 - `--venv-path <path>`: Virtual environment path  
-- `--test-folder <name>`: Test folder name (default: tests)
+- `--test-folder <n>`: Test folder name (default: tests)
 - `--keep-temp-files`: Keep temp files for debugging
 - `--log-level <level>`: DEBUG|INFO|WARNING|ERROR|CRITICAL
 - `--log-file <path>`: Custom log file path
@@ -124,7 +124,7 @@ mcp-config remove <server-name> [options]
 ```
 
 **Options:**
-- `--client <name>`: Target client (default: claude-desktop)
+- `--client <n>`: Target client (default: claude-desktop)
 - `--dry-run`: Preview changes without applying
 - `--backup`: Create backup before changes (default: true)
 
@@ -146,7 +146,7 @@ mcp-config list [options]
 ```
 
 **Options:**
-- `--client <name>`: Show servers for specific client
+- `--client <n>`: Show servers for specific client
 - `--managed-only`: Show only servers managed by this tool
 - `--detailed`: Show full configuration details
 
@@ -154,14 +154,14 @@ mcp-config list [options]
 Validate server configuration.
 
 ```bash
-mcp-config validate <server-name> [--client <name>]
+mcp-config validate <server-name> [--client <n>]
 ```
 
 ### backup
 Create manual backup of client configuration.
 
 ```bash
-mcp-config backup [--client <name>]
+mcp-config backup [--client <n>]
 ```
 
 ### init

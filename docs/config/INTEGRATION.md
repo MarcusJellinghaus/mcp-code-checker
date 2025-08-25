@@ -28,7 +28,7 @@ Create a `config.py` file in your package:
 
 ```python
 # src/your_package/config.py
-from mcp_config.servers import ServerConfig, ParameterDef
+from src.config.servers import ServerConfig, ParameterDef
 
 YOUR_SERVER_CONFIG = ServerConfig(
     name="your-server-name",
@@ -149,7 +149,7 @@ ParameterDef(
 
 ```python
 # mcp_filesystem/config.py
-from mcp_config.servers import ServerConfig, ParameterDef
+from src.config.servers import ServerConfig, ParameterDef
 
 FILESYSTEM_CONFIG = ServerConfig(
     name="mcp-filesystem",
