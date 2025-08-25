@@ -14,7 +14,6 @@ from src.config.servers import ParameterDef, ServerConfig
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 
-
 def test_validator() -> None:
     """Test the validator with a simple config."""
     print("Testing ExternalServerValidator...")

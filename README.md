@@ -15,6 +15,13 @@ All operations are securely contained within your specified project directory, g
 
 By connecting your AI assistant to your code checking tools, you can transform your debugging workflow - describe what you need in natural language and let the AI identify and fix issues directly in your project files.
 
+## Documentation
+
+- [**Usage Guide**](docs/USAGE.md) - Complete CLI reference and configuration examples
+- [**Troubleshooting**](docs/TROUBLESHOOTING.md) - Common issues and solutions
+- [**Integration Guide**](docs/INTEGRATION.md) - For external server developers
+- [**API Documentation**](docs/API.md) - Programmatic interface reference
+
 ## Features
 
 - `run_pylint_check`: Run pylint on the project code and generate smart prompts for LLMs
