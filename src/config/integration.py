@@ -52,12 +52,10 @@ def build_server_config(
     # Generate args
     args = server_config.generate_args(normalized_params)
 
-    # Build config
+    # Build config (without metadata fields for Claude Desktop compatibility)
     config: dict[str, Any] = {
         "command": python_executable or sys.executable,
         "args": args,
-        "_managed_by": "mcp-config-managed",
-        "_server_type": server_config.name,
     }
 
     # Add environment if needed
@@ -130,12 +128,15 @@ def generate_client_config(
     # Generate command-line arguments
     args = server_config.generate_args(normalized_params)
 
-    # Build the client configuration
+    # Build the client configuration (without metadata fields for Claude Desktop compatibility)
     client_config: dict[str, Any] = {
         "command": python_executable,
         "args": args,
-        "_server_type": server_config.name,
     }
+    
+    # Store metadata separately (will be handled by ClientHandler)
+    # The _server_type will be passed through setup_server and extracted there
+    client_config["_server_type"] = server_config.name
 
     # Add environment variables if needed
     env = {}

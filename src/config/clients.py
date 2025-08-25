@@ -47,6 +47,7 @@ class ClaudeDesktopHandler(ClientHandler):
     """Handler for Claude Desktop client configuration."""
 
     MANAGED_SERVER_MARKER = "mcp-config-managed"
+    METADATA_FILE = ".mcp-config-metadata.json"
 
     def get_config_path(self) -> Path:
         """Get Claude Desktop config file path based on platform."""
@@ -76,6 +77,45 @@ class ClaudeDesktopHandler(ClientHandler):
                 )
         else:
             raise OSError(f"Unsupported operating system: {os.name}")
+
+    def get_metadata_path(self) -> Path:
+        """Get path to the metadata file for tracking managed servers."""
+        config_path = self.get_config_path()
+        return config_path.parent / self.METADATA_FILE
+
+    def load_metadata(self) -> dict[str, Any]:
+        """Load metadata about managed servers.
+        
+        Returns:
+            Dictionary mapping server names to their metadata
+        """
+        metadata_path = self.get_metadata_path()
+        
+        if not metadata_path.exists():
+            return {}
+        
+        try:
+            with open(metadata_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            # If there's an error reading metadata, start fresh
+            return {}
+
+    def save_metadata(self, metadata: dict[str, Any]) -> None:
+        """Save metadata about managed servers.
+        
+        Args:
+            metadata: Dictionary mapping server names to their metadata
+        """
+        metadata_path = self.get_metadata_path()
+        
+        # Ensure parent directory exists
+        metadata_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Write metadata
+        with open(metadata_path, "w", encoding="utf-8") as f:
+            json.dump(metadata, f, indent=2, ensure_ascii=False)
+            f.write("\n")
 
     def load_config(self) -> dict[str, Any]:
         """Load existing Claude Desktop configuration.
@@ -152,16 +192,32 @@ class ClaudeDesktopHandler(ClientHandler):
             # Load existing configuration
             config = self.load_config()
 
-            # Add our management markers
-            server_config["_managed_by"] = self.MANAGED_SERVER_MARKER
-            if "_server_type" not in server_config:
-                server_config["_server_type"] = "mcp-server"
+            # Extract metadata fields if present (for backward compatibility)
+            metadata_fields = {}
+            clean_config = server_config.copy()
+            
+            # Extract and remove metadata fields from the config
+            if "_managed_by" in clean_config:
+                metadata_fields["_managed_by"] = clean_config.pop("_managed_by")
+            else:
+                # Mark as managed by default
+                metadata_fields["_managed_by"] = self.MANAGED_SERVER_MARKER
+                
+            if "_server_type" in clean_config:
+                metadata_fields["_server_type"] = clean_config.pop("_server_type")
+            else:
+                metadata_fields["_server_type"] = "mcp-server"
 
-            # Update only our specific server entry
-            config["mcpServers"][server_name] = server_config
+            # Update only our specific server entry with clean config (no metadata)
+            config["mcpServers"][server_name] = clean_config
 
             # Save the updated configuration
             self.save_config(config)
+            
+            # Update metadata separately
+            metadata = self.load_metadata()
+            metadata[server_name] = metadata_fields
+            self.save_metadata(metadata)
 
             return True
 
@@ -180,15 +236,15 @@ class ClaudeDesktopHandler(ClientHandler):
         """
         try:
             config = self.load_config()
+            metadata = self.load_metadata()
 
             # Check if server exists
             if server_name not in config.get("mcpServers", {}):
                 print(f"Server '{server_name}' not found in configuration")
                 return False
 
-            # Check if it's managed by us
-            server_entry = config["mcpServers"][server_name]
-            if server_entry.get("_managed_by") != self.MANAGED_SERVER_MARKER:
+            # Check if it's managed by us (check metadata)
+            if server_name not in metadata or metadata[server_name].get("_managed_by") != self.MANAGED_SERVER_MARKER:
                 print(
                     f"Server '{server_name}' is not managed by this tool. "
                     "Cannot remove external servers."
@@ -198,11 +254,15 @@ class ClaudeDesktopHandler(ClientHandler):
             # Create backup before modification
             self.backup_config()
 
-            # Remove the server
+            # Remove the server from config
             del config["mcpServers"][server_name]
 
             # Save the updated configuration
             self.save_config(config)
+            
+            # Remove from metadata
+            del metadata[server_name]
+            self.save_metadata(metadata)
 
             return True
 
@@ -217,14 +277,16 @@ class ClaudeDesktopHandler(ClientHandler):
             List of dictionaries with server information
         """
         config = self.load_config()
+        metadata = self.load_metadata()
         servers = []
 
         for name, server_config in config.get("mcpServers", {}).items():
-            if server_config.get("_managed_by") == self.MANAGED_SERVER_MARKER:
+            # Check if this server is in our metadata
+            if name in metadata and metadata[name].get("_managed_by") == self.MANAGED_SERVER_MARKER:
                 servers.append(
                     {
                         "name": name,
-                        "type": server_config.get("_server_type", "unknown"),
+                        "type": metadata[name].get("_server_type", "unknown"),
                         "command": server_config.get("command", ""),
                         "args": server_config.get("args", []),
                         "env": server_config.get("env", {}),
@@ -240,16 +302,25 @@ class ClaudeDesktopHandler(ClientHandler):
             List of dictionaries with server information
         """
         config = self.load_config()
+        metadata = self.load_metadata()
         servers = []
 
         for name, server_config in config.get("mcpServers", {}).items():
-            is_managed = server_config.get("_managed_by") == self.MANAGED_SERVER_MARKER
+            # Check if this server is managed
+            is_managed = (
+                name in metadata and 
+                metadata[name].get("_managed_by") == self.MANAGED_SERVER_MARKER
+            )
+            
+            server_type = "unknown"
+            if is_managed and name in metadata:
+                server_type = metadata[name].get("_server_type", "unknown")
 
             servers.append(
                 {
                     "name": name,
                     "managed": is_managed,
-                    "type": server_config.get("_server_type", "unknown"),
+                    "type": server_type,
                     "command": server_config.get("command", ""),
                     "args": server_config.get("args", []),
                     "env": server_config.get("env", {}),
@@ -326,6 +397,45 @@ class ClaudeDesktopHandler(ClientHandler):
 
         return errors
 
+    def migrate_inline_metadata(self) -> bool:
+        """Migrate any inline metadata fields to separate metadata file.
+        
+        This is for backward compatibility - removes _managed_by and _server_type
+        fields from the main config and moves them to metadata file.
+        
+        Returns:
+            True if migration was performed, False if not needed
+        """
+        try:
+            config = self.load_config()
+            metadata = self.load_metadata()
+            modified = False
+            
+            for name, server_config in config.get("mcpServers", {}).items():
+                if "_managed_by" in server_config or "_server_type" in server_config:
+                    # Extract metadata fields
+                    if name not in metadata:
+                        metadata[name] = {}
+                    
+                    if "_managed_by" in server_config:
+                        metadata[name]["_managed_by"] = server_config.pop("_managed_by")
+                        modified = True
+                    
+                    if "_server_type" in server_config:
+                        metadata[name]["_server_type"] = server_config.pop("_server_type")
+                        modified = True
+            
+            if modified:
+                # Save cleaned config and metadata
+                self.save_config(config)
+                self.save_metadata(metadata)
+                return True
+            
+            return False
+            
+        except Exception:
+            return False
+
 
 # Client registry
 CLIENT_HANDLERS = {
@@ -351,4 +461,10 @@ def get_client_handler(client_name: str) -> ClientHandler:
             f"Unknown client: {client_name}. Available: {list(CLIENT_HANDLERS.keys())}"
         )
 
-    return CLIENT_HANDLERS[client_name]()
+    handler = CLIENT_HANDLERS[client_name]()
+    
+    # If it's ClaudeDesktopHandler, try to migrate any inline metadata
+    if isinstance(handler, ClaudeDesktopHandler):
+        handler.migrate_inline_metadata()
+    
+    return handler
