@@ -54,9 +54,10 @@ class TestGenerateClientConfig:
         self, server_config: ServerConfig, tmp_path: Path
     ) -> None:
         """Test generating basic client configuration."""
+        # Use underscore format as expected by generate_args
         user_params = {
-            "project-dir": str(tmp_path),
-            "log-level": "DEBUG",
+            "project_dir": str(tmp_path),
+            "log_level": "DEBUG",
             "verbose": True,
         }
 
@@ -80,7 +81,7 @@ class TestGenerateClientConfig:
         self, server_config: ServerConfig, tmp_path: Path
     ) -> None:
         """Test configuration with auto-detected Python."""
-        user_params = {"project-dir": str(tmp_path)}
+        user_params = {"project_dir": str(tmp_path)}
 
         config = generate_client_config(
             server_config,
@@ -95,7 +96,7 @@ class TestGenerateClientConfig:
         self, server_config: ServerConfig
     ) -> None:
         """Test that missing required parameters raise error."""
-        user_params = {"log-level": "INFO"}  # Missing required project-dir
+        user_params = {"log_level": "INFO"}  # Missing required project_dir
 
         with pytest.raises(ValueError) as exc_info:
             generate_client_config(server_config, "test", user_params)
@@ -106,8 +107,8 @@ class TestGenerateClientConfig:
     ) -> None:
         """Test that invalid choice values raise error."""
         user_params = {
-            "project-dir": str(tmp_path),
-            "log-level": "INVALID",
+            "project_dir": str(tmp_path),
+            "log_level": "INVALID",
         }
 
         with pytest.raises(ValueError) as exc_info:
@@ -143,8 +144,8 @@ class TestGenerateClientConfig:
         )
 
         user_params = {
-            "project-dir": str(tmp_path),
-            "venv-path": str(venv_path),
+            "project_dir": str(tmp_path),
+            "venv_path": str(venv_path),
         }
 
         config = generate_client_config(server_config, "test", user_params)
@@ -157,7 +158,7 @@ class TestGenerateClientConfig:
     ) -> None:
         """Test that paths are normalized to absolute."""
         user_params = {
-            "project-dir": ".",  # Relative path
+            "project_dir": ".",  # Relative path
         }
 
         with patch("src.config.integration.Path.cwd", return_value=tmp_path):
@@ -172,7 +173,7 @@ class TestGenerateClientConfig:
         self, server_config: ServerConfig, tmp_path: Path
     ) -> None:
         """Test that PYTHONPATH is set in environment."""
-        user_params = {"project-dir": str(tmp_path)}
+        user_params = {"project_dir": str(tmp_path)}
 
         config = generate_client_config(server_config, "test", user_params)
 
@@ -197,8 +198,8 @@ class TestSetupMCPServer:
     ) -> None:
         """Test successful server setup."""
         user_params = {
-            "project-dir": str(tmp_path),
-            "log-level": "INFO",
+            "project_dir": str(tmp_path),
+            "log_level": "INFO",
         }
 
         result = setup_mcp_server(
@@ -219,7 +220,7 @@ class TestSetupMCPServer:
         self, mock_handler: MagicMock, tmp_path: Path
     ) -> None:
         """Test dry run mode."""
-        user_params = {"project-dir": str(tmp_path)}
+        user_params = {"project_dir": str(tmp_path)}
 
         result = setup_mcp_server(
             mock_handler,
@@ -255,7 +256,7 @@ class TestSetupMCPServer:
     ) -> None:
         """Test when handler fails to set up server."""
         mock_handler.setup_server.return_value = False
-        user_params = {"project-dir": str(tmp_path)}
+        user_params = {"project_dir": str(tmp_path)}
 
         result = setup_mcp_server(
             mock_handler,
@@ -337,10 +338,10 @@ class TestMCPCodeCheckerIntegration:
         project_dir.mkdir()
 
         user_params = {
-            "project-dir": str(project_dir),
-            "log-level": "DEBUG",
-            "test-folder": "tests",
-            "keep-temp-files": True,
+            "project_dir": str(project_dir),
+            "log_level": "DEBUG",
+            "test_folder": "tests",
+            "keep_temp_files": True,
         }
 
         config = generate_client_config(
@@ -370,7 +371,7 @@ class TestMCPCodeCheckerIntegration:
 
     def test_mcp_code_checker_minimal_config(self, tmp_path: Path) -> None:
         """Test minimal configuration for MCP Code Checker."""
-        user_params = {"project-dir": str(tmp_path)}
+        user_params = {"project_dir": str(tmp_path)}
 
         config = generate_client_config(
             MCP_CODE_CHECKER,

@@ -8,11 +8,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.config.cli_utils import (
+    add_list_subcommand,
+    add_parameter_to_parser,
+    add_remove_subcommand,
+    add_server_parameters,
+    add_setup_subcommand,
+)
 from src.config.main import (
-    add_list_parser,
-    add_remove_parser,
-    add_server_specific_options,
-    add_setup_parser,
     create_main_parser,
     extract_user_parameters,
     handle_list_command,
@@ -92,7 +95,7 @@ class TestMainParserCreation:
 class TestServerSpecificOptions:
     """Test server-specific option handling."""
 
-    def test_add_server_specific_options(self) -> None:
+    def test_add_server_parameters(self) -> None:
         """Test adding server-specific options to parser."""
         # Create a mock server config
         mock_config = ServerConfig(
@@ -126,13 +129,13 @@ class TestServerSpecificOptions:
         )
 
         # Mock registry
-        with patch("src.config.main.registry") as mock_registry:
+        with patch("src.config.cli_utils.registry") as mock_registry:
             mock_registry.get.return_value = mock_config
 
             import argparse
 
             parser = argparse.ArgumentParser()
-            add_server_specific_options(parser, "test-server")
+            add_server_parameters(parser, "test-server")
 
             # Test that options were added
             args = parser.parse_args(
@@ -142,16 +145,16 @@ class TestServerSpecificOptions:
             assert args.debug is True
             assert args.log_level == "DEBUG"
 
-    def test_add_server_specific_options_no_config(self) -> None:
+    def test_add_server_parameters_no_config(self) -> None:
         """Test handling when server config doesn't exist."""
-        with patch("src.config.main.registry") as mock_registry:
+        with patch("src.config.cli_utils.registry") as mock_registry:
             mock_registry.get.return_value = None
 
             import argparse
 
             parser = argparse.ArgumentParser()
             # Should not raise error
-            add_server_specific_options(parser, "nonexistent")
+            add_server_parameters(parser, "nonexistent")
 
 
 class TestExtractUserParameters:
@@ -225,6 +228,8 @@ class TestCommandHandlers:
 
     @patch("src.config.main.setup_mcp_server")  # type: ignore[misc]
     @patch("src.config.main.validate_required_parameters")  # type: ignore[misc]
+    @patch("src.config.main.validate_parameter_combination")  # type: ignore[misc]
+    @patch("src.config.main.validate_setup_args")  # type: ignore[misc]
     @patch("src.config.main.detect_python_environment")  # type: ignore[misc]
     @patch("src.config.main.get_client_handler")  # type: ignore[misc]
     @patch("src.config.main.registry")  # type: ignore[misc]
@@ -233,6 +238,8 @@ class TestCommandHandlers:
         mock_registry: Any,
         mock_get_client: Any,
         mock_detect: Any,
+        mock_validate_setup: Any,
+        mock_validate_combo: Any,
         mock_validate: Any,
         mock_setup: Any,
     ) -> None:
@@ -248,6 +255,8 @@ class TestCommandHandlers:
 
         mock_detect.return_value = (Path("/usr/bin/python"), Path("/venv"))
         mock_validate.return_value = []  # No validation errors
+        mock_validate_combo.return_value = []  # No combination errors
+        mock_validate_setup.return_value = []  # No setup validation errors
         mock_setup.return_value = {"success": True, "backup_path": "/backup"}
 
         args = Namespace(
@@ -282,6 +291,8 @@ class TestCommandHandlers:
 
     @patch("src.config.main.setup_mcp_server")  # type: ignore[misc]
     @patch("src.config.main.validate_required_parameters")  # type: ignore[misc]
+    @patch("src.config.main.validate_parameter_combination")  # type: ignore[misc]
+    @patch("src.config.main.validate_setup_args")  # type: ignore[misc]
     @patch("src.config.main.detect_python_environment")  # type: ignore[misc]
     @patch("src.config.main.get_client_handler")  # type: ignore[misc]
     @patch("src.config.main.registry")  # type: ignore[misc]
@@ -290,6 +301,8 @@ class TestCommandHandlers:
         mock_registry: Any,
         mock_get_client: Any,
         mock_detect: Any,
+        mock_validate_setup: Any,
+        mock_validate_combo: Any,
         mock_validate: Any,
         mock_setup: Any,
     ) -> None:
@@ -301,6 +314,8 @@ class TestCommandHandlers:
 
         mock_detect.return_value = (Path("/usr/bin/python"), None)
         mock_validate.return_value = []
+        mock_validate_combo.return_value = []
+        mock_validate_setup.return_value = []
 
         args = Namespace(
             server_type="test-server",

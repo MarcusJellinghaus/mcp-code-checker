@@ -5,170 +5,23 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from src.config.cli_utils import create_full_parser, validate_setup_args
 from src.config.clients import get_client_handler
 from src.config.detection import detect_python_environment
 from src.config.integration import remove_mcp_server, setup_mcp_server
 from src.config.servers import registry
 from src.config.utils import validate_required_parameters
+from src.config.validation import validate_parameter_combination
 
 
 def create_main_parser() -> argparse.ArgumentParser:
     """Create the main argument parser with subcommands."""
-    parser = argparse.ArgumentParser(
-        prog="mcp-config",
-        description="MCP Configuration Helper - Automate MCP server setup for Claude Desktop and other clients",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  mcp-config setup mcp-code-checker my-checker --project-dir .
-  mcp-config setup mcp-code-checker debug --project-dir . --log-level DEBUG --keep-temp-files
-  mcp-config remove my-checker
-  mcp-config list --detailed
-        """,
-    )
-
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
-    subparsers.required = True
-
-    # Add subcommand parsers
-    add_setup_parser(subparsers)
-    add_remove_parser(subparsers)
-    add_list_parser(subparsers)
-
-    return parser
+    # Use the enhanced parser from cli_utils
+    return create_full_parser()
 
 
-def add_setup_parser(subparsers: Any) -> None:
-    """Add the setup command parser with dynamic options."""
-    setup_parser = subparsers.add_parser(
-        "setup",
-        help="Setup an MCP server configuration",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="Setup an MCP server in Claude Desktop configuration",
-    )
-
-    # Positional arguments
-    setup_parser.add_argument(
-        "server_type", help='Server type (currently only "mcp-code-checker" supported)'
-    )
-    setup_parser.add_argument("server_name", help="Name for this server instance")
-
-    # Global options
-    setup_parser.add_argument(
-        "--client",
-        default="claude-desktop",
-        choices=["claude-desktop"],
-        help="MCP client to configure (default: claude-desktop)",
-    )
-    setup_parser.add_argument(
-        "--dry-run", action="store_true", help="Preview changes without applying them"
-    )
-    setup_parser.add_argument(
-        "--verbose", action="store_true", help="Show detailed output"
-    )
-    setup_parser.add_argument(
-        "--backup",
-        action="store_true",
-        default=True,
-        help="Create backup before making changes (default: true)",
-    )
-    setup_parser.add_argument(
-        "--no-backup", action="store_false", dest="backup", help="Skip backup creation"
-    )
-
-    # Add server-specific options dynamically
-    # This will be implemented to read from ServerConfig
-    add_server_specific_options(setup_parser, "mcp-code-checker")
-
-
-def add_server_specific_options(
-    parser: argparse.ArgumentParser, server_type: str
-) -> None:
-    """Add server-specific CLI options based on ServerConfig."""
-    server_config = registry.get(server_type)
-    if not server_config:
-        return
-
-    for param in server_config.parameters:
-        option_name = f"--{param.name}"
-
-        kwargs: dict[str, Any] = {
-            "help": param.help,
-            "dest": param.name.replace("-", "_"),  # Convert to valid Python identifier
-        }
-
-        if param.required:
-            kwargs["required"] = True
-
-        if param.default is not None:
-            kwargs["default"] = param.default
-
-        if param.param_type == "boolean" and param.is_flag:
-            kwargs["action"] = "store_true"
-        elif param.param_type == "choice":
-            kwargs["choices"] = param.choices
-        elif param.param_type == "path":
-            kwargs["type"] = Path
-
-        parser.add_argument(option_name, **kwargs)
-
-
-def add_remove_parser(subparsers: Any) -> None:
-    """Add the remove command parser."""
-    remove_parser = subparsers.add_parser(
-        "remove",
-        help="Remove an MCP server configuration",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="Remove an MCP server from Claude Desktop configuration",
-    )
-
-    remove_parser.add_argument("server_name", help="Name of the server to remove")
-    remove_parser.add_argument(
-        "--client",
-        default="claude-desktop",
-        choices=["claude-desktop"],
-        help="MCP client to configure (default: claude-desktop)",
-    )
-    remove_parser.add_argument(
-        "--dry-run", action="store_true", help="Preview changes without applying them"
-    )
-    remove_parser.add_argument(
-        "--verbose", action="store_true", help="Show detailed output"
-    )
-    remove_parser.add_argument(
-        "--backup",
-        action="store_true",
-        default=True,
-        help="Create backup before making changes (default: true)",
-    )
-    remove_parser.add_argument(
-        "--no-backup", action="store_false", dest="backup", help="Skip backup creation"
-    )
-
-
-def add_list_parser(subparsers: Any) -> None:
-    """Add the list command parser."""
-    list_parser = subparsers.add_parser(
-        "list",
-        help="List MCP server configurations",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="List all MCP servers in Claude Desktop configuration",
-    )
-
-    list_parser.add_argument(
-        "--client",
-        default="claude-desktop",
-        choices=["claude-desktop"],
-        help="MCP client to query (default: claude-desktop)",
-    )
-    list_parser.add_argument(
-        "--detailed", action="store_true", help="Show detailed server information"
-    )
-    list_parser.add_argument(
-        "--managed-only",
-        action="store_true",
-        help="Show only mcp-config managed servers",
-    )
+# The add_setup_parser, add_server_specific_options, add_remove_parser, and add_list_parser
+# functions are now handled by cli_utils.py for better organization and reusability
 
 
 def extract_user_parameters(
@@ -242,11 +95,27 @@ def handle_setup_command(args: argparse.Namespace) -> int:
             if venv_path and "venv_path" not in user_params:
                 user_params["venv_path"] = str(venv_path)
 
-        # Validate parameters
+        # Validate required parameters
         validation_errors = validate_required_parameters(server_config, user_params)
         if validation_errors:
             print("Validation errors:")
             for error in validation_errors:
+                print(f"  - {error}")
+            return 1
+
+        # Validate parameter combinations
+        combination_errors = validate_parameter_combination(user_params)
+        if combination_errors:
+            print("Parameter validation errors:")
+            for error in combination_errors:
+                print(f"  - {error}")
+            return 1
+
+        # Run additional validation from cli_utils
+        cli_errors = validate_setup_args(args)
+        if cli_errors:
+            print("Configuration errors:")
+            for error in cli_errors:
                 print(f"  - {error}")
             return 1
 

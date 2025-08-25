@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -19,17 +20,21 @@ class TestParameterDef:
 
     def test_valid_parameter_creation(self) -> None:
         """Test creating valid parameters."""
-        # String parameter
+        # String parameter with new fields
         param = ParameterDef(
             name="test-param",
             arg_name="--test-param",
             param_type="string",
             help="Test parameter",
+            auto_detect=False,
+            validator=None,
         )
         assert param.name == "test-param"
         assert param.arg_name == "--test-param"
         assert param.param_type == "string"
         assert not param.required
+        assert param.auto_detect is False
+        assert param.validator is None
 
         # Boolean flag
         flag = ParameterDef(
@@ -125,6 +130,27 @@ class TestServerConfig:
         ]
         assert set(param_names) == set(expected_names)
 
+    def test_auto_detect_parameters(self) -> None:
+        """Test that auto-detect is set for appropriate parameters."""
+        auto_detect_params = [
+            p.name for p in MCP_CODE_CHECKER.parameters if p.auto_detect
+        ]
+
+        # These should have auto-detect
+        assert "python-executable" in auto_detect_params
+        assert "venv-path" in auto_detect_params
+        assert "log-file" in auto_detect_params
+
+        # These should NOT have auto-detect
+        non_auto_params = [
+            p.name for p in MCP_CODE_CHECKER.parameters if not p.auto_detect
+        ]
+        assert "project-dir" in non_auto_params
+        assert "test-folder" in non_auto_params
+        assert "keep-temp-files" in non_auto_params
+        assert "log-level" in non_auto_params
+        assert "console-only" in non_auto_params
+
     def test_generate_args_basic(self) -> None:
         """Test basic argument generation."""
         config = ServerConfig(
@@ -141,6 +167,68 @@ class TestServerConfig:
 
         args = config.generate_args({"input": "test.txt", "output": "out.txt"})
         assert args == ["main.py", "--input", "test.txt", "--output", "out.txt"]
+
+    @patch("src.config.validation.auto_detect_python_executable")
+    @patch("src.config.validation.auto_detect_venv_path")
+    @patch("src.config.validation.auto_generate_log_file_path")
+    def test_generate_args_with_auto_detection(
+        self, mock_log: MagicMock, mock_venv: MagicMock, mock_python: MagicMock
+    ) -> None:
+        """Test argument generation with auto-detection."""
+        # Setup mocks
+        mock_python.return_value = Path("/auto/python")
+        mock_venv.return_value = Path("/auto/venv")
+        mock_log.return_value = Path("/auto/log.log")
+
+        config = ServerConfig(
+            name="test-server",
+            display_name="Test Server",
+            main_module="test.py",
+            parameters=[
+                ParameterDef(
+                    name="project-dir",
+                    arg_name="--project-dir",
+                    param_type="path",
+                    required=True,
+                ),
+                ParameterDef(
+                    name="python-executable",
+                    arg_name="--python-executable",
+                    param_type="path",
+                    auto_detect=True,
+                ),
+                ParameterDef(
+                    name="venv-path",
+                    arg_name="--venv-path",
+                    param_type="path",
+                    auto_detect=True,
+                ),
+                ParameterDef(
+                    name="log-file",
+                    arg_name="--log-file",
+                    param_type="path",
+                    auto_detect=True,
+                ),
+            ],
+        )
+
+        # Only provide project-dir, let others auto-detect
+        user_params = {"project_dir": "/test/project"}
+        args = config.generate_args(user_params)
+
+        # Check that auto-detected values are included
+        assert "--python-executable" in args
+        # Find the index and check the actual value (platform-agnostic)
+        python_idx = args.index("--python-executable")
+        assert "auto" in args[python_idx + 1] and "python" in args[python_idx + 1]
+
+        assert "--venv-path" in args
+        venv_idx = args.index("--venv-path")
+        assert "auto" in args[venv_idx + 1] and "venv" in args[venv_idx + 1]
+
+        assert "--log-file" in args
+        log_idx = args.index("--log-file")
+        assert "auto" in args[log_idx + 1] and "log.log" in args[log_idx + 1]
 
     def test_generate_args_with_flags(self) -> None:
         """Test argument generation with boolean flags."""
@@ -197,23 +285,34 @@ class TestServerConfig:
 
     def test_generate_args_mcp_code_checker(self) -> None:
         """Test argument generation for MCP Code Checker."""
+        # Use underscore format as it comes from argparse
         params = {
-            "project-dir": "/path/to/project",
-            "log-level": "DEBUG",
-            "keep-temp-files": True,
-            "test-folder": "custom_tests",
+            "project_dir": "/path/to/project",
+            "log_level": "DEBUG",
+            "keep_temp_files": True,
+            "test_folder": "custom_tests",
         }
 
         args = MCP_CODE_CHECKER.generate_args(params)
 
         assert args[0] == "src/main.py"
         assert "--project-dir" in args
-        assert "/path/to/project" in args
+        # Path will be normalized on Windows
+        proj_idx = args.index("--project-dir")
+        assert (
+            "path" in args[proj_idx + 1].lower()
+            and "project" in args[proj_idx + 1].lower()
+        )
+
         assert "--log-level" in args
         assert "DEBUG" in args
         assert "--keep-temp-files" in args
         assert "--test-folder" in args
         assert "custom_tests" in args
+
+        # Auto-detected parameters should also be present
+        assert "--python-executable" in args  # auto-detected
+        assert "--log-file" in args  # auto-detected
 
     def test_get_required_params(self) -> None:
         """Test getting required parameters."""

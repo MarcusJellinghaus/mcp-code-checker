@@ -28,7 +28,7 @@ def generate_client_config(
     Args:
         server_config: Server configuration definition
         server_name: User-provided server instance name
-        user_params: User-provided parameter values
+        user_params: User-provided parameter values (with underscores)
         python_executable: Path to Python executable to use (auto-detect if None)
 
     Returns:
@@ -37,15 +37,22 @@ def generate_client_config(
     Raises:
         ValueError: If required parameters are missing or invalid
     """
+    # Convert user_params keys from underscore to hyphen format for validation
+    # (they come from argparse with underscores, but ParameterDef uses hyphens)
+    hyphen_params = {}
+    for key, value in user_params.items():
+        hyphen_key = key.replace("_", "-")
+        hyphen_params[hyphen_key] = value
+
     # Validate required parameters
-    errors = validate_required_parameters(server_config, user_params)
+    errors = validate_required_parameters(server_config, hyphen_params)
     if errors:
         raise ValueError(f"Parameter validation failed: {', '.join(errors)}")
 
     # Validate individual parameter values
     for param in server_config.parameters:
-        if param.name in user_params:
-            value = user_params[param.name]
+        if param.name in hyphen_params:
+            value = hyphen_params[param.name]
             param_errors = validate_parameter_value(param, value)
             if param_errors:
                 errors.extend(param_errors)
@@ -54,17 +61,21 @@ def generate_client_config(
         raise ValueError(f"Parameter validation failed: {', '.join(errors)}")
 
     # Get project directory (required for path normalization)
-    project_dir = Path(user_params.get("project-dir", ".")).resolve()
+    project_dir = Path(hyphen_params.get("project-dir", ".")).resolve()
 
-    # Normalize path parameters
+    # Normalize path parameters (convert back to underscore format for generate_args)
     normalized_params = {}
-    for param_name, value in user_params.items():
-        param_def = server_config.get_parameter_by_name(param_name)
-        if param_def and param_def.param_type == "path" and value is not None:
-            # Normalize path relative to project directory
-            normalized_params[param_name] = normalize_path_parameter(value, project_dir)
-        else:
-            normalized_params[param_name] = value
+    for param in server_config.parameters:
+        param_key = param.name.replace("-", "_")
+        if param_key in user_params:
+            value = user_params[param_key]
+            if param.param_type == "path" and value is not None:
+                # Normalize path relative to project directory
+                normalized_params[param_key] = normalize_path_parameter(
+                    value, project_dir
+                )
+            else:
+                normalized_params[param_key] = value
 
     # Use provided Python executable or default to current
     if python_executable is None:
@@ -84,12 +95,12 @@ def generate_client_config(
     env = {}
 
     # Add PYTHONPATH to include the project directory
-    if "project-dir" in normalized_params:
-        env["PYTHONPATH"] = normalized_params["project-dir"]
+    if "project_dir" in normalized_params:
+        env["PYTHONPATH"] = normalized_params["project_dir"]
 
     # Add virtual environment activation if specified
-    if "venv-path" in normalized_params and normalized_params["venv-path"]:
-        venv_path = Path(normalized_params["venv-path"])
+    if "venv_path" in normalized_params and normalized_params["venv_path"]:
+        venv_path = Path(normalized_params["venv_path"])
         if venv_path.exists():
             # Update Python executable to use the one from venv
             if sys.platform == "win32":

@@ -6,7 +6,7 @@ and generate command-line arguments for MCP servers.
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 
 @dataclass
@@ -22,6 +22,8 @@ class ParameterDef:
         choices: List of valid choices for "choice" type parameters
         help: Help text for CLI
         is_flag: True for boolean flags (action="store_true")
+        auto_detect: True if value can be auto-detected
+        validator: Optional validation function
     """
 
     name: str
@@ -32,6 +34,8 @@ class ParameterDef:
     choices: list[str] | None = None
     help: str = ""
     is_flag: bool = False
+    auto_detect: bool = False
+    validator: Callable[[Any, str], list[str]] | None = None
 
     def __post_init__(self) -> None:
         """Validate parameter definition after creation."""
@@ -97,11 +101,56 @@ class ServerConfig:
         Returns:
             List of command-line arguments including the main module
         """
+        from src.config.validation import (
+            auto_detect_python_executable,
+            auto_detect_venv_path,
+            auto_generate_log_file_path,
+            normalize_path,
+        )
+
         args = [self.main_module]
 
+        # Process parameters with auto-detection
+        processed_params = dict(user_params)
+
+        # Auto-detect missing optional parameters
+        project_dir = None
+        if "project_dir" in processed_params:
+            project_dir = Path(processed_params["project_dir"])
+
         for param in self.parameters:
-            # Get value from user params or use default
-            value = user_params.get(param.name, param.default)
+            param_key = param.name.replace("-", "_")
+
+            # Skip if already has a value
+            if (
+                param_key in processed_params
+                and processed_params[param_key] is not None
+            ):
+                continue
+
+            # Auto-detect if possible
+            if param.auto_detect and project_dir:
+                if param.name == "python-executable":
+                    detected = auto_detect_python_executable(project_dir)
+                    if detected:
+                        processed_params[param_key] = str(detected)
+                elif param.name == "venv-path":
+                    detected = auto_detect_venv_path(project_dir)
+                    if detected:
+                        processed_params[param_key] = str(detected)
+                elif param.name == "log-file":
+                    # Only auto-generate if not console-only
+                    if not processed_params.get("console_only", False):
+                        processed_params[param_key] = str(
+                            auto_generate_log_file_path(project_dir)
+                        )
+
+        # Generate arguments
+        for param in self.parameters:
+            param_key = param.name.replace("-", "_")
+
+            # Get value from processed params or use default
+            value = processed_params.get(param_key, param.default)
 
             # Skip if no value provided
             if value is None:
@@ -112,6 +161,10 @@ class ServerConfig:
                 if value:  # Only add flag if True
                     args.append(param.arg_name)
             else:
+                # Normalize paths
+                if param.param_type == "path" and project_dir:
+                    value = str(normalize_path(value, project_dir))
+
                 # Add parameter and value
                 args.append(param.arg_name)
                 args.append(str(value))
@@ -233,16 +286,17 @@ MCP_CODE_CHECKER = ServerConfig(
             name="python-executable",
             arg_name="--python-executable",
             param_type="path",
+            auto_detect=True,
             help="Path to Python interpreter to use for running tests. "
-            "If not specified, defaults to the current Python interpreter (sys.executable)",
+            "If not specified, auto-detects from project or uses current interpreter",
         ),
         ParameterDef(
             name="venv-path",
             arg_name="--venv-path",
             param_type="path",
+            auto_detect=True,
             help="Path to virtual environment to activate for running tests. "
-            "When specified, the Python executable from this venv will be used "
-            "instead of python-executable",
+            "Auto-detects common venv patterns (.venv, venv, env) if not specified",
         ),
         # Test configuration parameters
         ParameterDef(
@@ -273,8 +327,9 @@ MCP_CODE_CHECKER = ServerConfig(
             name="log-file",
             arg_name="--log-file",
             param_type="path",
-            help="Path for structured JSON logs "
-            "(default: mcp_code_checker_{timestamp}.log in project_dir/logs/)",
+            auto_detect=True,
+            help="Path for structured JSON logs. "
+            "Auto-generates with timestamp in project_dir/logs/ if not specified",
         ),
         ParameterDef(
             name="console-only",
