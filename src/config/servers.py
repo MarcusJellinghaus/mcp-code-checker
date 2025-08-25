@@ -104,7 +104,6 @@ class ServerConfig:
         from src.config.validation import (
             auto_detect_python_executable,
             auto_detect_venv_path,
-            auto_generate_log_file_path,
             normalize_path,
         )
 
@@ -139,11 +138,8 @@ class ServerConfig:
                     if detected:
                         processed_params[param_key] = str(detected)
                 elif param.name == "log-file":
-                    # Only auto-generate if not console-only
-                    if not processed_params.get("console_only", False):
-                        processed_params[param_key] = str(
-                            auto_generate_log_file_path(project_dir)
-                        )
+                    # Don't auto-generate - log-file is now truly optional
+                    pass
 
         # Generate arguments
         for param in self.parameters:
@@ -338,9 +334,9 @@ MCP_CODE_CHECKER = ServerConfig(
             name="log-file",
             arg_name="--log-file",
             param_type="path",
-            auto_detect=True,
+            auto_detect=False,
             help="Path for structured JSON logs. "
-            "Auto-generates with timestamp in project_dir/logs/ if not specified",
+            "If not specified, logs only to console",
         ),
         ParameterDef(
             name="console-only",

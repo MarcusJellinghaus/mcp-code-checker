@@ -139,7 +139,6 @@ class TestServerConfig:
         # These should have auto-detect
         assert "python-executable" in auto_detect_params
         assert "venv-path" in auto_detect_params
-        assert "log-file" in auto_detect_params
 
         # These should NOT have auto-detect
         non_auto_params = [
@@ -149,6 +148,7 @@ class TestServerConfig:
         assert "test-folder" in non_auto_params
         assert "keep-temp-files" in non_auto_params
         assert "log-level" in non_auto_params
+        assert "log-file" in non_auto_params  # Changed: log-file is no longer auto-detect
         assert "console-only" in non_auto_params
 
     def test_generate_args_basic(self) -> None:
@@ -170,15 +170,13 @@ class TestServerConfig:
 
     @patch("src.config.validation.auto_detect_python_executable")
     @patch("src.config.validation.auto_detect_venv_path")
-    @patch("src.config.validation.auto_generate_log_file_path")
     def test_generate_args_with_auto_detection(
-        self, mock_log: MagicMock, mock_venv: MagicMock, mock_python: MagicMock
+        self, mock_venv: MagicMock, mock_python: MagicMock
     ) -> None:
         """Test argument generation with auto-detection."""
         # Setup mocks
         mock_python.return_value = Path("/auto/python")
         mock_venv.return_value = Path("/auto/venv")
-        mock_log.return_value = Path("/auto/log.log")
 
         config = ServerConfig(
             name="test-server",
@@ -203,12 +201,6 @@ class TestServerConfig:
                     param_type="path",
                     auto_detect=True,
                 ),
-                ParameterDef(
-                    name="log-file",
-                    arg_name="--log-file",
-                    param_type="path",
-                    auto_detect=True,
-                ),
             ],
         )
 
@@ -225,10 +217,6 @@ class TestServerConfig:
         assert "--venv-path" in args
         venv_idx = args.index("--venv-path")
         assert "auto" in args[venv_idx + 1] and "venv" in args[venv_idx + 1]
-
-        assert "--log-file" in args
-        log_idx = args.index("--log-file")
-        assert "auto" in args[log_idx + 1] and "log.log" in args[log_idx + 1]
 
     def test_generate_args_with_flags(self) -> None:
         """Test argument generation with boolean flags."""
@@ -310,9 +298,9 @@ class TestServerConfig:
         assert "--test-folder" in args
         assert "custom_tests" in args
 
-        # Auto-detected parameters should also be present
+        # Auto-detected parameters should be present
         assert "--python-executable" in args  # auto-detected
-        assert "--log-file" in args  # auto-detected
+        # log-file is no longer auto-detected, so it won't be present unless explicitly provided
 
     def test_get_required_params(self) -> None:
         """Test getting required parameters."""
