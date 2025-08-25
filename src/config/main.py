@@ -5,17 +5,21 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from src.config import initialize_all_servers
 from src.config.cli_utils import create_full_parser, validate_setup_args
 from src.config.clients import get_client_handler
 from src.config.detection import detect_python_environment
-from src.config.integration import remove_mcp_server, setup_mcp_server, build_server_config
+from src.config.integration import (
+    build_server_config,
+    remove_mcp_server,
+    setup_mcp_server,
+)
 from src.config.output import OutputFormatter
-from src.config import initialize_all_servers
 from src.config.servers import registry
 from src.config.utils import validate_required_parameters
 from src.config.validation import (
     validate_parameter_combination,
-    validate_server_configuration
+    validate_server_configuration,
 )
 
 
@@ -80,13 +84,11 @@ def handle_setup_command(args: argparse.Namespace) -> int:
         if args.verbose:
             print("Checking for server configurations...")
             initialize_all_servers(verbose=False)
-        
+
         # Validate server type
         server_config = registry.get(args.server_type)
         if not server_config:
-            OutputFormatter.print_error(
-                f"Unknown server type '{args.server_type}'"
-            )
+            OutputFormatter.print_error(f"Unknown server type '{args.server_type}'")
             print(f"Available types: {', '.join(registry.list_servers())}")
             return 1
 
@@ -132,35 +134,37 @@ def handle_setup_command(args: argparse.Namespace) -> int:
         # Show what will be done
         if args.dry_run:
             OutputFormatter.print_dry_run_header()
-            
+
             # Show auto-detected parameters
             if auto_detected:
                 OutputFormatter.print_auto_detected_params(auto_detected)
                 print()
-                
+
             # Build the server config that would be saved
             server_cfg = build_server_config(
                 server_config,
                 user_params,
-                user_params.get("python_executable", sys.executable)
+                user_params.get("python_executable", sys.executable),
             )
-            
+
             # Generate backup path
             from datetime import datetime
+
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_path = client_handler.get_config_path().parent / f"claude_desktop_config.backup_{timestamp}.json"
-            
+            backup_path = (
+                client_handler.get_config_path().parent
+                / f"claude_desktop_config.backup_{timestamp}.json"
+            )
+
             OutputFormatter.print_dry_run_config_preview(
                 server_cfg,
                 client_handler.get_config_path(),
-                backup_path if args.backup else None
+                backup_path if args.backup else None,
             )
             return 0
         elif args.verbose:
             OutputFormatter.print_configuration_details(
-                args.server_name,
-                server_config.name,
-                user_params
+                args.server_name, server_config.name, user_params
             )
 
         # Perform setup
@@ -221,29 +225,31 @@ def handle_remove_command(args: argparse.Namespace) -> int:
                 return 1
 
         # Get server info
-        server_info = next(
-            s for s in managed_servers if s["name"] == args.server_name
-        )
-        
+        server_info = next(s for s in managed_servers if s["name"] == args.server_name)
+
         # Show what will be removed
         if args.dry_run:
             OutputFormatter.print_dry_run_header()
-            
+
             # Get other servers that will be preserved
             all_servers = client_handler.list_all_servers()
             other_servers = [s for s in all_servers if s["name"] != args.server_name]
-            
+
             # Generate backup path
             from datetime import datetime
+
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_path = client_handler.get_config_path().parent / f"claude_desktop_config.backup_{timestamp}.json"
-            
+            backup_path = (
+                client_handler.get_config_path().parent
+                / f"claude_desktop_config.backup_{timestamp}.json"
+            )
+
             OutputFormatter.print_dry_run_remove_preview(
                 args.server_name,
                 server_info,
                 other_servers,
                 client_handler.get_config_path(),
-                backup_path if args.backup else None
+                backup_path if args.backup else None,
             )
             return 0
         elif args.verbose:
@@ -327,32 +333,32 @@ def handle_list_command(args: argparse.Namespace) -> int:
 
 def handle_list_server_types_command(args: argparse.Namespace) -> int:
     """Handle the list-server-types command with external server support.
-    
+
     Args:
         args: Command-line arguments
-        
+
     Returns:
         Exit code (0 for success, 1 for error)
     """
     try:
         configs = registry.get_all_configs()
-        
+
         if not configs:
             print("No server types available")
             return 1
-            
+
         # Group by built-in vs external
         builtin_servers = []
         external_servers = []
-        
+
         for name, config in sorted(configs.items()):
             if name == "mcp-code-checker":  # Known built-in
                 builtin_servers.append((name, config))
             else:
                 external_servers.append((name, config))
-        
+
         print("Available server types:")
-        
+
         # Display built-in servers
         if builtin_servers:
             print("\n  Built-in servers:")
@@ -364,14 +370,16 @@ def handle_list_server_types_command(args: argparse.Namespace) -> int:
                     required = config.get_required_params()
                     if required:
                         print(f"      Required: {', '.join(required)}")
-                    
+
                     if args.verbose:
                         # Show all parameters
                         print("      All parameters:")
                         for param in config.parameters:
                             req_mark = "*" if param.required else " "
                             auto_mark = "(auto)" if param.auto_detect else ""
-                            print(f"        {req_mark} {param.name}: {param.param_type} {auto_mark}")
+                            print(
+                                f"        {req_mark} {param.name}: {param.param_type} {auto_mark}"
+                            )
                             if param.help:
                                 # Wrap help text for readability
                                 help_lines = param.help.split(". ")
@@ -379,7 +387,7 @@ def handle_list_server_types_command(args: argparse.Namespace) -> int:
                                     if line:
                                         print(f"            {line}")
                     print()  # Empty line between server types
-        
+
         # Display external servers
         if external_servers:
             print("\n  External servers:")
@@ -391,14 +399,16 @@ def handle_list_server_types_command(args: argparse.Namespace) -> int:
                     required = config.get_required_params()
                     if required:
                         print(f"      Required: {', '.join(required)}")
-                    
+
                     if args.verbose:
                         # Show all parameters
                         print("      All parameters:")
                         for param in config.parameters:
                             req_mark = "*" if param.required else " "
                             auto_mark = "(auto)" if param.auto_detect else ""
-                            print(f"        {req_mark} {param.name}: {param.param_type} {auto_mark}")
+                            print(
+                                f"        {req_mark} {param.name}: {param.param_type} {auto_mark}"
+                            )
                             if param.help:
                                 # Wrap help text for readability
                                 help_lines = param.help.split(". ")
@@ -406,46 +416,48 @@ def handle_list_server_types_command(args: argparse.Namespace) -> int:
                                     if line:
                                         print(f"            {line}")
                     print()  # Empty line between server types
-        
+
         if args.verbose:
             print(f"\nTotal: {len(configs)} server type(s) available.")
-                
+
         return 0
-        
+
     except Exception as e:
         print(f"Failed to list server types: {e}")
         if args.verbose:
             import traceback
+
             traceback.print_exc()
         return 1
 
 
 def handle_init_command(args: argparse.Namespace) -> int:
     """Handle the init command to re-scan for external servers.
-    
+
     Args:
         args: Command-line arguments
-        
+
     Returns:
         Exit code (0 for success, 1 for error)
     """
     try:
         print("Scanning for MCP server configurations...")
         total_count, errors = initialize_all_servers(verbose=args.verbose)
-        
+
         if errors:
             print("\nErrors encountered:")
             for error in errors:
                 print(f"  ⚠ {error}")
             print("\nSome external servers may not be available.")
-        
+
         print(f"\nInitialization complete. {total_count} server type(s) ready.")
         return 0
-        
+
     except Exception as e:
         print(f"Failed to initialize servers: {e}")
         if args.verbose:
             import traceback
+
             traceback.print_exc()
         return 1
 
@@ -455,7 +467,7 @@ def handle_validate_command(args: argparse.Namespace) -> int:
     try:
         # Get client handler
         client_handler = get_client_handler(args.client)
-        
+
         # Get server configuration from client
         servers = client_handler.list_all_servers()
         server_info = None
@@ -463,7 +475,7 @@ def handle_validate_command(args: argparse.Namespace) -> int:
             if server["name"] == args.server_name:
                 server_info = server
                 break
-                
+
         if not server_info:
             OutputFormatter.print_error(
                 f"Server '{args.server_name}' not found in {args.client} configuration"
@@ -474,7 +486,7 @@ def handle_validate_command(args: argparse.Namespace) -> int:
                 for server in managed_servers:
                     print(f"  • {server['name']} ({server['type']})")
             return 1
-            
+
         # Extract parameters from server configuration
         # This is a simplified extraction - in production, we'd parse the args
         params = {}
@@ -494,39 +506,35 @@ def handle_validate_command(args: argparse.Namespace) -> int:
                     params["log_file"] = args_list[i + 1]
                 elif arg == "--log-level" and i + 1 < len(args_list):
                     params["log_level"] = args_list[i + 1]
-                    
+
         # Get the Python executable from command if not in args
         if "python_executable" not in params and server_info.get("command"):
             params["python_executable"] = server_info["command"]
-            
+
         print(f"Validating server '{args.server_name}' configuration...")
         print()
-        
+
         # Run comprehensive validation
         validation_result = validate_server_configuration(
-            args.server_name,
-            server_info.get("type", "unknown"),
-            params,
-            client_handler
+            args.server_name, server_info.get("type", "unknown"), params, client_handler
         )
-        
+
         # Print validation results
         OutputFormatter.print_validation_results(validation_result)
-        
+
         # Show configuration details if valid
         if validation_result["success"]:
             OutputFormatter.print_configuration_details(
-                args.server_name,
-                server_info.get("type", "unknown"),
-                params
+                args.server_name, server_info.get("type", "unknown"), params
             )
-            
+
         return 0 if validation_result["success"] else 1
-        
+
     except Exception as e:
         print(f"Validation failed: {e}")
         if args.verbose:
             import traceback
+
             traceback.print_exc()
         return 1
 

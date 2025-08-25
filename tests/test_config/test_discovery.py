@@ -216,7 +216,9 @@ class TestDiscoverExternalServers:
 
     @patch("importlib.metadata.entry_points")
     @patch("src.config.discovery.logger")
-    def test_discover_invalid_external_server(self, mock_logger: Mock, mock_entry_points: Mock) -> None:
+    def test_discover_invalid_external_server(
+        self, mock_logger: Mock, mock_entry_points: Mock
+    ) -> None:
         """Test discovery handling of invalid external server."""
         # Create an invalid config (not a ServerConfig)
         invalid_config = {"name": "invalid"}
@@ -245,7 +247,9 @@ class TestDiscoverExternalServers:
 
     @patch("importlib.metadata.entry_points")
     @patch("src.config.discovery.logger")
-    def test_discover_duplicate_server_names(self, mock_logger: Mock, mock_entry_points: Mock) -> None:
+    def test_discover_duplicate_server_names(
+        self, mock_logger: Mock, mock_entry_points: Mock
+    ) -> None:
         """Test handling of duplicate server names from different packages."""
         # Create two configs with same name
         config1 = ServerConfig(
@@ -292,7 +296,9 @@ class TestDiscoverExternalServers:
 
     @patch("importlib.metadata.entry_points")
     @patch("src.config.discovery.logger")
-    def test_discover_entry_point_load_error(self, mock_logger: Mock, mock_entry_points: Mock) -> None:
+    def test_discover_entry_point_load_error(
+        self, mock_logger: Mock, mock_entry_points: Mock
+    ) -> None:
         """Test handling of entry point loading errors."""
         # Mock entry point that fails to load
         mock_entry = MagicMock()
@@ -349,7 +355,9 @@ class TestRegisterExternalServers:
 
     @patch("src.config.discovery.registry")
     @patch("src.config.discovery.logger")
-    def test_register_already_registered_server(self, mock_logger: Mock, mock_registry: Mock) -> None:
+    def test_register_already_registered_server(
+        self, mock_logger: Mock, mock_registry: Mock
+    ) -> None:
         """Test handling of already registered servers."""
         config = ServerConfig(
             name="existing-server",
@@ -372,7 +380,9 @@ class TestRegisterExternalServers:
 
     @patch("src.config.discovery.registry")
     @patch("src.config.discovery.logger")
-    def test_register_server_registration_error(self, mock_logger: Mock, mock_registry: Mock) -> None:
+    def test_register_server_registration_error(
+        self, mock_logger: Mock, mock_registry: Mock
+    ) -> None:
         """Test handling of registration errors."""
         config = ServerConfig(
             name="error-server",
@@ -522,10 +532,10 @@ class TestIntegrationScenarios:
         """Test fallback scenario for older Python versions."""
         # This test just verifies the discovery function handles errors gracefully
         # We can't easily test the actual import fallback in Python 3.13
-        
+
         # The discovery function should handle any errors gracefully
         discovered = discover_external_servers()
-        
+
         # Should return empty dict if no servers found (or on error)
         assert isinstance(discovered, dict)
 
@@ -583,7 +593,9 @@ def mock_database_server() -> ServerConfig:
     )
 
 
-def test_mock_servers_are_valid(mock_filesystem_server: ServerConfig, mock_database_server: ServerConfig) -> None:
+def test_mock_servers_are_valid(
+    mock_filesystem_server: ServerConfig, mock_database_server: ServerConfig
+) -> None:
     """Verify that mock servers pass validation."""
     validator = ExternalServerValidator()
 
@@ -593,8 +605,6 @@ def test_mock_servers_are_valid(mock_filesystem_server: ServerConfig, mock_datab
     assert is_valid is True
     assert len(errors) == 0
 
-    is_valid, errors = validator.validate_server_config(
-        mock_database_server, "mock_db"
-    )
+    is_valid, errors = validator.validate_server_config(mock_database_server, "mock_db")
     assert is_valid is True
     assert len(errors) == 0

@@ -199,13 +199,13 @@ def create_full_parser() -> argparse.ArgumentParser:
 
     # Add list command
     add_list_subcommand(subparsers)
-    
+
     # Add validate command
     add_validate_subcommand(subparsers)
-    
+
     # Add list-server-types command
     add_list_server_types_subcommand(subparsers)
-    
+
     # Add init command
     add_init_subcommand(subparsers)
 
@@ -331,7 +331,7 @@ def add_list_subcommand(subparsers: Any) -> None:
 
 def add_validate_subcommand(subparsers: Any) -> None:
     """Add the validate subcommand to the parser.
-    
+
     Args:
         subparsers: Subparsers object to add command to
     """
@@ -342,12 +342,12 @@ def add_validate_subcommand(subparsers: Any) -> None:
         description="Validate that an MCP server is properly configured and ready to use",
         epilog=get_validate_examples(),
     )
-    
+
     validate_parser.add_argument(
         "server_name",
         help="Name of the server to validate",
     )
-    
+
     validate_parser.add_argument(
         "--client",
         default="claude-desktop",
@@ -363,7 +363,7 @@ def add_validate_subcommand(subparsers: Any) -> None:
 
 def add_init_subcommand(subparsers: Any) -> None:
     """Add the init subcommand to the parser.
-    
+
     Args:
         subparsers: Subparsers object to add command to
     """
@@ -374,7 +374,7 @@ def add_init_subcommand(subparsers: Any) -> None:
         description="Re-scan for external MCP server configurations via Python entry points",
         epilog=get_init_examples(),
     )
-    
+
     init_parser.add_argument(
         "--verbose",
         action="store_true",
@@ -384,7 +384,7 @@ def add_init_subcommand(subparsers: Any) -> None:
 
 def add_list_server_types_subcommand(subparsers: Any) -> None:
     """Add the list-server-types subcommand to the parser.
-    
+
     Args:
         subparsers: Subparsers object to add command to
     """
@@ -395,7 +395,7 @@ def add_list_server_types_subcommand(subparsers: Any) -> None:
         description="List all available MCP server types that can be configured",
         epilog=get_list_server_types_examples(),
     )
-    
+
     list_types_parser.add_argument(
         "--verbose",
         action="store_true",
@@ -493,7 +493,7 @@ def get_list_examples() -> str:
 
 def get_validate_examples() -> str:
     """Get usage examples for the validate command.
-    
+
     Returns:
         Formatted validate examples string
     """
@@ -510,7 +510,7 @@ def get_validate_examples() -> str:
 
 def get_init_examples() -> str:
     """Get usage examples for the init command.
-    
+
     Returns:
         Formatted init examples string
     """
@@ -524,7 +524,7 @@ def get_init_examples() -> str:
 
 def get_list_server_types_examples() -> str:
     """Get usage examples for the list-server-types command.
-    
+
     Returns:
         Formatted list-server-types examples string
     """

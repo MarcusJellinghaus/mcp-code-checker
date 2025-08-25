@@ -23,31 +23,35 @@ def build_server_config(
     python_executable: str | None = None,
 ) -> dict[str, Any]:
     """Build server configuration for preview/dry-run.
-    
+
     This is a simplified version of generate_client_config for preview purposes.
-    
+
     Args:
         server_config: Server configuration definition
         user_params: User-provided parameter values
         python_executable: Python executable to use
-        
+
     Returns:
         Configuration dictionary for preview
     """
     # Get project directory
     project_dir = Path(user_params.get("project_dir", ".")).resolve()
-    
+
     # Normalize parameters
     normalized_params = {}
     for key, value in user_params.items():
         if key in ["project_dir", "test_folder", "log_file", "venv_path"] and value:
-            normalized_params[key] = str(Path(value).resolve() if Path(value).is_absolute() else project_dir / value)
+            normalized_params[key] = str(
+                Path(value).resolve()
+                if Path(value).is_absolute()
+                else project_dir / value
+            )
         else:
             normalized_params[key] = value
-            
+
     # Generate args
     args = server_config.generate_args(normalized_params)
-    
+
     # Build config
     config: dict[str, Any] = {
         "command": python_executable or sys.executable,
@@ -55,11 +59,11 @@ def build_server_config(
         "_managed_by": "mcp-config-managed",
         "_server_type": server_config.name,
     }
-    
+
     # Add environment if needed
     if "project_dir" in normalized_params:
         config["env"] = {"PYTHONPATH": str(normalized_params["project_dir"])}
-        
+
     return config
 
 

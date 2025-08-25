@@ -23,9 +23,7 @@ class ExternalServerValidator:
     """Validates external server configurations."""
 
     @staticmethod
-    def validate_server_config(
-        config: Any, source_name: str
-    ) -> Tuple[bool, List[str]]:
+    def validate_server_config(config: Any, source_name: str) -> Tuple[bool, List[str]]:
         """Validate external server configuration.
 
         Args:
@@ -47,7 +45,9 @@ class ExternalServerValidator:
 
         # Validate required fields
         if not config.name:
-            errors.append(f"Server config from {source_name} missing required 'name' field")
+            errors.append(
+                f"Server config from {source_name} missing required 'name' field"
+            )
 
         if not config.display_name:
             errors.append(
@@ -58,7 +58,7 @@ class ExternalServerValidator:
             errors.append(
                 f"Server config from {source_name} missing required 'main_module' field"
             )
-        
+
         # Only validate name-specific rules if name exists
         if config.name:
             # Validate name format (should be valid for CLI)
@@ -90,10 +90,13 @@ def discover_external_servers() -> Dict[str, Tuple[ServerConfig, str]]:
     try:
         # Try to import importlib.metadata (Python 3.8+)
         try:
-            from importlib.metadata import entry_points, PackageNotFoundError
+            from importlib.metadata import PackageNotFoundError, entry_points
         except ImportError:
             # Fallback for older Python versions
-            from importlib_metadata import entry_points, PackageNotFoundError  # type: ignore
+            from importlib_metadata import (  # type: ignore
+                PackageNotFoundError,
+                entry_points,
+            )
 
         # Use importlib.metadata for Python 3.8+ compatibility
         eps = entry_points()
@@ -108,14 +111,18 @@ def discover_external_servers() -> Dict[str, Tuple[ServerConfig, str]]:
 
         for entry_point in mcp_entries:
             try:
-                logger.debug(f"Loading server config from entry point: {entry_point.name}")
+                logger.debug(
+                    f"Loading server config from entry point: {entry_point.name}"
+                )
 
                 # Load the configuration
                 config = entry_point.load()
 
                 # Get source package name
                 source_package = getattr(entry_point, "dist", None)
-                source_name = source_package.name if source_package else entry_point.name
+                source_name = (
+                    source_package.name if source_package else entry_point.name
+                )
 
                 # Validate configuration
                 validator = ExternalServerValidator()
@@ -157,7 +164,7 @@ def discover_external_servers() -> Dict[str, Tuple[ServerConfig, str]]:
 
 
 def register_external_servers(
-    discovered_servers: Dict[str, Tuple[ServerConfig, str]]
+    discovered_servers: Dict[str, Tuple[ServerConfig, str]],
 ) -> Tuple[int, List[str]]:
     """Register discovered external servers with the global registry.
 

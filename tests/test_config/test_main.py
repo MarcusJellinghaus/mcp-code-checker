@@ -323,13 +323,13 @@ class TestCommandHandlers:
         mock_validate.return_value = []
         mock_validate_combo.return_value = []
         mock_validate_setup.return_value = []
-        
+
         # Mock build_server_config to return a valid config dict
         mock_build_config.return_value = {
             "command": "/usr/bin/python",
             "args": ["--project-dir", "/test"],
             "_managed_by": "mcp-config-managed",
-            "_server_type": "test-server"
+            "_server_type": "test-server",
         }
 
         args = Namespace(
@@ -442,7 +442,7 @@ class TestListServerTypesCommand:
         mock_config.name = "test-server"
         mock_config.display_name = "Test Server"
         mock_config.main_module = "test.py"
-        
+
         # Create proper mock parameters with configured attributes
         param1 = MagicMock()
         param1.name = "param1"
@@ -450,14 +450,14 @@ class TestListServerTypesCommand:
         param1.required = True
         param1.auto_detect = False
         param1.help = "Parameter 1 help"
-        
+
         param2 = MagicMock()
         param2.name = "param2"
         param2.param_type = "boolean"
         param2.required = False
         param2.auto_detect = True
         param2.help = "Parameter 2 help"
-        
+
         mock_config.parameters = [param1, param2]
         mock_config.get_required_params.return_value = ["param1"]
 
@@ -481,7 +481,7 @@ class TestListServerTypesCommand:
         mock_config.name = "test-server"
         mock_config.display_name = "Test Server"
         mock_config.main_module = "test.py"
-        
+
         # Create proper mock parameter with configured attributes
         param1 = MagicMock()
         param1.name = "param1"
@@ -489,7 +489,7 @@ class TestListServerTypesCommand:
         param1.required = True
         param1.auto_detect = False
         param1.help = "Parameter 1 help"
-        
+
         mock_config.parameters = [param1]
         mock_config.get_required_params.return_value = ["param1"]
 
@@ -647,9 +647,11 @@ class TestMainFunction:
         result = main()
         assert result == 0
         mock_handle.assert_called_once()
-    
+
     @patch("src.config.main.handle_list_server_types_command")  # type: ignore[misc]
-    def test_main_list_server_types_command(self, mock_handle: Any, monkeypatch: Any) -> None:
+    def test_main_list_server_types_command(
+        self, mock_handle: Any, monkeypatch: Any
+    ) -> None:
         """Test main function with list-server-types command."""
         mock_handle.return_value = 0
         monkeypatch.setattr(sys, "argv", ["mcp-config", "list-server-types"])

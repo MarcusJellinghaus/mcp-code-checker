@@ -500,6 +500,6 @@ class TestGlobalRegistry:
         """Test is_registered method with global registry."""
         # MCP Code Checker should be registered
         assert registry.is_registered("mcp-code-checker")
-        
+
         # Non-existent server should not be registered
         assert not registry.is_registered("non-existent-server")
