@@ -7,8 +7,8 @@ from pathlib import Path
 
 def test_all_documentation_files_exist() -> None:
     """Test that all required documentation files exist."""
-    docs_dir = Path("docs")
-    required_files = ["USAGE.md", "TROUBLESHOOTING.md", "INTEGRATION.md", "API.md"]
+    docs_dir = Path("docs/config")
+    required_files = ["USER_GUIDE.md", "TROUBLESHOOTING.md", "README.md"]
 
     for file in required_files:
         assert (docs_dir / file).exists(), f"Missing documentation file: {file}"
@@ -16,15 +16,15 @@ def test_all_documentation_files_exist() -> None:
 
 def test_documentation_structure() -> None:
     """Test that documentation files have proper structure."""
-    docs_dir = Path("docs")
+    docs_dir = Path("docs/config")
 
-    # Check USAGE.md structure
-    usage_content = (docs_dir / "USAGE.md").read_text()
-    assert "## Overview" in usage_content
-    assert "## Installation" in usage_content
-    assert "## Quick Start" in usage_content
-    assert "## Complete CLI Reference" in usage_content
-    assert "## Configuration Examples" in usage_content
+    # Check USER_GUIDE.md structure
+    user_guide_content = (docs_dir / "USER_GUIDE.md").read_text()
+    assert "## Overview" in user_guide_content
+    assert "## Installation" in user_guide_content
+    assert "## Quick Start" in user_guide_content
+    assert "## Commands" in user_guide_content
+    assert "## Configuration Examples" in user_guide_content
 
     # Check TROUBLESHOOTING.md structure
     trouble_content = (docs_dir / "TROUBLESHOOTING.md").read_text()
@@ -33,19 +33,10 @@ def test_documentation_structure() -> None:
     assert "## Getting Help" in trouble_content
     assert "## Recovery Procedures" in trouble_content
 
-    # Check INTEGRATION.md structure
-    integration_content = (docs_dir / "INTEGRATION.md").read_text()
-    assert "## Overview" in integration_content
-    assert "## Quick Start" in integration_content
-    assert "## Parameter Types and Examples" in integration_content
-    assert "## Best Practices" in integration_content
-
-    # Check API.md structure
-    api_content = (docs_dir / "API.md").read_text()
-    assert "## Overview" in api_content
-    assert "## Core Classes" in api_content
-    assert "## Programmatic Usage Examples" in api_content
-    assert "## Error Handling" in api_content
+    # Check README.md structure
+    readme_content = (docs_dir / "README.md").read_text()
+    assert "## Documentation Files" in readme_content
+    assert "## Quick Links" in readme_content
 
 
 def extract_code_blocks(markdown_text: str, language: str = "python") -> list[str]:
@@ -56,9 +47,9 @@ def extract_code_blocks(markdown_text: str, language: str = "python") -> list[st
 
 def test_python_code_blocks_valid() -> None:
     """Test that Python code blocks in documentation are syntactically valid."""
-    docs_dir = Path("docs")
+    docs_dir = Path("docs/config")
 
-    files_with_python = ["INTEGRATION.md", "API.md"]
+    files_with_python = ["USER_GUIDE.md"]
 
     for filename in files_with_python:
         filepath = docs_dir / filename
@@ -108,8 +99,8 @@ def test_python_code_blocks_valid() -> None:
 
 def test_cli_examples_format() -> None:
     """Test that CLI examples in docs follow correct format."""
-    docs_dir = Path("docs")
-    usage_content = (docs_dir / "USAGE.md").read_text()
+    docs_dir = Path("docs/config")
+    usage_content = (docs_dir / "USER_GUIDE.md").read_text()
 
     # Extract bash code blocks
     bash_blocks = extract_code_blocks(usage_content, "bash")
@@ -142,9 +133,9 @@ def test_cli_examples_format() -> None:
 
 def test_documentation_links() -> None:
     """Test that internal documentation links are valid."""
-    docs_dir = Path("docs")
+    docs_dir = Path("docs/config")
 
-    for file in ["USAGE.md", "TROUBLESHOOTING.md", "INTEGRATION.md", "API.md"]:
+    for file in ["USER_GUIDE.md", "TROUBLESHOOTING.md", "README.md"]:
         filepath = docs_dir / file
         if not filepath.exists():
             continue
@@ -170,12 +161,12 @@ def test_documentation_links() -> None:
 
 def test_code_example_consistency() -> None:
     """Test that code examples are consistent across documentation."""
-    docs_dir = Path("docs")
+    docs_dir = Path("docs/config")
 
     # Check that import paths are consistent
     import_patterns = set()
 
-    for file in ["INTEGRATION.md", "API.md"]:
+    for file in ["USER_GUIDE.md"]:
         filepath = docs_dir / file
         if not filepath.exists():
             continue
@@ -195,9 +186,9 @@ def test_code_example_consistency() -> None:
 
 def test_bash_examples_validity() -> None:
     """Test that bash examples follow proper conventions."""
-    docs_dir = Path("docs")
+    docs_dir = Path("docs/config")
 
-    for file in ["USAGE.md", "TROUBLESHOOTING.md"]:
+    for file in ["USER_GUIDE.md", "TROUBLESHOOTING.md"]:
         filepath = docs_dir / file
         if not filepath.exists():
             continue
