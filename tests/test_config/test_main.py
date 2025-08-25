@@ -289,6 +289,7 @@ class TestCommandHandlers:
         result = handle_setup_command(args)
         assert result == 1
 
+    @patch("src.config.main.build_server_config")  # type: ignore[misc]
     @patch("src.config.main.setup_mcp_server")  # type: ignore[misc]
     @patch("src.config.main.validate_required_parameters")  # type: ignore[misc]
     @patch("src.config.main.validate_parameter_combination")  # type: ignore[misc]
@@ -305,6 +306,7 @@ class TestCommandHandlers:
         mock_validate_combo: Any,
         mock_validate: Any,
         mock_setup: Any,
+        mock_build_config: Any,
     ) -> None:
         """Test setup command in dry-run mode."""
         mock_config = MagicMock()
@@ -312,10 +314,22 @@ class TestCommandHandlers:
         mock_config.parameters = []
         mock_registry.get.return_value = mock_config
 
+        mock_client = MagicMock()
+        mock_client.get_config_path.return_value = Path("/config.json")
+        mock_get_client.return_value = mock_client
+
         mock_detect.return_value = (Path("/usr/bin/python"), None)
         mock_validate.return_value = []
         mock_validate_combo.return_value = []
         mock_validate_setup.return_value = []
+        
+        # Mock build_server_config to return a valid config dict
+        mock_build_config.return_value = {
+            "command": "/usr/bin/python",
+            "args": ["--project-dir", "/test"],
+            "_managed_by": "mcp-config-managed",
+            "_server_type": "test-server"
+        }
 
         args = Namespace(
             server_type="test-server",
@@ -329,6 +343,7 @@ class TestCommandHandlers:
         result = handle_setup_command(args)
         assert result == 0
         mock_setup.assert_not_called()  # Should not call setup in dry-run
+        mock_build_config.assert_called_once()  # Should call build_server_config
 
     @patch("src.config.main.remove_mcp_server")  # type: ignore[misc]
     @patch("src.config.main.get_client_handler")  # type: ignore[misc]

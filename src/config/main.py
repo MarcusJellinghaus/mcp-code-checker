@@ -8,10 +8,14 @@ from typing import Any
 from src.config.cli_utils import create_full_parser, validate_setup_args
 from src.config.clients import get_client_handler
 from src.config.detection import detect_python_environment
-from src.config.integration import remove_mcp_server, setup_mcp_server
+from src.config.integration import remove_mcp_server, setup_mcp_server, build_server_config
+from src.config.output import OutputFormatter
 from src.config.servers import registry
 from src.config.utils import validate_required_parameters
-from src.config.validation import validate_parameter_combination
+from src.config.validation import (
+    validate_parameter_combination,
+    validate_server_configuration
+)
 
 
 def create_main_parser() -> argparse.ArgumentParser:
@@ -74,7 +78,9 @@ def handle_setup_command(args: argparse.Namespace) -> int:
         # Validate server type
         server_config = registry.get(args.server_type)
         if not server_config:
-            print(f"Error: Unknown server type '{args.server_type}'")
+            OutputFormatter.print_error(
+                f"Unknown server type '{args.server_type}'"
+            )
             print(f"Available types: {', '.join(registry.list_servers())}")
             return 1
 
@@ -85,49 +91,71 @@ def handle_setup_command(args: argparse.Namespace) -> int:
         user_params = extract_user_parameters(args, server_config)
 
         # Auto-detect Python environment if not provided
+        auto_detected = {}
         if (
             "python_executable" not in user_params
             or not user_params["python_executable"]
         ):
             project_dir = Path(user_params.get("project_dir", "."))
             python_exe, venv_path = detect_python_environment(project_dir)
-            user_params["python_executable"] = str(python_exe) if python_exe else None
+            if python_exe:
+                user_params["python_executable"] = str(python_exe)
+                auto_detected["python_executable"] = str(python_exe)
             if venv_path and "venv_path" not in user_params:
                 user_params["venv_path"] = str(venv_path)
+                auto_detected["venv_path"] = str(venv_path)
 
         # Validate required parameters
         validation_errors = validate_required_parameters(server_config, user_params)
         if validation_errors:
-            print("Validation errors:")
-            for error in validation_errors:
-                print(f"  - {error}")
+            OutputFormatter.print_validation_errors(validation_errors)
             return 1
 
         # Validate parameter combinations
         combination_errors = validate_parameter_combination(user_params)
         if combination_errors:
-            print("Parameter validation errors:")
-            for error in combination_errors:
-                print(f"  - {error}")
+            OutputFormatter.print_validation_errors(combination_errors)
             return 1
 
         # Run additional validation from cli_utils
         cli_errors = validate_setup_args(args)
         if cli_errors:
-            print("Configuration errors:")
-            for error in cli_errors:
-                print(f"  - {error}")
+            OutputFormatter.print_validation_errors(cli_errors)
             return 1
 
         # Show what will be done
-        if args.verbose or args.dry_run:
-            print_setup_summary(
-                args.server_name, server_config, user_params, args.client
-            )
-
         if args.dry_run:
-            print("\nDry run completed. No changes made.")
+            OutputFormatter.print_dry_run_header()
+            
+            # Show auto-detected parameters
+            if auto_detected:
+                OutputFormatter.print_auto_detected_params(auto_detected)
+                print()
+                
+            # Build the server config that would be saved
+            server_cfg = build_server_config(
+                server_config,
+                user_params,
+                user_params.get("python_executable", sys.executable)
+            )
+            
+            # Generate backup path
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_path = client_handler.get_config_path().parent / f"claude_desktop_config.backup_{timestamp}.json"
+            
+            OutputFormatter.print_dry_run_config_preview(
+                server_cfg,
+                client_handler.get_config_path(),
+                backup_path if args.backup else None
+            )
             return 0
+        elif args.verbose:
+            OutputFormatter.print_configuration_details(
+                args.server_name,
+                server_config.name,
+                user_params
+            )
 
         # Perform setup
         result = setup_mcp_server(
@@ -175,29 +203,47 @@ def handle_remove_command(args: argparse.Namespace) -> int:
             all_names = [s["name"] for s in all_servers]
 
             if args.server_name in all_names:
-                print(
-                    f"Error: Server '{args.server_name}' exists but is not managed by mcp-config"
+                OutputFormatter.print_error(
+                    f"Server '{args.server_name}' exists but is not managed by mcp-config"
                 )
                 print("Only servers created by mcp-config can be removed")
                 return 1
             else:
-                print(f"Error: Server '{args.server_name}' not found")
+                OutputFormatter.print_error(f"Server '{args.server_name}' not found")
                 if managed_names:
                     print(f"Managed servers: {', '.join(managed_names)}")
                 return 1
 
+        # Get server info
+        server_info = next(
+            s for s in managed_servers if s["name"] == args.server_name
+        )
+        
         # Show what will be removed
-        if args.verbose or args.dry_run:
-            server_info = next(
-                s for s in managed_servers if s["name"] == args.server_name
+        if args.dry_run:
+            OutputFormatter.print_dry_run_header()
+            
+            # Get other servers that will be preserved
+            all_servers = client_handler.list_all_servers()
+            other_servers = [s for s in all_servers if s["name"] != args.server_name]
+            
+            # Generate backup path
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_path = client_handler.get_config_path().parent / f"claude_desktop_config.backup_{timestamp}.json"
+            
+            OutputFormatter.print_dry_run_remove_preview(
+                args.server_name,
+                server_info,
+                other_servers,
+                client_handler.get_config_path(),
+                backup_path if args.backup else None
             )
+            return 0
+        elif args.verbose:
             print(f"Will remove server '{args.server_name}':")
             print(f"  Type: {server_info['type']}")
             print(f"  Command: {server_info['command']}")
-
-        if args.dry_run:
-            print("\nDry run completed. No changes made.")
-            return 0
 
         # Perform removal
         result = remove_mcp_server(
@@ -250,24 +296,17 @@ def handle_list_command(args: argparse.Namespace) -> int:
 
         for client_name in clients:
             client_handler = get_client_handler(client_name)
-
-            print(f"\n{client_name.replace('-', ' ').title()} Configuration:")
-            print(f"Config file: {client_handler.get_config_path()}")
+            config_path = client_handler.get_config_path()
 
             if args.managed_only:
                 servers = client_handler.list_managed_servers()
-                title = "Managed Servers"
             else:
                 servers = client_handler.list_all_servers()
-                title = "All Servers"
 
-            if not servers:
-                print("  No servers found")
-                continue
-
-            print(f"\n{title}:")
-            for server in servers:
-                print_server_info(server, args.detailed)
+            # Use enhanced output formatter
+            OutputFormatter.print_enhanced_server_list(
+                servers, client_name, config_path, args.detailed
+            )
 
         return 0
 
@@ -276,6 +315,87 @@ def handle_list_command(args: argparse.Namespace) -> int:
         if hasattr(args, "verbose") and args.verbose:
             import traceback
 
+            traceback.print_exc()
+        return 1
+
+
+def handle_validate_command(args: argparse.Namespace) -> int:
+    """Handle the validate command with comprehensive checks."""
+    try:
+        # Get client handler
+        client_handler = get_client_handler(args.client)
+        
+        # Get server configuration from client
+        servers = client_handler.list_all_servers()
+        server_info = None
+        for server in servers:
+            if server["name"] == args.server_name:
+                server_info = server
+                break
+                
+        if not server_info:
+            OutputFormatter.print_error(
+                f"Server '{args.server_name}' not found in {args.client} configuration"
+            )
+            managed_servers = client_handler.list_managed_servers()
+            if managed_servers:
+                print("\nAvailable managed servers:")
+                for server in managed_servers:
+                    print(f"  • {server['name']} ({server['type']})")
+            return 1
+            
+        # Extract parameters from server configuration
+        # This is a simplified extraction - in production, we'd parse the args
+        params = {}
+        if server_info.get("args"):
+            args_list = server_info["args"]
+            # Simple parsing of common parameters
+            for i, arg in enumerate(args_list):
+                if arg == "--project-dir" and i + 1 < len(args_list):
+                    params["project_dir"] = args_list[i + 1]
+                elif arg == "--python-executable" and i + 1 < len(args_list):
+                    params["python_executable"] = args_list[i + 1]
+                elif arg == "--venv-path" and i + 1 < len(args_list):
+                    params["venv_path"] = args_list[i + 1]
+                elif arg == "--test-folder" and i + 1 < len(args_list):
+                    params["test_folder"] = args_list[i + 1]
+                elif arg == "--log-file" and i + 1 < len(args_list):
+                    params["log_file"] = args_list[i + 1]
+                elif arg == "--log-level" and i + 1 < len(args_list):
+                    params["log_level"] = args_list[i + 1]
+                    
+        # Get the Python executable from command if not in args
+        if "python_executable" not in params and server_info.get("command"):
+            params["python_executable"] = server_info["command"]
+            
+        print(f"Validating server '{args.server_name}' configuration...")
+        print()
+        
+        # Run comprehensive validation
+        validation_result = validate_server_configuration(
+            args.server_name,
+            server_info.get("type", "unknown"),
+            params,
+            client_handler
+        )
+        
+        # Print validation results
+        OutputFormatter.print_validation_results(validation_result)
+        
+        # Show configuration details if valid
+        if validation_result["success"]:
+            OutputFormatter.print_configuration_details(
+                args.server_name,
+                server_info.get("type", "unknown"),
+                params
+            )
+            
+        return 0 if validation_result["success"] else 1
+        
+    except Exception as e:
+        print(f"Validation failed: {e}")
+        if args.verbose:
+            import traceback
             traceback.print_exc()
         return 1
 
@@ -293,6 +413,8 @@ def main() -> int:
             return handle_remove_command(args)
         elif args.command == "list":
             return handle_list_command(args)
+        elif args.command == "validate":
+            return handle_validate_command(args)
         else:
             parser.print_help()
             return 1

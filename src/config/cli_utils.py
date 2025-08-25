@@ -199,6 +199,9 @@ def create_full_parser() -> argparse.ArgumentParser:
 
     # Add list command
     add_list_subcommand(subparsers)
+    
+    # Add validate command
+    add_validate_subcommand(subparsers)
 
     return parser
 
@@ -320,6 +323,38 @@ def add_list_subcommand(subparsers: Any) -> None:
     )
 
 
+def add_validate_subcommand(subparsers: Any) -> None:
+    """Add the validate subcommand to the parser.
+    
+    Args:
+        subparsers: Subparsers object to add command to
+    """
+    validate_parser = subparsers.add_parser(
+        "validate",
+        help="Validate MCP server configuration",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="Validate that an MCP server is properly configured and ready to use",
+        epilog=get_validate_examples(),
+    )
+    
+    validate_parser.add_argument(
+        "server_name",
+        help="Name of the server to validate",
+    )
+    
+    validate_parser.add_argument(
+        "--client",
+        default="claude-desktop",
+        choices=["claude-desktop"],
+        help="MCP client to validate (default: claude-desktop)",
+    )
+    validate_parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Show detailed validation information",
+    )
+
+
 def get_usage_examples() -> str:
     """Get usage examples for the main help text.
 
@@ -406,6 +441,23 @@ def get_list_examples() -> str:
   
   # Show only managed servers
   mcp-config list --managed-only"""
+
+
+def get_validate_examples() -> str:
+    """Get usage examples for the validate command.
+    
+    Returns:
+        Formatted validate examples string
+    """
+    return """Examples:
+  # Validate a server configuration
+  mcp-config validate my-checker
+  
+  # Validate with verbose output
+  mcp-config validate my-checker --verbose
+  
+  # Validate for a specific client
+  mcp-config validate my-checker --client claude-desktop"""
 
 
 def parse_and_validate_args(

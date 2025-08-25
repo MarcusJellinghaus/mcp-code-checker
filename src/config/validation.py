@@ -5,6 +5,7 @@ including path validation, choice validation, and auto-detection logic.
 """
 
 import os
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -371,6 +372,266 @@ def create_parameter_validator(
         return errors
 
     return validator
+
+
+def validate_server_configuration(
+    server_name: str,
+    server_type: str, 
+    params: dict[str, Any],
+    client_handler: Any | None = None
+) -> dict[str, Any]:
+    """Comprehensive validation of server configuration.
+    
+    Args:
+        server_name: Name of the server
+        server_type: Type of server (e.g., 'mcp-code-checker')
+        params: Server parameters
+        client_handler: Optional client handler for config validation
+        
+    Returns:
+        Dictionary with validation results including:
+        - success: bool
+        - checks: list of validation check results
+        - errors: list of error messages
+        - warnings: list of warning messages
+        - suggestions: list of suggestions
+    """
+    checks = []
+    errors = []
+    warnings = []
+    suggestions = []
+    
+    # Configuration existence check
+    if client_handler:
+        config_check = {
+            "name": "Configuration existence",
+            "status": "pending"
+        }
+        
+        servers = client_handler.list_all_servers()
+        server_names = [s["name"] for s in servers]
+        
+        if server_name in server_names:
+            config_check["status"] = "success"
+            config_check["message"] = f"Configuration found in {client_handler.__class__.__name__.replace('Handler', '').lower()}"
+        else:
+            config_check["status"] = "error"
+            config_check["message"] = f"Server '{server_name}' not found in configuration"
+            errors.append(config_check["message"])
+            
+        checks.append(config_check)
+    
+    # Project directory validation
+    project_dir_check = {
+        "name": "Project directory",
+        "status": "pending"
+    }
+    
+    if "project_dir" in params and params["project_dir"]:
+        project_dir = Path(params["project_dir"])
+        
+        if project_dir.exists():
+            if project_dir.is_dir():
+                project_dir_check["status"] = "success"
+                project_dir_check["message"] = f"Project directory exists: {project_dir}"
+                
+                # Check permissions
+                perm_errors = validate_path_permissions(project_dir, "project_dir", "r")
+                if perm_errors:
+                    project_dir_check["status"] = "warning"
+                    project_dir_check["message"] += " (read permission issues)"
+                    warnings.extend(perm_errors)
+                    
+                perm_errors = validate_path_permissions(project_dir, "project_dir", "w")
+                if perm_errors:
+                    project_dir_check["status"] = "warning"
+                    project_dir_check["message"] += " (write permission issues)"
+                    warnings.extend(perm_errors)
+            else:
+                project_dir_check["status"] = "error"
+                project_dir_check["message"] = f"Project path is not a directory: {project_dir}"
+                errors.append(project_dir_check["message"])
+        else:
+            project_dir_check["status"] = "error"
+            project_dir_check["message"] = f"Project directory does not exist: {project_dir}"
+            errors.append(project_dir_check["message"])
+            suggestions.append(f"Create project directory: mkdir -p {project_dir}")
+    else:
+        project_dir_check["status"] = "error"
+        project_dir_check["message"] = "Project directory not specified"
+        errors.append(project_dir_check["message"])
+        
+    checks.append(project_dir_check)
+    
+    # Python executable validation
+    python_check = {
+        "name": "Python executable",
+        "status": "pending"
+    }
+    
+    if "python_executable" in params and params["python_executable"]:
+        python_exe = Path(params["python_executable"])
+        
+        if python_exe.exists():
+            python_check["status"] = "success"
+            python_check["message"] = f"Python executable found: {python_exe}"
+            
+            # Check if it's actually runnable
+            exe_errors = validate_python_executable(python_exe, "python_executable")
+            if exe_errors:
+                python_check["status"] = "error"
+                python_check["message"] = f"Python executable issues: {'; '.join(exe_errors)}"
+                errors.extend(exe_errors)
+        else:
+            python_check["status"] = "error"
+            python_check["message"] = f"Python executable not found: {python_exe}"
+            errors.append(python_check["message"])
+            suggestions.append(f"Install Python or update --python-executable parameter")
+    else:
+        python_check["status"] = "warning"
+        python_check["message"] = "Python executable not specified (will use system default)"
+        warnings.append(python_check["message"])
+        
+    checks.append(python_check)
+    
+    # Virtual environment validation
+    if "venv_path" in params and params["venv_path"]:
+        venv_check = {
+            "name": "Virtual environment",
+            "status": "pending"
+        }
+        
+        venv_path = Path(params["venv_path"])
+        venv_errors = validate_venv_path(venv_path, "venv_path")
+        
+        if not venv_errors:
+            venv_check["status"] = "success"
+            venv_check["message"] = f"Virtual environment is valid: {venv_path}"
+        else:
+            venv_check["status"] = "error"
+            venv_check["message"] = f"Virtual environment issues: {'; '.join(venv_errors)}"
+            errors.extend(venv_errors)
+            
+        checks.append(venv_check)
+    
+    # MCP Code Checker specific validations
+    if server_type == "mcp-code-checker":
+        # Check for main module
+        if "project_dir" in params and params["project_dir"]:
+            project_dir = Path(params["project_dir"])
+            
+            # Main module check
+            main_check = {
+                "name": "Main module",
+                "status": "pending"
+            }
+            
+            main_module = project_dir / "src" / "main.py"
+            if main_module.exists():
+                main_check["status"] = "success"
+                main_check["message"] = f"Main module exists: {main_module}"
+            else:
+                main_check["status"] = "error"
+                main_check["message"] = f"Main module not found: {main_module}"
+                errors.append(main_check["message"])
+                suggestions.append(f"Ensure MCP Code Checker is properly installed in {project_dir}")
+                
+            checks.append(main_check)
+            
+            # Test folder check
+            test_check = {
+                "name": "Test folder",
+                "status": "pending"
+            }
+            
+            test_folder = params.get("test_folder", "tests")
+            if not Path(test_folder).is_absolute():
+                test_path = project_dir / test_folder
+            else:
+                test_path = Path(test_folder)
+                
+            if test_path.exists():
+                if test_path.is_dir():
+                    test_check["status"] = "success"
+                    test_check["message"] = f"Test folder exists: {test_path}"
+                    
+                    # Check read permissions
+                    perm_errors = validate_path_permissions(test_path, "test_folder", "r")
+                    if perm_errors:
+                        test_check["status"] = "warning"
+                        test_check["message"] += " (read permission issues)"
+                        warnings.extend(perm_errors)
+                else:
+                    test_check["status"] = "error"
+                    test_check["message"] = f"Test path is not a directory: {test_path}"
+                    errors.append(test_check["message"])
+            else:
+                test_check["status"] = "warning"
+                test_check["message"] = f"Test folder not found: {test_path}"
+                warnings.append(test_check["message"])
+                suggestions.append(f"Create test folder: mkdir -p {test_path}")
+                
+            checks.append(test_check)
+            
+            # Log directory check
+            log_check = {
+                "name": "Log directory",
+                "status": "pending"
+            }
+            
+            if "log_file" in params and params["log_file"]:
+                log_file = Path(params["log_file"])
+                log_dir = log_file.parent
+                
+                if log_dir.exists():
+                    if log_dir.is_dir():
+                        log_check["status"] = "success"
+                        log_check["message"] = f"Log directory exists: {log_dir}"
+                        
+                        # Check write permissions
+                        perm_errors = validate_path_permissions(log_dir, "log_dir", "w")
+                        if perm_errors:
+                            log_check["status"] = "warning"
+                            log_check["message"] += " (write permission issues)"
+                            warnings.extend(perm_errors)
+                    else:
+                        log_check["status"] = "error"
+                        log_check["message"] = f"Log path parent is not a directory: {log_dir}"
+                        errors.append(log_check["message"])
+                else:
+                    log_check["status"] = "info"
+                    log_check["message"] = f"Log directory will be created: {log_dir}"
+                    
+                checks.append(log_check)
+    
+    # Log level validation
+    if "log_level" in params and params["log_level"]:
+        log_level_check = {
+            "name": "Log level",
+            "status": "pending"
+        }
+        
+        level_errors = validate_log_level(params["log_level"], "log_level")
+        if not level_errors:
+            log_level_check["status"] = "success"
+            log_level_check["message"] = f"Log level is valid: {params['log_level']}"
+        else:
+            log_level_check["status"] = "error"
+            log_level_check["message"] = f"Invalid log level: {'; '.join(level_errors)}"
+            errors.extend(level_errors)
+            
+        checks.append(log_level_check)
+    
+    # Calculate overall success
+    success = len(errors) == 0
+    
+    return {
+        "success": success,
+        "checks": checks,
+        "errors": errors,
+        "warnings": warnings,
+        "suggestions": suggestions
+    }
 
 
 def validate_parameter_combination(params: dict[str, Any]) -> list[str]:
