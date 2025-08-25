@@ -205,6 +205,9 @@ def create_full_parser() -> argparse.ArgumentParser:
     
     # Add list-server-types command
     add_list_server_types_subcommand(subparsers)
+    
+    # Add init command
+    add_init_subcommand(subparsers)
 
     return parser
 
@@ -358,6 +361,27 @@ def add_validate_subcommand(subparsers: Any) -> None:
     )
 
 
+def add_init_subcommand(subparsers: Any) -> None:
+    """Add the init subcommand to the parser.
+    
+    Args:
+        subparsers: Subparsers object to add command to
+    """
+    init_parser = subparsers.add_parser(
+        "init",
+        help="Re-scan for MCP server configurations",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="Re-scan for external MCP server configurations via Python entry points",
+        epilog=get_init_examples(),
+    )
+    
+    init_parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Show detailed discovery information",
+    )
+
+
 def add_list_server_types_subcommand(subparsers: Any) -> None:
     """Add the list-server-types subcommand to the parser.
     
@@ -482,6 +506,20 @@ def get_validate_examples() -> str:
   
   # Validate for a specific client
   mcp-config validate my-checker --client claude-desktop"""
+
+
+def get_init_examples() -> str:
+    """Get usage examples for the init command.
+    
+    Returns:
+        Formatted init examples string
+    """
+    return """Examples:
+  # Re-scan for external server configurations
+  mcp-config init
+  
+  # Show detailed discovery information
+  mcp-config init --verbose"""
 
 
 def get_list_server_types_examples() -> str:

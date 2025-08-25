@@ -500,9 +500,9 @@ class TestListServerTypesCommand:
 
         assert result == 0
         captured = capsys.readouterr()
-        assert "Main module: test.py" in captured.out
+        assert "Module: test.py" in captured.out
         assert "Parameters: 1" in captured.out
-        assert "Required parameters: param1" in captured.out
+        assert "Required: param1" in captured.out
         assert "All parameters:" in captured.out
         assert "* param1: string" in captured.out
 

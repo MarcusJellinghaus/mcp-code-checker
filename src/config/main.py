@@ -10,6 +10,7 @@ from src.config.clients import get_client_handler
 from src.config.detection import detect_python_environment
 from src.config.integration import remove_mcp_server, setup_mcp_server, build_server_config
 from src.config.output import OutputFormatter
+from src.config import initialize_all_servers
 from src.config.servers import registry
 from src.config.utils import validate_required_parameters
 from src.config.validation import (
@@ -75,6 +76,11 @@ def print_setup_summary(
 def handle_setup_command(args: argparse.Namespace) -> int:
     """Handle the setup command with full validation and auto-detection."""
     try:
+        # Re-initialize to catch any newly installed servers
+        if args.verbose:
+            print("Checking for server configurations...")
+            initialize_all_servers(verbose=False)
+        
         # Validate server type
         server_config = registry.get(args.server_type)
         if not server_config:
@@ -320,7 +326,7 @@ def handle_list_command(args: argparse.Namespace) -> int:
 
 
 def handle_list_server_types_command(args: argparse.Namespace) -> int:
-    """Handle the list-server-types command.
+    """Handle the list-server-types command with external server support.
     
     Args:
         args: Command-line arguments
@@ -335,36 +341,109 @@ def handle_list_server_types_command(args: argparse.Namespace) -> int:
             print("No server types available")
             return 1
             
-        print("Available server types:")
+        # Group by built-in vs external
+        builtin_servers = []
+        external_servers = []
+        
         for name, config in sorted(configs.items()):
-            print(f"  {name}: {config.display_name}")
-            if args.verbose:
-                print(f"    Main module: {config.main_module}")
-                print(f"    Parameters: {len(config.parameters)}")
-                required_params = config.get_required_params()
-                if required_params:
-                    print(f"    Required parameters: {', '.join(required_params)}")
-                else:
-                    print("    Required parameters: none")
+            if name == "mcp-code-checker":  # Known built-in
+                builtin_servers.append((name, config))
+            else:
+                external_servers.append((name, config))
+        
+        print("Available server types:")
+        
+        # Display built-in servers
+        if builtin_servers:
+            print("\n  Built-in servers:")
+            for name, config in builtin_servers:
+                print(f"    • {name}: {config.display_name}")
+                if args.verbose:
+                    print(f"      Module: {config.main_module}")
+                    print(f"      Parameters: {len(config.parameters)}")
+                    required = config.get_required_params()
+                    if required:
+                        print(f"      Required: {', '.join(required)}")
                     
-                # Show all parameters if verbose
-                print("    All parameters:")
-                for param in config.parameters:
-                    req_mark = "*" if param.required else " "
-                    auto_mark = "(auto)" if param.auto_detect else ""
-                    print(f"      {req_mark} {param.name}: {param.param_type} {auto_mark}")
-                    if args.verbose and param.help:
-                        # Wrap help text for readability
-                        help_lines = param.help.split(". ")
-                        for line in help_lines:
-                            if line:
-                                print(f"          {line}")
-                print()  # Empty line between server types
+                    if args.verbose:
+                        # Show all parameters
+                        print("      All parameters:")
+                        for param in config.parameters:
+                            req_mark = "*" if param.required else " "
+                            auto_mark = "(auto)" if param.auto_detect else ""
+                            print(f"        {req_mark} {param.name}: {param.param_type} {auto_mark}")
+                            if param.help:
+                                # Wrap help text for readability
+                                help_lines = param.help.split(". ")
+                                for line in help_lines:
+                                    if line:
+                                        print(f"            {line}")
+                    print()  # Empty line between server types
+        
+        # Display external servers
+        if external_servers:
+            print("\n  External servers:")
+            for name, config in external_servers:
+                print(f"    • {name}: {config.display_name}")
+                if args.verbose:
+                    print(f"      Module: {config.main_module}")
+                    print(f"      Parameters: {len(config.parameters)}")
+                    required = config.get_required_params()
+                    if required:
+                        print(f"      Required: {', '.join(required)}")
+                    
+                    if args.verbose:
+                        # Show all parameters
+                        print("      All parameters:")
+                        for param in config.parameters:
+                            req_mark = "*" if param.required else " "
+                            auto_mark = "(auto)" if param.auto_detect else ""
+                            print(f"        {req_mark} {param.name}: {param.param_type} {auto_mark}")
+                            if param.help:
+                                # Wrap help text for readability
+                                help_lines = param.help.split(". ")
+                                for line in help_lines:
+                                    if line:
+                                        print(f"            {line}")
+                    print()  # Empty line between server types
+        
+        if args.verbose:
+            print(f"\nTotal: {len(configs)} server type(s) available.")
                 
         return 0
         
     except Exception as e:
         print(f"Failed to list server types: {e}")
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
+def handle_init_command(args: argparse.Namespace) -> int:
+    """Handle the init command to re-scan for external servers.
+    
+    Args:
+        args: Command-line arguments
+        
+    Returns:
+        Exit code (0 for success, 1 for error)
+    """
+    try:
+        print("Scanning for MCP server configurations...")
+        total_count, errors = initialize_all_servers(verbose=args.verbose)
+        
+        if errors:
+            print("\nErrors encountered:")
+            for error in errors:
+                print(f"  ⚠ {error}")
+            print("\nSome external servers may not be available.")
+        
+        print(f"\nInitialization complete. {total_count} server type(s) ready.")
+        return 0
+        
+    except Exception as e:
+        print(f"Failed to initialize servers: {e}")
         if args.verbose:
             import traceback
             traceback.print_exc()
@@ -469,6 +548,8 @@ def main() -> int:
             return handle_validate_command(args)
         elif args.command == "list-server-types":
             return handle_list_server_types_command(args)
+        elif args.command == "init":
+            return handle_init_command(args)
         else:
             parser.print_help()
             return 1
