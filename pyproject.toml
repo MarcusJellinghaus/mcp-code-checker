@@ -41,6 +41,9 @@ dev = [
 [project.scripts]
 mcp-config = "src.config.main:main"
 
+[tool.setuptools.packages.find]
+where = ["."]
+
 [project.urls]
 "Homepage" = "https://github.com/yourusername/mcp-code-checker"
 "Bug Tracker" = "https://github.com/yourusername/mcp-code-checker/issues"

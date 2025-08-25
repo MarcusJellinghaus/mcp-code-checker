@@ -208,6 +208,9 @@ def create_full_parser() -> argparse.ArgumentParser:
 
     # Add init command
     add_init_subcommand(subparsers)
+    
+    # Add help command
+    add_help_subcommand(subparsers)
 
     return parser
 
@@ -382,6 +385,69 @@ def add_init_subcommand(subparsers: Any) -> None:
     )
 
 
+def add_help_subcommand(subparsers: Any) -> None:
+    """Add the help subcommand to the parser.
+
+    Args:
+        subparsers: Subparsers object to add command to
+    """
+    help_parser = subparsers.add_parser(
+        "help",
+        help="Show detailed parameter documentation",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="Show detailed documentation for server parameters",
+        epilog=get_help_examples(),
+    )
+
+    help_parser.add_argument(
+        "topic",
+        nargs="?",
+        help="Topic to show help for (command or server type)",
+    )
+    
+    help_parser.add_argument(
+        "--command",
+        "-c",
+        action="store_true",
+        help="Treat topic as a command name",
+    )
+    
+    help_parser.add_argument(
+        "--server",
+        "-s",
+        action="store_true",
+        help="Treat topic as a server type",
+    )
+    
+    help_parser.add_argument(
+        "--parameter",
+        "-p",
+        help="Show detailed help for a specific parameter",
+        metavar="PARAM_NAME",
+    )
+    
+    help_parser.add_argument(
+        "--quick",
+        "-q",
+        action="store_true",
+        help="Show quick reference card instead of detailed help",
+    )
+    
+    help_parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Show extended help with examples and details",
+    )
+    
+    help_parser.add_argument(
+        "--all",
+        "-a",
+        action="store_true",
+        help="Show comprehensive documentation for all commands",
+    )
+
+
 def add_list_server_types_subcommand(subparsers: Any) -> None:
     """Add the list-server-types subcommand to the parser.
 
@@ -534,6 +600,38 @@ def get_list_server_types_examples() -> str:
   
   # Show detailed information about each server type
   mcp-config list-server-types --verbose"""
+
+
+def get_help_examples() -> str:
+    """Get usage examples for the help command.
+
+    Returns:
+        Formatted help examples string
+    """
+    return """Examples:
+  # Show tool overview
+  mcp-config help
+  
+  # Show help for a specific command
+  mcp-config help setup
+  mcp-config help remove --verbose
+  
+  # Show help for server parameters
+  mcp-config help mcp-code-checker
+  mcp-config help mcp-code-checker --verbose
+  
+  # Show help for a specific parameter
+  mcp-config help mcp-code-checker --parameter project-dir
+  
+  # Show quick reference for a server
+  mcp-config help mcp-code-checker --quick
+  
+  # Show comprehensive documentation
+  mcp-config help --all
+  
+  # Disambiguate between command and server (if needed)
+  mcp-config help setup --command
+  mcp-config help mcp-code-checker --server"""
 
 
 def parse_and_validate_args(

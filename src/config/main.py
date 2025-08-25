@@ -462,6 +462,95 @@ def handle_init_command(args: argparse.Namespace) -> int:
         return 1
 
 
+def handle_help_command(args: argparse.Namespace) -> int:
+    """Handle the help command to show detailed documentation.
+
+    Args:
+        args: Command-line arguments
+
+    Returns:
+        Exit code (0 for success, 1 for error)
+    """
+    try:
+        from src.config.help_system import (
+            print_parameter_help,
+            print_quick_reference,
+            print_command_help
+        )
+        
+        # Handle --all flag
+        if args.all:
+            return print_command_help("all", verbose=True)
+        
+        # Determine what kind of help to show
+        topic = args.topic
+        
+        # List of known commands
+        commands = [
+            "setup", "remove", "list", "validate", 
+            "init", "list-server-types", "help", "all"
+        ]
+        
+        # List of known server types
+        server_types = registry.list_servers()
+        
+        # If no topic specified, show overview
+        if not topic:
+            if args.quick:
+                # Show quick reference for all servers
+                return print_quick_reference(None)
+            else:
+                # Show tool overview
+                return print_command_help(None, args.verbose)
+        
+        # Determine topic type
+        is_command = topic in commands or args.command
+        is_server = topic in server_types or args.server
+        
+        # Handle conflicts
+        if args.command and args.server:
+            print("Error: Cannot use both --command and --server flags")
+            return 1
+        
+        # If topic could be both, prefer command unless --server is specified
+        if not is_command and not is_server:
+            print(f"Unknown topic: {topic}")
+            print(f"Available commands: {', '.join(commands)}")
+            print(f"Available servers: {', '.join(server_types)}")
+            return 1
+        
+        # Show command help
+        if is_command and not args.server:
+            if args.parameter:
+                print("Error: --parameter flag is only for server help")
+                return 1
+            if args.quick:
+                print("Error: --quick flag is only for server help")
+                return 1
+            return print_command_help(topic, args.verbose)
+        
+        # Show server help
+        if is_server and not args.command:
+            if args.quick:
+                return print_quick_reference(topic)
+            elif args.parameter:
+                return print_parameter_help(topic, args.parameter, verbose=True)
+            else:
+                return print_parameter_help(topic, None, args.verbose)
+        
+        # Shouldn't reach here
+        print(f"Could not determine help type for: {topic}")
+        return 1
+
+    except Exception as e:
+        print(f"Failed to show help: {e}")
+        if args.verbose:
+            import traceback
+
+            traceback.print_exc()
+        return 1
+
+
 def handle_validate_command(args: argparse.Namespace) -> int:
     """Handle the validate command with comprehensive checks."""
     try:
@@ -558,6 +647,8 @@ def main() -> int:
             return handle_list_server_types_command(args)
         elif args.command == "init":
             return handle_init_command(args)
+        elif args.command == "help":
+            return handle_help_command(args)
         else:
             parser.print_help()
             return 1
