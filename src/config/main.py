@@ -319,6 +319,58 @@ def handle_list_command(args: argparse.Namespace) -> int:
         return 1
 
 
+def handle_list_server_types_command(args: argparse.Namespace) -> int:
+    """Handle the list-server-types command.
+    
+    Args:
+        args: Command-line arguments
+        
+    Returns:
+        Exit code (0 for success, 1 for error)
+    """
+    try:
+        configs = registry.get_all_configs()
+        
+        if not configs:
+            print("No server types available")
+            return 1
+            
+        print("Available server types:")
+        for name, config in sorted(configs.items()):
+            print(f"  {name}: {config.display_name}")
+            if args.verbose:
+                print(f"    Main module: {config.main_module}")
+                print(f"    Parameters: {len(config.parameters)}")
+                required_params = config.get_required_params()
+                if required_params:
+                    print(f"    Required parameters: {', '.join(required_params)}")
+                else:
+                    print("    Required parameters: none")
+                    
+                # Show all parameters if verbose
+                print("    All parameters:")
+                for param in config.parameters:
+                    req_mark = "*" if param.required else " "
+                    auto_mark = "(auto)" if param.auto_detect else ""
+                    print(f"      {req_mark} {param.name}: {param.param_type} {auto_mark}")
+                    if args.verbose and param.help:
+                        # Wrap help text for readability
+                        help_lines = param.help.split(". ")
+                        for line in help_lines:
+                            if line:
+                                print(f"          {line}")
+                print()  # Empty line between server types
+                
+        return 0
+        
+    except Exception as e:
+        print(f"Failed to list server types: {e}")
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
 def handle_validate_command(args: argparse.Namespace) -> int:
     """Handle the validate command with comprehensive checks."""
     try:
@@ -415,6 +467,8 @@ def main() -> int:
             return handle_list_command(args)
         elif args.command == "validate":
             return handle_validate_command(args)
+        elif args.command == "list-server-types":
+            return handle_list_server_types_command(args)
         else:
             parser.print_help()
             return 1

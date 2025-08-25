@@ -19,6 +19,7 @@ from src.config.main import (
     create_main_parser,
     extract_user_parameters,
     handle_list_command,
+    handle_list_server_types_command,
     handle_remove_command,
     handle_setup_command,
     main,
@@ -428,6 +429,112 @@ class TestCommandHandlers:
         assert result == 0
 
 
+class TestListServerTypesCommand:
+    """Test list-server-types command handler."""
+
+    @patch("src.config.main.registry")  # type: ignore[misc]
+    def test_handle_list_server_types_command_success(
+        self, mock_registry: Any, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test successful list-server-types command."""
+        # Create mock server config
+        mock_config = MagicMock()
+        mock_config.name = "test-server"
+        mock_config.display_name = "Test Server"
+        mock_config.main_module = "test.py"
+        
+        # Create proper mock parameters with configured attributes
+        param1 = MagicMock()
+        param1.name = "param1"
+        param1.param_type = "string"
+        param1.required = True
+        param1.auto_detect = False
+        param1.help = "Parameter 1 help"
+        
+        param2 = MagicMock()
+        param2.name = "param2"
+        param2.param_type = "boolean"
+        param2.required = False
+        param2.auto_detect = True
+        param2.help = "Parameter 2 help"
+        
+        mock_config.parameters = [param1, param2]
+        mock_config.get_required_params.return_value = ["param1"]
+
+        mock_registry.get_all_configs.return_value = {"test-server": mock_config}
+
+        args = Namespace(verbose=False)
+        result = handle_list_server_types_command(args)
+
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "Available server types:" in captured.out
+        assert "test-server: Test Server" in captured.out
+
+    @patch("src.config.main.registry")  # type: ignore[misc]
+    def test_handle_list_server_types_command_verbose(
+        self, mock_registry: Any, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test list-server-types command with verbose output."""
+        # Create mock server config
+        mock_config = MagicMock()
+        mock_config.name = "test-server"
+        mock_config.display_name = "Test Server"
+        mock_config.main_module = "test.py"
+        
+        # Create proper mock parameter with configured attributes
+        param1 = MagicMock()
+        param1.name = "param1"
+        param1.param_type = "string"
+        param1.required = True
+        param1.auto_detect = False
+        param1.help = "Parameter 1 help"
+        
+        mock_config.parameters = [param1]
+        mock_config.get_required_params.return_value = ["param1"]
+
+        mock_registry.get_all_configs.return_value = {"test-server": mock_config}
+
+        args = Namespace(verbose=True)
+        result = handle_list_server_types_command(args)
+
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "Main module: test.py" in captured.out
+        assert "Parameters: 1" in captured.out
+        assert "Required parameters: param1" in captured.out
+        assert "All parameters:" in captured.out
+        assert "* param1: string" in captured.out
+
+    @patch("src.config.main.registry")  # type: ignore[misc]
+    def test_handle_list_server_types_command_empty(
+        self, mock_registry: Any, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test list-server-types command with no server types."""
+        mock_registry.get_all_configs.return_value = {}
+
+        args = Namespace(verbose=False)
+        result = handle_list_server_types_command(args)
+
+        assert result == 1
+        captured = capsys.readouterr()
+        assert "No server types available" in captured.out
+
+    @patch("src.config.main.registry")  # type: ignore[misc]
+    def test_handle_list_server_types_command_exception(
+        self, mock_registry: Any, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test list-server-types command with exception."""
+        mock_registry.get_all_configs.side_effect = Exception("Test error")
+
+        args = Namespace(verbose=False)
+        result = handle_list_server_types_command(args)
+
+        assert result == 1
+        captured = capsys.readouterr()
+        assert "Failed to list server types: Test error" in captured.out
+
+
 class TestOutputFunctions:
     """Test output formatting functions."""
 
@@ -536,6 +643,16 @@ class TestMainFunction:
         """Test main function with list command."""
         mock_handle.return_value = 0
         monkeypatch.setattr(sys, "argv", ["mcp-config", "list"])
+
+        result = main()
+        assert result == 0
+        mock_handle.assert_called_once()
+    
+    @patch("src.config.main.handle_list_server_types_command")  # type: ignore[misc]
+    def test_main_list_server_types_command(self, mock_handle: Any, monkeypatch: Any) -> None:
+        """Test main function with list-server-types command."""
+        mock_handle.return_value = 0
+        monkeypatch.setattr(sys, "argv", ["mcp-config", "list-server-types"])
 
         result = main()
         assert result == 0

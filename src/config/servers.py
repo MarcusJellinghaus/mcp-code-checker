@@ -263,6 +263,17 @@ class ServerRegistry:
         """
         return self._servers.copy()
 
+    def is_registered(self, name: str) -> bool:
+        """Check if a server is registered.
+
+        Args:
+            name: Name of the server to check
+
+        Returns:
+            True if the server is registered, False otherwise
+        """
+        return name in self._servers
+
 
 # Global registry instance
 registry = ServerRegistry()

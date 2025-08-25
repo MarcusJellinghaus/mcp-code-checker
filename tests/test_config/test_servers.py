@@ -461,6 +461,25 @@ class TestServerRegistry:
         assert registry_test.list_servers() == []
         assert registry_test.get_all_configs() == {}
 
+    def test_is_registered(self) -> None:
+        """Test checking if a server is registered."""
+        registry_test = ServerRegistry()
+
+        # Initially not registered
+        assert not registry_test.is_registered("test-server")
+
+        # Register a server
+        config = ServerConfig(
+            name="test-server", display_name="Test Server", main_module="test.py"
+        )
+        registry_test.register(config)
+
+        # Now it should be registered
+        assert registry_test.is_registered("test-server")
+
+        # Other servers still not registered
+        assert not registry_test.is_registered("other-server")
+
 
 class TestGlobalRegistry:
     """Test the global registry instance."""
@@ -476,3 +495,11 @@ class TestGlobalRegistry:
         """Test that the global registry has expected servers."""
         servers = registry.list_servers()
         assert "mcp-code-checker" in servers
+
+    def test_is_registered_with_global_registry(self) -> None:
+        """Test is_registered method with global registry."""
+        # MCP Code Checker should be registered
+        assert registry.is_registered("mcp-code-checker")
+        
+        # Non-existent server should not be registered
+        assert not registry.is_registered("non-existent-server")
