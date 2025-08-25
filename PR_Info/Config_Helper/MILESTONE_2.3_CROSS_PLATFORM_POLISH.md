@@ -411,7 +411,7 @@ mcp-config setup mcp-code-checker "mac-checker" --project-dir ~/project
 
 ### Linux:
 ```bash
-# Auto-detects Linux paths
+# Auto-de[MILESTONE_3_1_SERVER_REGISTRY.md](MILESTONE_3_1_SERVER_REGISTRY.md)tects Linux paths
 mcp-config setup mcp-code-checker "linux-checker" --project-dir ./project
 
 # Output shows Unix-style paths
