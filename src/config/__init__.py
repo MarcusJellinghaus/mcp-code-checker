@@ -19,7 +19,6 @@ def initialize_all_servers(verbose: bool = False) -> Tuple[int, List[str]]:
     Returns:
         Tuple of (total_server_count, list_of_errors)
     """
-    from typing import List, Tuple
 
     # Built-in servers are already registered in servers.py
     builtin_count = len(registry.get_all_configs())

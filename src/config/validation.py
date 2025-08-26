@@ -83,7 +83,7 @@ def validate_python_executable(path: Path | str, param_name: str) -> list[str]:
     # Try to run it and get version
     try:
         result = subprocess.run(
-            [path_str, "--version"], capture_output=True, text=True, timeout=5
+            [path_str, "--version"], capture_output=True, text=True, timeout=5, check=False
         )
         if result.returncode != 0:
             errors.append(f"Python executable for '{param_name}' failed to run: {path}")

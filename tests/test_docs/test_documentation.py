@@ -21,10 +21,10 @@ def test_documentation_structure() -> None:
     # Check USER_GUIDE.md structure
     user_guide_content = (docs_dir / "USER_GUIDE.md").read_text()
     assert "## Overview" in user_guide_content
-    assert "## Installation" in user_guide_content
     assert "## Quick Start" in user_guide_content
     assert "## Commands" in user_guide_content
-    assert "## Configuration Examples" in user_guide_content
+    assert "## Auto-Detection" in user_guide_content
+    assert "## Configuration Storage" in user_guide_content
 
     # Check TROUBLESHOOTING.md structure
     trouble_content = (docs_dir / "TROUBLESHOOTING.md").read_text()

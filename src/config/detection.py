@@ -46,6 +46,7 @@ def detect_python_environment(
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
         if result.returncode == 0:
             # Get the full path to this Python
@@ -54,6 +55,7 @@ def detect_python_environment(
                 capture_output=True,
                 text=True,
                 timeout=5,
+                check=False,
             )
             if result.returncode == 0:
                 python_path = result.stdout.strip()
@@ -108,6 +110,7 @@ def find_virtual_environments(project_dir: Path) -> list[Path]:
                 capture_output=True,
                 text=True,
                 timeout=5,
+                check=False,
             )
             if result.returncode == 0:
                 pipenv_path = Path(result.stdout.strip())
@@ -211,6 +214,7 @@ def validate_python_executable(python_path: str) -> bool:
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
         return result.returncode == 0
     except (subprocess.SubprocessError, OSError):
@@ -259,6 +263,7 @@ print(json.dumps(info))
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
 
         if result.returncode == 0:

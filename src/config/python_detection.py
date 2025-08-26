@@ -320,6 +320,7 @@ def detect_poetry_venv(project_dir: Path) -> Optional[VenvInfo]:
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
         if result.returncode == 0:
             venv_path = Path(result.stdout.strip())
@@ -353,6 +354,7 @@ def detect_pipenv_venv(project_dir: Path) -> Optional[VenvInfo]:
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
         if result.returncode == 0:
             venv_path = Path(result.stdout.strip())
@@ -385,6 +387,7 @@ def detect_conda_venv(project_dir: Path) -> Optional[VenvInfo]:
                     capture_output=True,
                     text=True,
                     timeout=5,
+                    check=False,
                 )
                 if result.returncode == 0:
                     envs = json.loads(result.stdout)
@@ -650,7 +653,7 @@ def validate_python_executable(python_path: Path | str) -> bool:
 
     try:
         result = subprocess.run(
-            [str(python_path), "--version"], capture_output=True, text=True, timeout=5
+            [str(python_path), "--version"], capture_output=True, text=True, timeout=5, check=False
         )
         return result.returncode == 0
     except (subprocess.SubprocessError, OSError):
@@ -694,7 +697,7 @@ print(json.dumps(info))
 
     try:
         result = subprocess.run(
-            [str(python_path), "-c", code], capture_output=True, text=True, timeout=5
+            [str(python_path), "-c", code], capture_output=True, text=True, timeout=5, check=False
         )
 
         if result.returncode != 0:
