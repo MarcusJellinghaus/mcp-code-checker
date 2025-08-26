@@ -283,7 +283,8 @@ class TestServerConfig:
 
         args = MCP_CODE_CHECKER.generate_args(params)
 
-        assert args[0] == "src/main.py"
+        # For MCP Code Checker, the first argument should be absolute path to main.py
+        assert args[0].endswith("main.py")
         assert "--project-dir" in args
         # Path will be normalized on Windows
         proj_idx = args.index("--project-dir")

@@ -107,13 +107,20 @@ class ServerConfig:
             normalize_path,
         )
 
-        args = [self.main_module]
+        # Get the absolute path to the main module
+        # For MCP Code Checker, resolve main_module relative to project_dir
+        if self.name == "mcp-code-checker" and "project_dir" in user_params:
+            proj_dir = Path(user_params["project_dir"]).resolve()
+            main_module_path = proj_dir / self.main_module
+            args = [str(main_module_path.resolve())]
+        else:
+            args = [self.main_module]
 
         # Process parameters with auto-detection
         processed_params = dict(user_params)
 
         # Auto-detect missing optional parameters
-        project_dir = None
+        project_dir: Path | None = None
         if "project_dir" in processed_params:
             project_dir = Path(processed_params["project_dir"])
 

@@ -96,7 +96,8 @@ class ClaudeDesktopHandler(ClientHandler):
         
         try:
             with open(metadata_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data: dict[str, Any] = json.load(f)
+                return data
         except (json.JSONDecodeError, IOError):
             # If there's an error reading metadata, start fresh
             return {}

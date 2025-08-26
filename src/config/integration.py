@@ -60,7 +60,11 @@ def build_server_config(
 
     # Add environment if needed
     if "project_dir" in normalized_params:
-        config["env"] = {"PYTHONPATH": str(normalized_params["project_dir"])}
+        pythonpath = str(normalized_params["project_dir"])
+        # Ensure trailing separator on Windows
+        if sys.platform == "win32" and not pythonpath.endswith("\\"):
+            pythonpath += "\\"
+        config["env"] = {"PYTHONPATH": pythonpath}
 
     return config
 
@@ -143,7 +147,11 @@ def generate_client_config(
 
     # Add PYTHONPATH to include the project directory
     if "project_dir" in normalized_params:
-        env["PYTHONPATH"] = normalized_params["project_dir"]
+        pythonpath = normalized_params["project_dir"]
+        # Ensure trailing separator on Windows
+        if sys.platform == "win32" and not pythonpath.endswith("\\"):
+            pythonpath += "\\"
+        env["PYTHONPATH"] = pythonpath
 
     # Add virtual environment activation if specified
     if "venv_path" in normalized_params and normalized_params["venv_path"]:

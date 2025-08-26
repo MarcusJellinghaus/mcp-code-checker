@@ -69,7 +69,8 @@ class TestGenerateClientConfig:
         )
 
         assert config["command"] == "/usr/bin/python3"
-        assert "src/main.py" in config["args"]
+        # The first argument should contain main.py
+        assert "main.py" in config["args"][0]
         assert "--project-dir" in config["args"]
         assert str(tmp_path) in config["args"]
         assert "--log-level" in config["args"]
@@ -179,7 +180,11 @@ class TestGenerateClientConfig:
 
         assert "env" in config
         assert "PYTHONPATH" in config["env"]
-        assert config["env"]["PYTHONPATH"] == str(tmp_path)
+        # On Windows, PYTHONPATH should have a trailing backslash
+        expected_pythonpath = str(tmp_path)
+        if sys.platform == "win32" and not expected_pythonpath.endswith("\\"):
+            expected_pythonpath += "\\"
+        assert config["env"]["PYTHONPATH"] == expected_pythonpath
 
 
 class TestSetupMCPServer:
@@ -356,7 +361,8 @@ class TestMCPCodeCheckerIntegration:
 
         # Check arguments
         args = config["args"]
-        assert "src/main.py" in args
+        # The first argument should be the absolute path to main.py
+        assert args[0].endswith("src/main.py") or args[0].endswith("src\\main.py")
         assert "--project-dir" in args
         assert str(project_dir) in args
         assert "--log-level" in args
@@ -367,7 +373,11 @@ class TestMCPCodeCheckerIntegration:
 
         # Check environment
         assert "PYTHONPATH" in config["env"]
-        assert config["env"]["PYTHONPATH"] == str(project_dir)
+        # On Windows, PYTHONPATH should have a trailing backslash
+        expected_pythonpath = str(project_dir)
+        if sys.platform == "win32" and not expected_pythonpath.endswith("\\"):
+            expected_pythonpath += "\\"
+        assert config["env"]["PYTHONPATH"] == expected_pythonpath
 
     def test_mcp_code_checker_minimal_config(self, tmp_path: Path) -> None:
         """Test minimal configuration for MCP Code Checker."""
