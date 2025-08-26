@@ -204,7 +204,11 @@ def validate_python_executable(python_path: str) -> bool:
     Returns:
         True if valid, False otherwise
     """
-    if not python_path or not Path(python_path).exists():
+    if not python_path:
+        return False
+    
+    path_obj = Path(python_path)
+    if not path_obj.exists():
         return False
 
     try:
@@ -213,7 +217,7 @@ def validate_python_executable(python_path: str) -> bool:
             [python_path, "--version"],
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=10,  # Increased timeout for slower systems
             check=False,
         )
         return result.returncode == 0
@@ -262,7 +266,7 @@ print(json.dumps(info))
             [python_path, "-c", code],
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=10,  # Increased timeout for slower systems
             check=False,
         )
 

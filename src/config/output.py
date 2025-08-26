@@ -251,7 +251,16 @@ class OutputFormatter:
             config_path: Path to configuration file
             detailed: Whether to show detailed information
         """
-        print(f"\nMCP Servers for {client_name}:")
+        # Get display name for client
+        display_name = client_name
+        if client_name == "vscode-workspace":
+            display_name = "VSCode (Workspace)"
+        elif client_name == "vscode-user":
+            display_name = "VSCode (User Profile)"
+        elif client_name == "claude-desktop":
+            display_name = "Claude Desktop"
+        
+        print(f"\nMCP Servers for {display_name}:")
         
         if not servers:
             print("  No servers configured")

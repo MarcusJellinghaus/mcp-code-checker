@@ -1,6 +1,7 @@
 """Simplified validation system for MCP server parameters."""
 
 import os
+import shutil
 import subprocess
 import sys
 from datetime import datetime
@@ -343,3 +344,44 @@ def validate_parameter_combination(params: dict[str, Any]) -> list[str]:
             errors.append(f"Project directory is not a directory: {project_dir}")
 
     return errors
+
+
+def validate_client_installation(client: str) -> list[str]:
+    """Check if the target client is installed.
+    
+    Args:
+        client: Client name to check
+    
+    Returns:
+        List of warnings (empty if client is detected)
+    """
+    warnings = []
+    
+    if client.startswith("vscode"):
+        # Check if VSCode is installed
+        vscode_commands = ["code", "code-insiders", "codium"]
+        vscode_found = False
+        
+        for cmd in vscode_commands:
+            if shutil.which(cmd):
+                vscode_found = True
+                break
+        
+        if not vscode_found:
+            warnings.append(
+                "VSCode not detected. Please ensure VSCode 1.102+ is installed "
+                "for native MCP support."
+            )
+        
+        # Check for workspace config location if using workspace mode
+        if client in ["vscode", "vscode-workspace"]:
+            if not Path(".vscode").exists():
+                warnings.append(
+                    "No .vscode directory found. It will be created for workspace configuration."
+                )
+    
+    elif client == "claude-desktop":
+        # Check for Claude Desktop (platform-specific checks could be added here)
+        pass
+    
+    return warnings

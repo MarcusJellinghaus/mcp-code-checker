@@ -10,6 +10,9 @@ from typing import Any
 
 from src.config.servers import ServerConfig, registry
 
+# Supported MCP clients
+SUPPORTED_CLIENTS = ["claude-desktop", "vscode", "vscode-workspace", "vscode-user"]
+
 
 def build_setup_parser(server_type: str | None = None) -> argparse.ArgumentParser:
     """Build setup command parser with server-specific parameters.
@@ -64,8 +67,8 @@ def add_global_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--client",
         default="claude-desktop",
-        choices=["claude-desktop"],
-        help="MCP client to configure (default: claude-desktop)",
+        choices=SUPPORTED_CLIENTS,
+        help="MCP client to configure. Options: claude-desktop, vscode (defaults to workspace), vscode-workspace (explicit workspace), vscode-user (user profile)",
     )
     parser.add_argument(
         "--dry-run",
@@ -88,6 +91,14 @@ def add_global_options(parser: argparse.ArgumentParser) -> None:
         action="store_false",
         dest="backup",
         help="Skip backup creation",
+    )
+    # For VSCode workspace vs user configuration
+    parser.add_argument(
+        "--user",
+        dest="use_workspace",
+        action="store_false",
+        default=True,
+        help="For VSCode: use user profile config instead of workspace config",
     )
 
 
@@ -267,8 +278,8 @@ def add_remove_subcommand(subparsers: Any) -> None:
     remove_parser.add_argument(
         "--client",
         default="claude-desktop",
-        choices=["claude-desktop"],
-        help="MCP client to configure (default: claude-desktop)",
+        choices=SUPPORTED_CLIENTS,
+        help="MCP client to configure (claude-desktop, vscode, vscode-workspace, vscode-user)",
     )
     remove_parser.add_argument(
         "--dry-run",
@@ -310,9 +321,9 @@ def add_list_subcommand(subparsers: Any) -> None:
 
     list_parser.add_argument(
         "--client",
-        default="claude-desktop",
-        choices=["claude-desktop"],
-        help="MCP client to query (default: claude-desktop)",
+        default=None,
+        choices=SUPPORTED_CLIENTS,
+        help="MCP client to query (default: all clients)",
     )
     list_parser.add_argument(
         "--detailed",
@@ -349,8 +360,8 @@ def add_validate_subcommand(subparsers: Any) -> None:
     validate_parser.add_argument(
         "--client",
         default="claude-desktop",
-        choices=["claude-desktop"],
-        help="MCP client to validate (default: claude-desktop)",
+        choices=SUPPORTED_CLIENTS,
+        help="MCP client to validate (claude-desktop, vscode, vscode-workspace, vscode-user)",
     )
     validate_parser.add_argument(
         "--verbose",
@@ -429,8 +440,17 @@ def get_usage_examples() -> str:
         Formatted usage examples string
     """
     return """Examples:
-  # Basic setup with auto-detection
+  # Basic setup with auto-detection (Claude Desktop)
   mcp-config setup mcp-code-checker my-checker --project-dir .
+  
+  # Setup for VSCode workspace (recommended for team sharing)
+  mcp-config setup mcp-code-checker my-project --project-dir . --client vscode
+  
+  # Setup for VSCode user profile (personal, all projects) 
+  mcp-config setup mcp-code-checker global --project-dir ~/projects --client vscode --user
+  
+  # Explicit VSCode workspace config
+  mcp-config setup mcp-code-checker team-project --project-dir . --client vscode-workspace
   
   # Setup with custom parameters
   mcp-config setup mcp-code-checker debug --project-dir . --log-level DEBUG --keep-temp-files
@@ -443,11 +463,14 @@ def get_usage_examples() -> str:
     --log-level INFO \\
     --log-file /var/log/mcp-checker.log
   
-  # Remove a server
-  mcp-config remove my-checker
+  # Remove a server from VSCode
+  mcp-config remove my-project --client vscode
   
-  # List all servers
-  mcp-config list --detailed"""
+  # List all servers across all clients
+  mcp-config list --detailed
+  
+  # List VSCode servers (shows both workspace and user configs)
+  mcp-config list --client vscode --detailed"""
 
 
 def get_setup_examples() -> str:
@@ -457,8 +480,17 @@ def get_setup_examples() -> str:
         Formatted setup examples string
     """
     return """Examples:
-  # Basic usage with auto-detection
+  # Basic usage with auto-detection (Claude Desktop)
   mcp-config setup mcp-code-checker my-checker --project-dir .
+  
+  # Setup for VSCode workspace (recommended for team sharing)
+  mcp-config setup mcp-code-checker team-project --project-dir . --client vscode
+  
+  # Setup for VSCode user profile (personal, all projects)
+  mcp-config setup mcp-code-checker global --project-dir ~/projects --client vscode --user
+  
+  # Explicit VSCode workspace config
+  mcp-config setup mcp-code-checker my-project --project-dir . --client vscode-workspace
   
   # Debug configuration
   mcp-config setup mcp-code-checker debug --project-dir . --log-level DEBUG --keep-temp-files
@@ -483,8 +515,17 @@ def get_remove_examples() -> str:
         Formatted remove examples string
     """
     return """Examples:
-  # Remove a server
+  # Remove a server from Claude Desktop
   mcp-config remove my-checker
+  
+  # Remove from VSCode workspace (default when using vscode)
+  mcp-config remove my-project --client vscode
+  
+  # Remove from VSCode workspace (explicit)
+  mcp-config remove my-project --client vscode-workspace
+  
+  # Remove from VSCode user profile (explicit)
+  mcp-config remove global --client vscode-user
   
   # Dry run to preview removal
   mcp-config remove my-checker --dry-run
@@ -500,8 +541,14 @@ def get_list_examples() -> str:
         Formatted list examples string
     """
     return """Examples:
-  # List all servers
+  # List all servers across all clients
   mcp-config list
+  
+  # List servers for specific client
+  mcp-config list --client claude-desktop
+  mcp-config list --client vscode  # Shows both workspace and user configs
+  mcp-config list --client vscode-workspace
+  mcp-config list --client vscode-user
   
   # Show detailed information
   mcp-config list --detailed
@@ -526,8 +573,11 @@ def get_validate_examples() -> str:
   # Validate with verbose output
   mcp-config validate my-checker --verbose
   
-  # Validate for a specific client
-  mcp-config validate my-checker --client claude-desktop"""
+  # Validate for specific clients
+  mcp-config validate my-checker --client claude-desktop
+  mcp-config validate my-project --client vscode  # Defaults to workspace
+  mcp-config validate my-project --client vscode-workspace
+  mcp-config validate global --client vscode-user"""
 
 
 def get_help_examples() -> str:

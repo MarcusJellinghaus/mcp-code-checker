@@ -130,8 +130,8 @@ class TestOutputFormatter:
             )
             output = mock_stdout.getvalue()
 
-            # Check sections
-            assert "MCP Servers for claude-desktop" in output
+            # Check sections - updated to match new display name
+            assert "MCP Servers for Claude Desktop" in output
 
             # Check server names
             assert "my-checker" in output

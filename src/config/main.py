@@ -18,6 +18,7 @@ from src.config.output import OutputFormatter
 from src.config.servers import registry
 from src.config.utils import validate_required_parameters
 from src.config.validation import (
+    validate_client_installation,
     validate_parameter_combination,
     validate_server_configuration,
 )
@@ -92,8 +93,27 @@ def handle_setup_command(args: argparse.Namespace) -> int:
             print(f"Available types: {', '.join(registry.list_servers())}")
             return 1
 
+        # Handle VSCode client selection with workspace flag
+        client = args.client
+        if client == "vscode":
+            # Use the workspace flag to determine config location
+            # The --user flag sets use_workspace to False
+            client = "vscode-workspace" if args.use_workspace else "vscode-user"
+        elif client == "vscode-workspace":
+            # Explicit workspace selection
+            pass
+        elif client == "vscode-user":
+            # Explicit user profile selection
+            pass
+        
         # Get client handler
-        client_handler = get_client_handler(args.client)
+        client_handler = get_client_handler(client)
+        
+        # Check if client is installed
+        client_warnings = validate_client_installation(client)
+        if client_warnings and args.verbose:
+            for warning in client_warnings:
+                print(f"Warning: {warning}")
 
         # Extract user parameters from args
         user_params = extract_user_parameters(args, server_config)
@@ -147,13 +167,14 @@ def handle_setup_command(args: argparse.Namespace) -> int:
                 user_params.get("python_executable", sys.executable),
             )
 
-            # Generate backup path
+            # Generate backup path based on client type
             from datetime import datetime
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            config_name = "mcp_config" if client.startswith("vscode") else "claude_desktop_config"
             backup_path = (
                 client_handler.get_config_path().parent
-                / f"claude_desktop_config.backup_{timestamp}.json"
+                / f"{config_name}.backup_{timestamp}.json"
             )
 
             OutputFormatter.print_dry_run_config_preview(
@@ -201,8 +222,21 @@ def handle_setup_command(args: argparse.Namespace) -> int:
 def handle_remove_command(args: argparse.Namespace) -> int:
     """Handle the remove command with safety checks."""
     try:
+        # Handle VSCode client selection
+        client = args.client
+        if client == "vscode":
+            # Default to workspace for remove command when just "vscode" is specified
+            # Note: remove command doesn't have the --user flag, so we default to workspace
+            client = "vscode-workspace"
+        elif client == "vscode-workspace":
+            # Explicit workspace selection
+            pass
+        elif client == "vscode-user":
+            # Explicit user profile selection
+            pass
+        
         # Get client handler
-        client_handler = get_client_handler(args.client)
+        client_handler = get_client_handler(client)
 
         # Check if server exists and is managed by us
         managed_servers = client_handler.list_managed_servers()
@@ -239,9 +273,10 @@ def handle_remove_command(args: argparse.Namespace) -> int:
             from datetime import datetime
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            config_name = "mcp_config" if client.startswith("vscode") else "claude_desktop_config"
             backup_path = (
                 client_handler.get_config_path().parent
-                / f"claude_desktop_config.backup_{timestamp}.json"
+                / f"{config_name}.backup_{timestamp}.json"
             )
 
             OutputFormatter.print_dry_run_remove_preview(
@@ -302,23 +337,42 @@ def handle_list_command(args: argparse.Namespace) -> int:
     try:
         # Get client handler(s)
         if args.client:
-            clients = [args.client]
+            # Handle VSCode client selection
+            client = args.client
+            if client == "vscode":
+                # When just "vscode" is specified for list, show both VSCode configs
+                clients = ["vscode-workspace", "vscode-user"]
+            else:
+                clients = [client]
         else:
-            clients = ["claude-desktop"]  # Default for now
+            # List all clients when no specific client is specified
+            clients = ["claude-desktop", "vscode-workspace", "vscode-user"]
 
         for client_name in clients:
-            client_handler = get_client_handler(client_name)
-            config_path = client_handler.get_config_path()
+            try:
+                client_handler = get_client_handler(client_name)
+                config_path = client_handler.get_config_path()
+                
+                # Skip if config doesn't exist (especially for VSCode configs)
+                if not config_path.exists():
+                    continue
 
-            if args.managed_only:
-                servers = client_handler.list_managed_servers()
-            else:
-                servers = client_handler.list_all_servers()
-
-            # Use enhanced output formatter
-            OutputFormatter.print_enhanced_server_list(
-                servers, client_name, config_path, args.detailed
-            )
+                if args.managed_only:
+                    servers = client_handler.list_managed_servers()
+                else:
+                    servers = client_handler.list_all_servers()
+                
+                # Only show if there are servers or if a specific client was requested
+                if servers or args.client:
+                    # Use enhanced output formatter
+                    OutputFormatter.print_enhanced_server_list(
+                        servers, client_name, config_path, args.detailed
+                    )
+            except Exception as e:
+                if args.client:
+                    # Only show errors if a specific client was requested
+                    print(f"Error reading {client_name} configuration: {e}")
+                # Otherwise silently skip non-existent configs
 
         return 0
 
@@ -423,8 +477,20 @@ def handle_help_command(args: argparse.Namespace) -> int:
 def handle_validate_command(args: argparse.Namespace) -> int:
     """Handle the validate command with comprehensive checks."""
     try:
+        # Handle VSCode client selection
+        client = args.client
+        if client == "vscode":
+            # Default to workspace for validate command when just "vscode" is specified
+            client = "vscode-workspace"
+        elif client == "vscode-workspace":
+            # Explicit workspace selection
+            pass
+        elif client == "vscode-user":
+            # Explicit user profile selection
+            pass
+        
         # Get client handler
-        client_handler = get_client_handler(args.client)
+        client_handler = get_client_handler(client)
 
         # If no server name provided, show available types and configured servers
         if not args.server_name:
