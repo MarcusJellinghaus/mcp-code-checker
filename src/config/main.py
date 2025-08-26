@@ -431,37 +431,6 @@ def handle_list_server_types_command(args: argparse.Namespace) -> int:
         return 1
 
 
-def handle_init_command(args: argparse.Namespace) -> int:
-    """Handle the init command to re-scan for external servers.
-
-    Args:
-        args: Command-line arguments
-
-    Returns:
-        Exit code (0 for success, 1 for error)
-    """
-    try:
-        print("Scanning for MCP server configurations...")
-        total_count, errors = initialize_all_servers(verbose=args.verbose)
-
-        if errors:
-            print("\nErrors encountered:")
-            for error in errors:
-                print(f"  ⚠ {error}")
-            print("\nSome external servers may not be available.")
-
-        print(f"\nInitialization complete. {total_count} server type(s) ready.")
-        return 0
-
-    except Exception as e:
-        print(f"Failed to initialize servers: {e}")
-        if args.verbose:
-            import traceback
-
-            traceback.print_exc()
-        return 1
-
-
 def handle_help_command(args: argparse.Namespace) -> int:
     """Handle the help command to show detailed documentation.
 
@@ -488,7 +457,7 @@ def handle_help_command(args: argparse.Namespace) -> int:
         # List of known commands
         commands = [
             "setup", "remove", "list", "validate", 
-            "init", "list-server-types", "help", "all"
+            "list-server-types", "help", "all"
         ]
         
         # List of known server types
@@ -645,8 +614,6 @@ def main() -> int:
             return handle_validate_command(args)
         elif args.command == "list-server-types":
             return handle_list_server_types_command(args)
-        elif args.command == "init":
-            return handle_init_command(args)
         elif args.command == "help":
             return handle_help_command(args)
         else:
