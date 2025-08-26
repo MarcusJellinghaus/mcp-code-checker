@@ -202,9 +202,6 @@ def create_full_parser() -> argparse.ArgumentParser:
 
     # Add validate command
     add_validate_subcommand(subparsers)
-
-    # Add list-server-types command
-    add_list_server_types_subcommand(subparsers)
     
     # Add help command
     add_help_subcommand(subparsers)
@@ -425,27 +422,6 @@ def add_help_subcommand(subparsers: Any) -> None:
     )
 
 
-def add_list_server_types_subcommand(subparsers: Any) -> None:
-    """Add the list-server-types subcommand to the parser.
-
-    Args:
-        subparsers: Subparsers object to add command to
-    """
-    list_types_parser = subparsers.add_parser(
-        "list-server-types",
-        help="List all available server types",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="List all available MCP server types that can be configured",
-        epilog=get_list_server_types_examples(),
-    )
-
-    list_types_parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Show detailed information about each server type",
-    )
-
-
 def get_usage_examples() -> str:
     """Get usage examples for the main help text.
 
@@ -552,20 +528,6 @@ def get_validate_examples() -> str:
   
   # Validate for a specific client
   mcp-config validate my-checker --client claude-desktop"""
-
-
-def get_list_server_types_examples() -> str:
-    """Get usage examples for the list-server-types command.
-
-    Returns:
-        Formatted list-server-types examples string
-    """
-    return """Examples:
-  # List all available server types
-  mcp-config list-server-types
-  
-  # Show detailed information about each server type
-  mcp-config list-server-types --verbose"""
 
 
 def get_help_examples() -> str:

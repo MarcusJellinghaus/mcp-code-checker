@@ -31,9 +31,7 @@ class CommandHelpFormatter:
             "  setup              Setup an MCP server configuration",
             "  remove             Remove an MCP server configuration",
             "  list               List configured MCP servers",
-            "  validate           Validate an MCP server configuration",
-            "  list-server-types  List all available server types",
-            "  init               Re-scan for external MCP server configurations",
+            "  validate           Validate server configuration or show available types",
             "  help               Show detailed help and documentation",
             "",
             "GLOBAL OPTIONS:",
@@ -248,13 +246,13 @@ class CommandHelpFormatter:
             "VALIDATE COMMAND",
             "================",
             "",
-            "Validate that an MCP server is properly configured and ready to use.",
+            "Validate server configuration or show available server types.",
             "",
             "USAGE:",
-            "  mcp-config validate <server-name> [options]",
+            "  mcp-config validate [server-name] [options]",
             "",
             "ARGUMENTS:",
-            "  server-name        Name of the server to validate",
+            "  server-name        Name of the server to validate (optional)",
             "",
             "OPTIONS:",
             "  --client CHOICE    MCP client to validate [default: claude-desktop]",
@@ -283,7 +281,13 @@ class CommandHelpFormatter:
         
         lines.extend([
             "EXAMPLES:",
-            "  # Validate a server",
+            "  # Show available server types",
+            "  mcp-config validate",
+            "",
+            "  # Show detailed server type information",
+            "  mcp-config validate --verbose",
+            "",
+            "  # Validate a specific server",
             "  mcp-config validate my-checker",
             "",
             "  # Verbose validation",
@@ -292,110 +296,7 @@ class CommandHelpFormatter:
         
         return "\n".join(lines)
     
-    @staticmethod
-    def format_init_command_help(verbose: bool = False) -> str:
-        """Format help for the init command.
-        
-        Args:
-            verbose: Whether to include extended help
-            
-        Returns:
-            Formatted help string
-        """
-        lines = [
-            "INIT COMMAND",
-            "============",
-            "",
-            "Re-scan for external MCP server configurations via Python entry points.",
-            "",
-            "USAGE:",
-            "  mcp-config init [options]",
-            "",
-            "OPTIONS:",
-            "  --verbose          Show detailed discovery information",
-            "",
-            "PURPOSE:",
-            "  The init command discovers external MCP servers that have been",
-            "  installed as Python packages. These servers register themselves",
-            "  using Python entry points in the 'mcp.server_configs' group.",
-            "",
-        ]
-        
-        if verbose:
-            lines.extend([
-                "HOW IT WORKS:",
-                "  1. Scans installed Python packages for entry points",
-                "  2. Loads and validates server configurations",
-                "  3. Registers valid servers for use with 'setup' command",
-                "",
-                "WHEN TO USE:",
-                "  - After installing a new MCP server package",
-                "  - When external servers aren't appearing in list-server-types",
-                "  - To refresh the available server types",
-                "",
-            ])
-        
-        lines.extend([
-            "EXAMPLES:",
-            "  # Re-scan for servers",
-            "  mcp-config init",
-            "",
-            "  # Show discovery details",
-            "  mcp-config init --verbose",
-        ])
-        
-        return "\n".join(lines)
-    
-    @staticmethod
-    def format_list_server_types_command_help(verbose: bool = False) -> str:
-        """Format help for the list-server-types command.
-        
-        Args:
-            verbose: Whether to include extended help
-            
-        Returns:
-            Formatted help string
-        """
-        lines = [
-            "LIST-SERVER-TYPES COMMAND",
-            "=========================",
-            "",
-            "List all available MCP server types that can be configured.",
-            "",
-            "USAGE:",
-            "  mcp-config list-server-types [options]",
-            "",
-            "OPTIONS:",
-            "  --verbose          Show detailed information about each server type",
-            "",
-            "OUTPUT:",
-            "  Shows both built-in and external server types:",
-            "    • Built-in servers (always available)",
-            "    • External servers (discovered via Python packages)",
-            "",
-        ]
-        
-        if verbose:
-            lines.extend([
-                "VERBOSE OUTPUT INCLUDES:",
-                "  - Main module path",
-                "  - Number of parameters",
-                "  - Required parameters",
-                "  - All parameter details with types and help text",
-                "",
-            ])
-        
-        lines.extend([
-            "EXAMPLES:",
-            "  # List available server types",
-            "  mcp-config list-server-types",
-            "",
-            "  # Show detailed information",
-            "  mcp-config list-server-types --verbose",
-        ])
-        
-        return "\n".join(lines)
-    
+
     @staticmethod
     def format_all_commands_help() -> str:
         """Format comprehensive help for all commands.
@@ -413,10 +314,6 @@ class CommandHelpFormatter:
             CommandHelpFormatter.format_list_command_help(verbose=True),
             "\n" + "="*60 + "\n",
             CommandHelpFormatter.format_validate_command_help(verbose=True),
-            "\n" + "="*60 + "\n",
-            CommandHelpFormatter.format_init_command_help(verbose=True),
-            "\n" + "="*60 + "\n",
-            CommandHelpFormatter.format_list_server_types_command_help(verbose=True),
         ]
         
         return "".join(sections)
@@ -714,10 +611,6 @@ def print_command_help(command: Optional[str] = None, verbose: bool = False) -> 
         print(CommandHelpFormatter.format_list_command_help(verbose))
     elif command == "validate":
         print(CommandHelpFormatter.format_validate_command_help(verbose))
-    elif command == "init":
-        print(CommandHelpFormatter.format_init_command_help(verbose))
-    elif command == "list-server-types":
-        print(CommandHelpFormatter.format_list_server_types_command_help(verbose))
     elif command == "help":
         print("HELP COMMAND")
         print("============")
@@ -746,7 +639,7 @@ def print_command_help(command: Optional[str] = None, verbose: bool = False) -> 
         print("  mcp-config help all                 # Complete documentation")
     else:
         print(f"Unknown command: {command}")
-        print("Available commands: setup, remove, list, validate, init, list-server-types, help")
+        print("Available commands: setup, remove, list, validate, help")
         return 1
     
     return 0
