@@ -526,6 +526,14 @@ def handle_validate_command(args: argparse.Namespace) -> int:
         # Get client handler
         client_handler = get_client_handler(args.client)
 
+        # If no server name provided, show available types
+        if not args.server_name:
+            configs = registry.get_all_configs()
+            print(f"Available server types: {len(configs)}")
+            for name in sorted(configs.keys()):
+                print(f"  • {name}")
+            return 0
+
         # Get server configuration from client
         servers = client_handler.list_all_servers()
         server_info = None

@@ -345,7 +345,8 @@ def add_validate_subcommand(subparsers: Any) -> None:
 
     validate_parser.add_argument(
         "server_name",
-        help="Name of the server to validate",
+        nargs="?",
+        help="Server name to validate (optional)",
     )
 
     validate_parser.add_argument(
@@ -540,6 +541,9 @@ def get_validate_examples() -> str:
         Formatted validate examples string
     """
     return """Examples:
+  # Show available server types
+  mcp-config validate
+  
   # Validate a server configuration
   mcp-config validate my-checker
   
