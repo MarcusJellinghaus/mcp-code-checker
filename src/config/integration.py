@@ -4,17 +4,179 @@ This module provides high-level functions that bridge server configurations
 and client handlers for setting up MCP servers.
 """
 
+import importlib.util
 import sys
 from pathlib import Path
 from typing import Any
 
-from src.config.clients import ClientHandler
+from src.config.clients import ClientHandler, VSCodeHandler
 from src.config.servers import ServerConfig
 from src.config.utils import (
     normalize_path_parameter,
     validate_parameter_value,
     validate_required_parameters,
 )
+
+
+def is_package_installed(package_name: str) -> bool:
+    """Check if a package is installed.
+    
+    Args:
+        package_name: Name of the package to check
+    
+    Returns:
+        True if package is installed and importable
+    """
+    try:
+        spec = importlib.util.find_spec(package_name)
+        return spec is not None
+    except (ImportError, ModuleNotFoundError):
+        return False
+
+
+def generate_vscode_command(
+    server_type: str,
+    server_config: dict[str, Any],
+    workspace: bool = True
+) -> dict[str, Any]:
+    """Generate VSCode-compatible server configuration.
+    
+    Args:
+        server_type: Type of server (e.g., "mcp-code-checker")
+        server_config: Raw server configuration
+        workspace: Whether this is for workspace config
+    
+    Returns:
+        VSCode-formatted server configuration
+    """
+    config: dict[str, Any] = {}
+    
+    # Determine if we should use module invocation
+    if server_type == "mcp-code-checker":
+        if is_package_installed("mcp_code_checker"):
+            # Installed as package - use module invocation
+            config["command"] = sys.executable
+            # Skip the first arg (python executable path) if present
+            original_args = server_config.get("args", [])
+            if original_args and original_args[0].endswith(("main.py", "server.py")):
+                # Replace script path with module invocation
+                config["args"] = ["-m", "mcp_code_checker"] + original_args[1:]
+            else:
+                config["args"] = ["-m", "mcp_code_checker"] + original_args
+        else:
+            # Running from source - use direct path
+            config["command"] = server_config.get("command", sys.executable)
+            config["args"] = server_config.get("args", [])
+    else:
+        # Other server types - use as-is
+        config["command"] = server_config.get("command")
+        config["args"] = server_config.get("args", [])
+    
+    # Handle environment variables
+    if "env" in server_config and server_config["env"]:
+        config["env"] = server_config["env"]
+    
+    # Preserve metadata field for internal use
+    if "_server_type" in server_config:
+        config["_server_type"] = server_config["_server_type"]
+    
+    # Normalize paths based on workspace vs user config
+    if workspace:
+        # For workspace configs, prefer relative paths where possible
+        config = make_paths_relative(config, Path.cwd())
+    else:
+        # For user configs, ensure absolute paths
+        config = make_paths_absolute(config)
+    
+    return config
+
+
+def make_paths_relative(config: dict[str, Any], base_path: Path) -> dict[str, Any]:
+    """Convert absolute paths to relative where possible.
+    
+    Args:
+        config: Server configuration
+        base_path: Base path to make paths relative to
+    
+    Returns:
+        Configuration with relative paths
+    """
+    updated = config.copy()
+    
+    # Process arguments
+    if "args" in updated:
+        updated_args = []
+        skip_next = False
+        
+        for i, arg in enumerate(updated["args"]):
+            if skip_next:
+                skip_next = False
+                # This is the value for a path argument
+                try:
+                    path_obj = Path(arg)
+                    if path_obj.is_absolute():
+                        try:
+                            rel_path = path_obj.relative_to(base_path)
+                            # Only use relative path if it doesn't go up directories
+                            if not str(rel_path).startswith(".."):
+                                updated_args.append(str(rel_path).replace("\\", "/"))
+                            else:
+                                updated_args.append(arg)
+                        except ValueError:
+                            # Path is not relative to base, keep absolute
+                            updated_args.append(arg)
+                    else:
+                        updated_args.append(arg)
+                except (ValueError, OSError):
+                    updated_args.append(arg)
+            elif arg in ["--project-dir", "--python-executable", "--venv-path", "--log-file"]:
+                skip_next = True
+                updated_args.append(arg)
+            else:
+                updated_args.append(arg)
+        
+        updated["args"] = updated_args
+    
+    return updated
+
+
+def make_paths_absolute(config: dict[str, Any]) -> dict[str, Any]:
+    """Ensure all paths are absolute.
+    
+    Args:
+        config: Server configuration
+    
+    Returns:
+        Configuration with absolute paths
+    """
+    updated = config.copy()
+    
+    # Process arguments
+    if "args" in updated:
+        updated_args = []
+        skip_next = False
+        
+        for i, arg in enumerate(updated["args"]):
+            if skip_next:
+                skip_next = False
+                # This is the value for a path argument
+                try:
+                    path_obj = Path(arg)
+                    if not path_obj.is_absolute():
+                        updated_args.append(str(path_obj.resolve()))
+                    else:
+                        updated_args.append(arg)
+                except (ValueError, OSError):
+                    updated_args.append(arg)
+            elif arg in ["--project-dir", "--python-executable", "--venv-path", "--log-file"]:
+                skip_next = True
+                updated_args.append(arg)
+            else:
+                updated_args.append(arg)
+        
+        updated["args"] = updated_args
+    
+    return updated
 
 
 def build_server_config(
@@ -74,6 +236,7 @@ def generate_client_config(
     server_name: str,
     user_params: dict[str, Any],
     python_executable: str | None = None,
+    client_handler: ClientHandler | None = None,
 ) -> dict[str, Any]:
     """Generate client configuration from server config and user parameters.
 
@@ -82,6 +245,7 @@ def generate_client_config(
         server_name: User-provided server instance name
         user_params: User-provided parameter values (with underscores)
         python_executable: Path to Python executable to use (auto-detect if None)
+        client_handler: Client handler instance for client-specific formatting
 
     Returns:
         Client configuration dictionary ready for JSON serialization
@@ -169,6 +333,13 @@ def generate_client_config(
     if env:
         client_config["env"] = env
 
+    # Apply VSCode-specific formatting if needed
+    if client_handler and isinstance(client_handler, VSCodeHandler):
+        workspace = getattr(client_handler, "workspace", True)
+        client_config = generate_vscode_command(
+            server_config.name, client_config, workspace
+        )
+
     return client_config
 
 
@@ -203,7 +374,7 @@ def setup_mcp_server(
     try:
         # Generate the client configuration
         client_config = generate_client_config(
-            server_config, server_name, user_params, python_executable
+            server_config, server_name, user_params, python_executable, client_handler
         )
 
         result["config"] = client_config

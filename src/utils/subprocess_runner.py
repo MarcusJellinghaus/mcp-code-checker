@@ -14,7 +14,7 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import structlog
 
@@ -104,21 +104,6 @@ def get_python_isolation_env() -> dict[str, str]:
     return env
 
 
-def _safe_preexec_fn() -> None:
-    """
-    Safely attempt to create a new session.
-
-    This is used on Unix-like systems to isolate the subprocess.
-    Errors are silently ignored as they may occur in restricted environments.
-    """
-    try:
-        if hasattr(os, "setsid"):
-            os.setsid()  # type: ignore[attr-defined]
-    except (OSError, PermissionError, AttributeError):
-        # Ignore errors - may already be session leader or restricted env
-        pass
-
-
 def _run_subprocess(
     command: list[str], options: CommandOptions, use_stdio_isolation: bool = False
 ) -> subprocess.CompletedProcess[str]:
@@ -143,12 +128,8 @@ def _run_subprocess(
     # Handle input data and stdin
     stdin_value = subprocess.DEVNULL if options.input_data is None else None
 
-    # Prepare preexec_fn for Unix-like systems
-    preexec_fn: Callable[[], Any] | None = None
-    start_new_session = False
-    if os.name != "nt":
-        preexec_fn = _safe_preexec_fn
-        start_new_session = True
+    # Use start_new_session for process isolation (thread-safe alternative to preexec_fn)
+    start_new_session = os.name != "nt"  # True on Unix, False on Windows
 
     # Use file-based STDIO for Python commands if needed
     if use_stdio_isolation and options.capture_output:
@@ -182,7 +163,6 @@ def _run_subprocess(
                         env=env,
                         shell=options.shell,
                         start_new_session=start_new_session,
-                        preexec_fn=preexec_fn,
                     )
 
                     # Communicate with timeout
@@ -360,7 +340,6 @@ def _run_subprocess(
                     env=env,
                     shell=options.shell,
                     start_new_session=start_new_session,
-                    preexec_fn=preexec_fn,
                 )
 
                 try:
@@ -452,7 +431,6 @@ def _run_subprocess(
                     stdin=stdin_value,
                     input=options.input_data,
                     start_new_session=start_new_session,
-                    preexec_fn=preexec_fn,
                     check=False,
                 )
         except subprocess.TimeoutExpired:

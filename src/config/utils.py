@@ -4,6 +4,7 @@ This module provides functions for validating parameter values,
 required parameters, and path normalization.
 """
 
+import importlib.util
 from pathlib import Path
 from typing import Any
 
@@ -105,3 +106,79 @@ def normalize_path_parameter(value: str, base_path: Path) -> str:
     # Make relative to base_path
     absolute_path = (base_path / path).resolve()
     return str(absolute_path)
+
+
+def detect_mcp_installation(project_dir: Path) -> dict[str, Any]:
+    """Detect MCP Code Checker installation details.
+    
+    Args:
+        project_dir: Project directory to check
+    
+    Returns:
+        Dictionary with installation information
+    """
+    info: dict[str, Any] = {
+        "installed_as_package": False,
+        "source_path": None,
+        "module_name": None,
+        "version": None
+    }
+    
+    # Check if installed as package
+    try:
+        spec = importlib.util.find_spec("mcp_code_checker")
+        if spec is not None:
+            info["installed_as_package"] = True
+            info["module_name"] = "mcp_code_checker"
+            
+            # Try to get version
+            try:
+                import mcp_code_checker  # type: ignore[import-not-found]
+                if hasattr(mcp_code_checker, "__version__"):
+                    info["version"] = mcp_code_checker.__version__
+            except ImportError:
+                pass
+    except (ImportError, ModuleNotFoundError):
+        pass
+    
+    # Check for source installation
+    main_py = project_dir / "src" / "main.py"
+    if main_py.exists():
+        info["source_path"] = str(main_py)
+        
+        # Check if this looks like MCP Code Checker
+        try:
+            with open(main_py, "r", encoding="utf-8") as f:
+                content = f.read(1000)  # Read first 1000 chars
+                if "mcp" in content.lower() and "code" in content.lower():
+                    info["likely_mcp_code_checker"] = True
+        except Exception:
+            pass
+    
+    return info
+
+
+def recommend_command_format(
+    client: str,
+    server_type: str,
+    installation_info: dict[str, Any]
+) -> str:
+    """Recommend the best command format for the given client and server.
+    
+    Args:
+        client: Client type (vscode, claude-desktop, etc.)
+        server_type: Server type
+        installation_info: Installation detection results
+    
+    Returns:
+        Recommended command format description
+    """
+    if client.startswith("vscode"):
+        if installation_info.get("installed_as_package"):
+            return "Module invocation (python -m mcp_code_checker)"
+        else:
+            return "Direct script execution (python src/main.py)"
+    elif client == "claude-desktop":
+        return "Direct script execution with full paths"
+    
+    return "Default command format"
