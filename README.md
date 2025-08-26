@@ -4,7 +4,7 @@ A Model Context Protocol (MCP) server providing code quality checking operations
 
 ## Overview
 
-This MCP server enables AI assistants like Claude (via Claude Desktop) or other MCP-compatible systems to perform quality checks on your code. With these capabilities, AI assistants can:
+This MCP server enables AI assistants like Claude (via Claude Desktop), VSCode with GitHub Copilot, or other MCP-compatible systems to perform quality checks on your code. With these capabilities, AI assistants can:
 
 - Run pylint checks to identify code quality issues
 - Execute pytest to identify failing tests
@@ -248,6 +248,53 @@ Claude will now be able to analyze code in your specified project directory.
    - These logs can be helpful for troubleshooting issues with the MCP server connection
 
 For more information on logging and troubleshooting, see the [MCP Documentation](https://modelcontextprotocol.io/quickstart/user#getting-logs-from-claude-for-desktop).
+
+## Using with VSCode
+
+VSCode 1.102+ has native MCP support that works with GitHub Copilot and other extensions. The MCP Configuration Tool can automatically configure VSCode for you.
+
+### Quick Setup
+
+```bash
+# Configure for current workspace (recommended for team projects)
+mcp-config setup mcp-code-checker "my-project" --client vscode --project-dir .
+
+# Configure globally for user profile
+mcp-config setup mcp-code-checker "global-checker" --client vscode-user --project-dir ~/projects
+
+# List configured servers
+mcp-config list --client vscode
+```
+
+### Manual Configuration
+
+VSCode MCP configuration is stored in:
+- **Workspace**: `.vscode/mcp.json` (shareable via git)
+- **User Profile**: 
+  - Windows: `%APPDATA%\Code\User\mcp.json`
+  - macOS: `~/Library/Application Support/Code/User/mcp.json`
+  - Linux: `~/.config/Code/User/mcp.json`
+
+Example `.vscode/mcp.json`:
+```json
+{
+  "servers": {
+    "code-checker": {
+      "command": "python",
+      "args": ["-m", "mcp_code_checker", "--project-dir", "."],
+      "env": {}
+    }
+  }
+}
+```
+
+### Requirements
+
+- VSCode 1.102 or later
+- GitHub Copilot (for using MCP servers with Copilot)
+- For organizations: "MCP servers in Copilot" policy must be enabled
+
+After configuration, restart VSCode to load the MCP servers.
 
 ## Using MCP Inspector
 

@@ -347,6 +347,73 @@ cat ~/.config/claude/claude_desktop_config.json | jq .mcpServers
 - Stack Overflow (tag: mcp-config)
 - Discord/Slack communities
 
+## VSCode Issues
+
+### VSCode Version Requirements
+
+**Problem:** MCP servers not loading in VSCode
+
+**Solution:** Ensure VSCode 1.102 or later is installed:
+1. Check version: Help → About
+2. Update if needed: Help → Check for Updates
+
+### GitHub Copilot Requirements
+
+**Problem:** MCP servers not available in Copilot
+
+**Solution:** 
+1. Ensure GitHub Copilot extension is installed
+2. For organizations: Check that "MCP servers in Copilot" policy is enabled
+3. Sign in to GitHub Copilot
+
+### Configuration Not Loading
+
+**Problem:** VSCode doesn't recognize MCP configuration
+
+**Solutions:**
+1. Restart VSCode after configuration changes
+2. Check file location:
+   - Workspace: `.vscode/mcp.json`
+   - User: Check correct path for your OS
+3. Validate JSON syntax:
+   ```bash
+   mcp-config validate --client vscode
+   ```
+
+### Workspace vs User Profile
+
+**Problem:** Unsure which configuration to use
+
+**Guidelines:**
+- **Workspace** (`.vscode/mcp.json`):
+  - Team projects
+  - Project-specific settings
+  - Shareable via git
+- **User Profile**:
+  - Personal projects
+  - Global settings
+  - Not shared
+
+### Path Resolution Issues
+
+**Problem:** Server fails to start with path errors
+
+**Solutions:**
+1. Use relative paths for workspace configs:
+   ```json
+   "args": ["--project-dir", "."]
+   ```
+2. Use absolute paths for user configs:
+   ```json
+   "args": ["--project-dir", "/home/user/projects"]
+   ```
+
+### Multiple Configurations
+
+**Problem:** Both workspace and user configs exist
+
+**Note:** Workspace configuration takes precedence over user profile configuration.
+
 ## Recovery Procedures
 
 ### Restore from Backup

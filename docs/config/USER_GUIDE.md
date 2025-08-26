@@ -13,8 +13,14 @@ pip install mcp-config
 # Navigate to your project
 cd /path/to/your/project
 
-# Set up MCP Code Checker
+# Set up for Claude Desktop (default)
 mcp-config setup mcp-code-checker "my-project" --project-dir .
+
+# Set up for VSCode workspace
+mcp-config setup mcp-code-checker "my-project" --client vscode --project-dir .
+
+# Set up for VSCode user profile
+mcp-config setup mcp-code-checker "global" --client vscode-user --project-dir .
 
 # View configured servers
 mcp-config list --detailed
@@ -35,6 +41,7 @@ mcp-config setup <server-type> <server-name> [options]
 - `server-name`: Name for this instance
 
 **Options:**
+- `--client <type>`: Client type (claude/vscode/vscode-workspace/vscode-user)
 - `--project-dir <path>`: Project directory (required)
 - `--python-executable <path>`: Python path (auto-detected)
 - `--venv-path <path>`: Virtual environment (auto-detected)
@@ -42,17 +49,28 @@ mcp-config setup <server-type> <server-name> [options]
 - `--dry-run`: Preview changes without applying
 - `--backup/--no-backup`: Create backup (default: true)
 
+**Client Types:**
+- `claude` (default): Configure for Claude Desktop
+- `vscode` or `vscode-workspace`: Configure for VSCode workspace (.vscode/mcp.json)
+- `vscode-user`: Configure for VSCode user profile
+
 **Examples:**
 
 ```bash
-# Basic setup
+# Claude Desktop (default)
 mcp-config setup mcp-code-checker "webapp" --project-dir .
 
-# Debug configuration
+# VSCode workspace (team sharing via git)
+mcp-config setup mcp-code-checker "webapp" --client vscode --project-dir .
+
+# VSCode user profile (personal/global)
+mcp-config setup mcp-code-checker "global" --client vscode-user --project-dir ~/projects
+
+# Debug configuration for VSCode
 mcp-config setup mcp-code-checker "debug" \
+  --client vscode \
   --project-dir . \
-  --log-level DEBUG \
-  --keep-temp-files
+  --log-level DEBUG
 
 # Custom Python
 mcp-config setup mcp-code-checker "custom" \
@@ -68,14 +86,22 @@ Remove a configured server.
 mcp-config remove <server-name> [options]
 ```
 
+**Options:**
+- `--client <type>`: Client type (claude/vscode/vscode-workspace/vscode-user)
+- `--dry-run`: Preview changes
+- `--backup/--no-backup`: Create backup
+
 **Examples:**
 
 ```bash
-# Remove with backup
+# Remove from Claude Desktop (default)
 mcp-config remove "old-project"
 
-# Preview removal
-mcp-config remove "old-project" --dry-run
+# Remove from VSCode workspace
+mcp-config remove "old-project" --client vscode
+
+# Preview removal from VSCode user profile
+mcp-config remove "global" --client vscode-user --dry-run
 ```
 
 ### list
@@ -87,8 +113,22 @@ mcp-config list [options]
 ```
 
 **Options:**
+- `--client <type>`: Client type (claude/vscode/vscode-workspace/vscode-user)
 - `--detailed`: Show full configuration
 - `--managed-only`: Show only managed servers
+
+**Examples:**
+
+```bash
+# List Claude Desktop servers (default)
+mcp-config list
+
+# List VSCode workspace servers
+mcp-config list --client vscode --detailed
+
+# List VSCode user profile servers
+mcp-config list --client vscode-user
+```
 
 **Example Output:**
 ```
@@ -164,9 +204,20 @@ Override auto-detection by specifying paths explicitly.
 
 Configurations are stored in platform-specific locations:
 
+### Claude Desktop
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Linux**: `~/.config/claude/claude_desktop_config.json`
+
+### VSCode Workspace
+- **All platforms**: `.vscode/mcp.json` in project root
+- Shareable via version control
+- Takes precedence over user profile
+
+### VSCode User Profile
+- **Windows**: `%APPDATA%\Code\User\mcp.json`
+- **macOS**: `~/Library/Application Support/Code/User/mcp.json`
+- **Linux**: `~/.config/Code/User/mcp.json`
 
 ## Safety Features
 
@@ -177,12 +228,40 @@ Configurations are stored in platform-specific locations:
 
 ## Common Workflows
 
-### New Project Setup
+### Claude Desktop Setup
 
 ```bash
 cd ~/projects/my-app
 mcp-config setup mcp-code-checker "my-app" --project-dir .
 # Restart Claude Desktop
+```
+
+### VSCode Team Project
+
+```bash
+cd ~/projects/team-project
+mcp-config setup mcp-code-checker "team-project" --client vscode --project-dir .
+git add .vscode/mcp.json
+git commit -m "Add MCP configuration for team"
+# Team members: pull and restart VSCode
+```
+
+### VSCode Personal Setup
+
+```bash
+# Configure globally for all projects
+mcp-config setup mcp-code-checker "personal" \
+  --client vscode-user \
+  --project-dir ~/projects
+# Restart VSCode
+```
+
+### Multi-Client Setup
+
+```bash
+# Same project in both Claude and VSCode
+mcp-config setup mcp-code-checker "webapp" --project-dir .
+mcp-config setup mcp-code-checker "webapp" --client vscode --project-dir .
 ```
 
 ### Update Configuration
