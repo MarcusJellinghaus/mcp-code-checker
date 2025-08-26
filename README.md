@@ -17,10 +17,8 @@ By connecting your AI assistant to your code checking tools, you can transform y
 
 ## Documentation
 
-- [**Usage Guide**](docs/USAGE.md) - Complete CLI reference and configuration examples
-- [**Troubleshooting**](docs/TROUBLESHOOTING.md) - Common issues and solutions
-- [**Integration Guide**](docs/INTEGRATION.md) - For external server developers
-- [**API Documentation**](docs/API.md) - Programmatic interface reference
+- [**User Guide**](docs/config/USER_GUIDE.md) - Complete command reference and setup instructions
+- [**Troubleshooting**](docs/config/TROUBLESHOOTING.md) - Common issues and solutions
 
 ## Features
 
