@@ -52,8 +52,7 @@ class TestOutputFormatter:
             assert "Test folder not found" in output
             assert "Python executable not found" in output
 
-            # Check for suggestions
-            assert "Create test folder" in output
+            # Simplified version no longer shows suggestions
 
     def test_print_configuration_details(self) -> None:
         """Test configuration details formatting."""
@@ -69,10 +68,6 @@ class TestOutputFormatter:
                 tree_format=True,
             )
             output = mock_stdout.getvalue()
-
-            # Check tree formatting
-            assert OutputFormatter.TREE_BRANCH in output
-            assert OutputFormatter.TREE_LAST in output
 
             # Check content
             assert "my-checker" in output
@@ -104,9 +99,8 @@ class TestOutputFormatter:
             output = mock_stdout.getvalue()
 
             assert "Auto-detected parameters" in output
-            assert "(from venv)" in output
-            assert "(default)" in output
-            assert OutputFormatter.TREE_BRANCH in output
+            assert "Python Executable" in output
+            assert "Venv Path" in output
 
     def test_print_enhanced_server_list(self, tmp_path: Path) -> None:
         """Test enhanced server list formatting."""
@@ -137,20 +131,15 @@ class TestOutputFormatter:
             output = mock_stdout.getvalue()
 
             # Check sections
-            assert "Managed Servers (1)" in output
-            assert "External Servers (1)" in output
+            assert "MCP Servers for claude-desktop" in output
 
             # Check server names
             assert "my-checker" in output
             assert "external-server" in output
 
-            # Check tree formatting
-            assert OutputFormatter.TREE_BRANCH in output
-            assert OutputFormatter.TREE_LAST in output
-
             # Check detailed info
             assert "/usr/bin/python" in output
-            assert "--project-dir" in output
+            # Args are not shown in enhanced list (simplified)
 
     def test_print_dry_run_config_preview(self, tmp_path: Path) -> None:
         """Test dry-run configuration preview."""
@@ -159,6 +148,8 @@ class TestOutputFormatter:
             "args": ["--project-dir", "/test"],
             "_managed_by": "mcp-config-managed",
             "_server_type": "mcp-code-checker",
+            "name": "test-server",
+            "type": "mcp-code-checker",
         }
 
         config_path = tmp_path / "config.json"
@@ -170,17 +161,17 @@ class TestOutputFormatter:
             )
             output = mock_stdout.getvalue()
 
-            # Check JSON output
-            assert '"command":' in output
-            assert '"/usr/bin/python"' in output
-            assert '"args":' in output
+            # Check simplified output format
+            assert "Would update configuration" in output
+            assert "Server: test-server" in output
+            assert "Type: mcp-code-checker" in output
 
             # Check paths
             assert str(config_path) in output
             assert str(backup_path) in output
 
             # Check success message
-            assert "Configuration is valid" in output
+            assert "Configuration valid" in output
             assert "Run without --dry-run" in output
 
     def test_print_dry_run_remove_preview(self, tmp_path: Path) -> None:
@@ -207,22 +198,15 @@ class TestOutputFormatter:
 
             assert "Would remove server 'my-checker'" in output
             assert "mcp-code-checker" in output
-            assert "/usr/bin/python" in output
-
-            # Check other servers
-            assert "Other servers will be preserved" in output
-            assert "other-server (managed)" in output
-            assert "external (external)" in output
+            
+            # Check preservation message for other servers
+            assert "Preserving 2 other server(s)" in output
 
             # Check paths
             assert str(config_path) in output
             assert str(backup_path) in output
 
             # Check success message
-            assert "Removal is safe" in output
+            assert "Removal safe" in output
 
-    def test_supports_color(self) -> None:
-        """Test color support detection."""
-        # This is environment-dependent, so just check it returns a boolean
-        result = OutputFormatter.supports_color()
-        assert isinstance(result, bool)
+

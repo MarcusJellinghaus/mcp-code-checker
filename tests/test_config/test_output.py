@@ -26,7 +26,7 @@ class TestOutputFormatter:
         """Test info message formatting."""
         OutputFormatter.print_info("Important information")
         captured = capsys.readouterr()
-        assert "ℹ Important information" in captured.out
+        assert "• Important information" in captured.out
 
     def test_print_warning(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test warning message formatting."""
@@ -62,7 +62,7 @@ class TestOutputFormatter:
         """Test server list formatting with no servers."""
         OutputFormatter.print_server_list([])
         captured = capsys.readouterr()
-        assert "No servers found" in captured.out
+        assert "No servers configured" in captured.out
 
     def test_print_server_list_basic(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test basic server list formatting."""
@@ -74,8 +74,8 @@ class TestOutputFormatter:
         OutputFormatter.print_server_list(servers, detailed=False)
         captured = capsys.readouterr()
 
-        assert "● server1 (type1)" in captured.out
-        assert "○ server2 (type2)" in captured.out
+        assert "• server1 (type1)" in captured.out
+        assert "• server2 (external)" in captured.out
 
     def test_print_server_list_detailed(
         self, capsys: pytest.CaptureFixture[str]
@@ -100,13 +100,12 @@ class TestOutputFormatter:
         OutputFormatter.print_server_list(servers, detailed=True)
         captured = capsys.readouterr()
 
-        assert "● server1 (type1)" in captured.out
+        assert "• server1 (type1)" in captured.out
         assert "Command: python -m server1" in captured.out
         assert "Args: --arg1 --arg2" in captured.out
 
-        assert "○ server2 (type2)" in captured.out
+        assert "• server2 (external)" in captured.out
         assert "Command: node server2.js" in captured.out
-        assert "External server" in captured.out
 
     def test_print_server_list_long_args_truncation(
         self, capsys: pytest.CaptureFixture[str]
@@ -138,10 +137,10 @@ class TestOutputFormatter:
         OutputFormatter.print_validation_errors(errors)
         captured = capsys.readouterr()
 
-        assert "❌ Validation Errors:" in captured.out
-        assert "• Missing required parameter: project-dir" in captured.out
-        assert "• Invalid value for log-level" in captured.out
-        assert "• Path does not exist: /invalid/path" in captured.out
+        assert "Validation Errors:" in captured.out
+        assert "✗ Missing required parameter: project-dir" in captured.out
+        assert "✗ Invalid value for log-level" in captured.out
+        assert "✗ Path does not exist: /invalid/path" in captured.out
 
     def test_print_validation_errors_empty(
         self, capsys: pytest.CaptureFixture[str]
@@ -151,40 +150,7 @@ class TestOutputFormatter:
         captured = capsys.readouterr()
         assert captured.out == ""
 
-    def test_format_table(self) -> None:
-        """Test table formatting."""
-        headers = ["Name", "Type", "Status"]
-        rows = [
-            ["server1", "mcp-code-checker", "Active"],
-            ["server2", "test-server", "Inactive"],
-            ["very-long-server-name", "type", "Running"],
-        ]
 
-        table = OutputFormatter.format_table(headers, rows)
-
-        assert "Name" in table
-        assert "Type" in table
-        assert "Status" in table
-        assert "server1" in table
-        assert "mcp-code-checker" in table
-        assert "Active" in table
-        assert "-" in table  # Separator line
-
-    def test_format_table_empty(self) -> None:
-        """Test table formatting with empty data."""
-        result = OutputFormatter.format_table([], [])
-        assert result == ""
-
-        result = OutputFormatter.format_table(["Header"], [])
-        assert "Header" in result
-
-    def test_format_table_cell_truncation(self) -> None:
-        """Test that long cells are truncated."""
-        headers = ["Name"]
-        rows = [["x" * 100]]
-
-        table = OutputFormatter.format_table(headers, rows, max_width=80)
-        assert "..." in table
 
 
 class TestOutputFormatterIntegration:
@@ -205,7 +171,7 @@ class TestOutputFormatterIntegration:
         OutputFormatter.print_success("Server configured successfully")
 
         captured = capsys.readouterr()
-        assert "ℹ Starting server setup..." in captured.out
+        assert "• Starting server setup..." in captured.out
         assert "Setup Summary:" in captured.out
         assert "✓ Server configured successfully" in captured.out
 
@@ -223,8 +189,8 @@ class TestOutputFormatterIntegration:
         OutputFormatter.print_error("Setup failed due to validation errors")
 
         captured = capsys.readouterr()
-        assert "ℹ Validating configuration..." in captured.out
-        assert "❌ Validation Errors:" in captured.out
+        assert "• Validating configuration..." in captured.out
+        assert "Validation Errors:" in captured.out
         assert "✗ Setup failed" in captured.out
 
     def test_server_list_output_sequence(
@@ -252,7 +218,7 @@ class TestOutputFormatterIntegration:
         OutputFormatter.print_success(f"Found {len(servers)} servers")
 
         captured = capsys.readouterr()
-        assert "ℹ Fetching server configurations..." in captured.out
-        assert "● checker1" in captured.out
-        assert "○ external" in captured.out
+        assert "• Fetching server configurations..." in captured.out
+        assert "• checker1" in captured.out
+        assert "• external" in captured.out
         assert "✓ Found 2 servers" in captured.out

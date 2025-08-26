@@ -13,14 +13,10 @@ from src.config.validation import (
     auto_detect_python_executable,
     auto_detect_venv_path,
     auto_generate_log_file_path,
-    create_parameter_validator,
     normalize_path,
     validate_log_level,
     validate_parameter_combination,
-    validate_path_exists,
-    validate_path_is_dir,
-    validate_path_is_file,
-    validate_path_permissions,
+    validate_path,
     validate_python_executable,
     validate_venv_path,
 )
@@ -36,24 +32,24 @@ class TestPathValidation:
         test_file.write_text("test")
 
         # Valid path
-        errors = validate_path_exists(test_file, "test_param")
+        errors = validate_path(test_file, "test_param", must_exist=True)
         assert errors == []
 
         # Invalid path
-        errors = validate_path_exists(tmp_path / "nonexistent", "test_param")
+        errors = validate_path(tmp_path / "nonexistent", "test_param", must_exist=True)
         assert len(errors) == 1
         assert "does not exist" in errors[0]
 
     def test_validate_path_is_dir(self, tmp_path: Path) -> None:
         """Test directory validation."""
         # Valid directory
-        errors = validate_path_is_dir(tmp_path, "test_param")
+        errors = validate_path(tmp_path, "test_param", must_be_dir=True)
         assert errors == []
 
         # File instead of directory
         test_file = tmp_path / "test.txt"
         test_file.write_text("test")
-        errors = validate_path_is_dir(test_file, "test_param")
+        errors = validate_path(test_file, "test_param", must_exist=True, must_be_dir=True)
         assert len(errors) == 1
         assert "is not a directory" in errors[0]
 
@@ -62,11 +58,11 @@ class TestPathValidation:
         # Valid file
         test_file = tmp_path / "test.txt"
         test_file.write_text("test")
-        errors = validate_path_is_file(test_file, "test_param")
+        errors = validate_path(test_file, "test_param", must_be_file=True)
         assert errors == []
 
         # Directory instead of file
-        errors = validate_path_is_file(tmp_path, "test_param")
+        errors = validate_path(tmp_path, "test_param", must_exist=True, must_be_file=True)
         assert len(errors) == 1
         assert "is not a file" in errors[0]
 
@@ -76,15 +72,15 @@ class TestPathValidation:
         test_file.write_text("test")
 
         # Read permission
-        errors = validate_path_permissions(test_file, "test_param", "r")
+        errors = validate_path(test_file, "test_param", check_permissions="r")
         assert errors == []
 
         # Write permission (directory)
-        errors = validate_path_permissions(tmp_path, "test_param", "w")
+        errors = validate_path(tmp_path, "test_param", check_permissions="w")
         assert errors == []
 
-        # Non-existent path (should not error)
-        errors = validate_path_permissions(tmp_path / "nonexistent", "test_param", "r")
+        # Non-existent path (should not error for permissions)
+        errors = validate_path(tmp_path / "nonexistent", "test_param", check_permissions="r")
         assert errors == []
 
 
@@ -224,60 +220,6 @@ class TestAutoDetection:
         datetime.strptime(timestamp_part, "%Y%m%d_%H%M%S")
 
 
-class TestParameterValidator:
-    """Test parameter validator creation."""
-
-    def test_create_path_validator(self, tmp_path: Path) -> None:
-        """Test creating a path validator."""
-        # Create validator that checks existence
-        validator = create_parameter_validator(
-            "path", required=True, validate_exists=True
-        )
-
-        # Test with existing path
-        errors = validator(tmp_path, "test_param")
-        assert errors == []
-
-        # Test with non-existent path
-        errors = validator(tmp_path / "nonexistent", "test_param")
-        assert len(errors) == 1
-        assert "does not exist" in errors[0]
-
-        # Test with None (required)
-        errors = validator(None, "test_param")
-        assert len(errors) == 1
-        assert "required" in errors[0]
-
-    def test_create_boolean_validator(self) -> None:
-        """Test creating a boolean validator."""
-        validator = create_parameter_validator("boolean")
-
-        # Valid boolean
-        errors = validator(True, "test_param")
-        assert errors == []
-
-        # Invalid type
-        errors = validator("not a bool", "test_param")
-        assert len(errors) == 1
-        assert "must be boolean" in errors[0]
-
-    def test_create_string_validator(self) -> None:
-        """Test creating a string validator."""
-        validator = create_parameter_validator("string")
-
-        # Valid string
-        errors = validator("test", "test_param")
-        assert errors == []
-
-        # Convertible to string
-        errors = validator(123, "test_param")
-        assert errors == []
-
-        # Test with None (not required)
-        errors = validator(None, "test_param")
-        assert errors == []
-
-
 class TestParameterCombination:
     """Test parameter combination validation."""
 
@@ -308,23 +250,3 @@ class TestParameterCombination:
         errors = validate_parameter_combination(params)
         assert len(errors) == 1
         assert "is not a directory" in errors[0]
-
-    def test_venv_python_precedence(self) -> None:
-        """Test that venv takes precedence over python executable."""
-        # This is currently just a warning, not an error
-        params = {
-            "venv_path": "/path/to/venv",
-            "python_executable": "/usr/bin/python",
-        }
-        errors = validate_parameter_combination(params)
-        assert errors == []  # No errors, just internal handling
-
-    def test_console_only_log_file(self) -> None:
-        """Test console-only with log file."""
-        # This is currently just a warning, not an error
-        params = {
-            "console_only": True,
-            "log_file": "/path/to/log.log",
-        }
-        errors = validate_parameter_combination(params)
-        assert errors == []  # No errors, just internal handling

@@ -426,87 +426,26 @@ def handle_validate_command(args: argparse.Namespace) -> int:
         # Get client handler
         client_handler = get_client_handler(args.client)
 
-        # If no server name provided, show available types
+        # If no server name provided, show available types and configured servers
         if not args.server_name:
             configs = registry.get_all_configs()
-            if not configs:
-                print("No server types available")
-                return 1
-
-            # Group by built-in vs external
-            builtin_servers = []
-            external_servers = []
-
-            for name, config in sorted(configs.items()):
-                if name == "mcp-code-checker":  # Known built-in
-                    builtin_servers.append((name, config))
-                else:
-                    external_servers.append((name, config))
-
-            print("Available server types:")
-
-            # Display built-in servers
-            if builtin_servers:
-                print("\n  Built-in servers:")
-                for name, config in builtin_servers:
-                    print(f"    • {name}: {config.display_name}")
-                    if args.verbose:
-                        print(f"      Module: {config.main_module}")
-                        print(f"      Parameters: {len(config.parameters)}")
-                        required = config.get_required_params()
-                        if required:
-                            print(f"      Required: {', '.join(required)}")
-
-                        # Show all parameters
-                        print("      All parameters:")
-                        for param in config.parameters:
-                            req_mark = "*" if param.required else " "
-                            auto_mark = "(auto)" if param.auto_detect else ""
-                            print(
-                                f"        {req_mark} {param.name}: {param.param_type} {auto_mark}"
-                            )
-                            if param.help and args.verbose:
-                                # Wrap help text for readability
-                                help_lines = param.help.split(". ")
-                                for line in help_lines:
-                                    if line:
-                                        print(f"            {line}")
-                        print()  # Empty line between server types
-
-            # Display external servers
-            if external_servers:
-                print("\n  External servers:")
-                for name, config in external_servers:
-                    print(f"    • {name}: {config.display_name}")
-                    if args.verbose:
-                        print(f"      Module: {config.main_module}")
-                        print(f"      Parameters: {len(config.parameters)}")
-                        required = config.get_required_params()
-                        if required:
-                            print(f"      Required: {', '.join(required)}")
-
-                        # Show all parameters
-                        print("      All parameters:")
-                        for param in config.parameters:
-                            req_mark = "*" if param.required else " "
-                            auto_mark = "(auto)" if param.auto_detect else ""
-                            print(
-                                f"        {req_mark} {param.name}: {param.param_type} {auto_mark}"
-                            )
-                            if param.help and args.verbose:
-                                # Wrap help text for readability
-                                help_lines = param.help.split(". ")
-                                for line in help_lines:
-                                    if line:
-                                        print(f"            {line}")
-                        print()  # Empty line between server types
-
-            if args.verbose:
-                print(f"\nTotal: {len(configs)} server type(s) available.")
-                print("\nUse 'mcp-config help <server-type>' for detailed parameter documentation.")
+            if configs:
+                print("Available MCP server types:")
+                for name, config in sorted(configs.items()):
+                    print(f"  • {name}: {config.display_name}")
+                print()
+            
+            # Also list configured servers for validation
+            managed_servers = client_handler.list_managed_servers()
+            if managed_servers:
+                print("Configured servers:")
+                for server in managed_servers:
+                    print(f"  • {server['name']} ({server['type']})")
+                print()
+                print("Use: mcp-config validate <server-name> to check a configured server")
             else:
-                print("\nUse 'mcp-config validate --verbose' for detailed information.")
-                print("Use 'mcp-config help <server-type>' for parameter documentation.")
+                print("No servers configured yet.")
+                print("Use: mcp-config setup <server-type> <server-name> to configure a server")
             
             return 0
 
@@ -553,8 +492,7 @@ def handle_validate_command(args: argparse.Namespace) -> int:
         if "python_executable" not in params and server_info.get("command"):
             params["python_executable"] = server_info["command"]
 
-        print(f"Validating server '{args.server_name}' configuration...")
-        print()
+        print(f"Validating '{args.server_name}' ({server_info.get('type', 'unknown')}):")
 
         # Run comprehensive validation
         validation_result = validate_server_configuration(
@@ -563,12 +501,6 @@ def handle_validate_command(args: argparse.Namespace) -> int:
 
         # Print validation results
         OutputFormatter.print_validation_results(validation_result)
-
-        # Show configuration details if valid
-        if validation_result["success"]:
-            OutputFormatter.print_configuration_details(
-                args.server_name, server_info.get("type", "unknown"), params
-            )
 
         return 0 if validation_result["success"] else 1
 
