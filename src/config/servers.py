@@ -202,12 +202,56 @@ class ServerConfig:
         if self.name == "mcp-code-checker":
             import shutil
             return shutil.which("mcp-code-checker") is not None
+        # Add other servers with CLI commands here in the future
         return False
+
+    def get_cli_command_name(self) -> str | None:
+        """Get the CLI command name for this server.
+        
+        Returns:
+            CLI command name if available, None otherwise
+        """
+        if self.name == "mcp-code-checker":
+            return "mcp-code-checker"
+        # Add other servers here
+        return None
+
+    def get_installation_mode(self) -> str:
+        """Get the current installation mode for this server.
+        
+        Returns:
+            One of: 'cli_command', 'python_module', 'development', 'not_available'
+        """
+        if self.name == "mcp-code-checker":
+            import shutil
+            import importlib.util
+            
+            # Check for CLI command
+            if shutil.which("mcp-code-checker"):
+                return "cli_command"
+            
+            # Check if package is installed
+            try:
+                spec = importlib.util.find_spec("mcp_code_checker")
+                if spec is not None:
+                    return "python_module"
+            except (ImportError, ModuleNotFoundError):
+                pass
+            
+            # Check for development mode
+            from pathlib import Path
+            if Path("src/main.py").exists():
+                return "development"
+            
+            return "not_available"
+        
+        # Default for other servers
+        return "not_available"
 
     def validate_project(self, project_dir: Path) -> bool:
         """Check if project is compatible (server-specific logic).
 
-        For MCP Code Checker, validates that the expected structure exists.
+        For MCP Code Checker, validates based on installation mode.
 
         Args:
             project_dir: Path to the project directory
@@ -216,11 +260,21 @@ class ServerConfig:
             True if the project is valid for this server
         """
         if self.name == "mcp-code-checker":
-            # If using CLI command, just check that it's a valid directory
+            # If using CLI command, just verify directory exists
             if self.supports_cli_command():
                 return project_dir.exists() and project_dir.is_dir()
             
-            # For development mode, check for expected structure
+            # Check if package is installed (module mode)
+            try:
+                import importlib.util
+                spec = importlib.util.find_spec("mcp_code_checker")
+                if spec is not None:
+                    # Package is installed, just need valid directory
+                    return project_dir.exists() and project_dir.is_dir()
+            except (ImportError, ModuleNotFoundError):
+                pass
+            
+            # Development mode - check for expected structure
             main_path = project_dir / self.main_module
             src_path = project_dir / "src"
 
