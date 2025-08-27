@@ -1,3 +1,19 @@
+# Step 10: Update Installation Documentation
+
+## Objective
+Update or create comprehensive installation documentation (INSTALL.md) that covers all installation methods and verifies the CLI command.
+
+## Files to Modify
+- `INSTALL.md` - Update/create comprehensive installation guide
+- Check and update any references in other docs
+
+## Implementation Instructions
+
+### 1. Update/Create INSTALL.md
+
+Create or completely rewrite the INSTALL.md file:
+
+```markdown
 # Installation Guide for MCP Code Checker
 
 ## Prerequisites
@@ -323,3 +339,36 @@ If you encounter issues:
 2. Run validation: `mcp-config validate`
 3. Check GitHub Issues: https://github.com/MarcusJellinghaus/mcp-code-checker/issues
 4. Ask for help with detailed error messages and system information
+```
+
+### 2. Update References in Other Files
+
+Check and update any references to installation in:
+- README.md (should reference INSTALL.md)
+- docs/config/README.md
+- Any quickstart guides
+
+Add to README.md if not present:
+```markdown
+## Installation
+
+See [INSTALL.md](INSTALL.md) for detailed installation instructions.
+
+Quick install:
+```bash
+pip install mcp-code-checker
+mcp-code-checker --help
+```
+```
+
+## Validation
+
+After creating/updating:
+1. All installation methods should be documented
+2. Platform-specific instructions should be comprehensive
+3. Troubleshooting section should cover common issues
+4. Post-installation verification should be clear
+5. Virtual environment usage should be explained
+
+## Next Step
+Proceed to Step 11 to create test scripts and validation.

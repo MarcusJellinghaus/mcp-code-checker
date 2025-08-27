@@ -7,8 +7,14 @@ The MCP Configuration Helper automates MCP server setup for Claude Desktop and o
 ## Quick Start
 
 ```bash
-# Install the tool
+# Install MCP Code Checker first
+pip install mcp-code-checker  # Or: pip install -e . for development
+
+# Install the configuration tool
 pip install mcp-config
+
+# Verify installation
+mcp-code-checker --help
 
 # Navigate to your project
 cd /path/to/your/project
@@ -48,6 +54,8 @@ mcp-config setup <server-type> <server-name> [options]
 - `--log-level <level>`: DEBUG|INFO|WARNING|ERROR|CRITICAL
 - `--dry-run`: Preview changes without applying
 - `--backup/--no-backup`: Create backup (default: true)
+
+**Note:** The config tool automatically detects if `mcp-code-checker` is installed as a command and will use it in the generated configuration. If not installed, it falls back to Python module invocation.
 
 **Client Types:**
 - `claude` (default): Configure for Claude Desktop
@@ -200,6 +208,32 @@ The tool automatically detects:
 
 Override auto-detection by specifying paths explicitly.
 
+## Installation Mode Detection
+
+The configuration helper automatically detects how MCP Code Checker is installed:
+
+1. **CLI Command** (Preferred): If `mcp-code-checker` is available as a command
+   - Generated config uses: `"command": "mcp-code-checker"`
+   - Installation: `pip install mcp-code-checker` or `pip install -e .`
+
+2. **Python Module**: If installed as a package but no CLI command
+   - Generated config uses: `"command": "python", "args": ["-m", "mcp_code_checker", ...]`
+   - This happens with older installations or incomplete setups
+
+3. **Development Mode**: Running from source without installation
+   - Generated config uses: `"command": "python", "args": ["src/main.py", ...]`
+   - Used when running directly from the repository
+
+To check which mode will be used:
+```bash
+# Run validation to see installation mode
+mcp-config validate "your-server-name"
+
+# Or check if command is available
+which mcp-code-checker  # Unix/macOS
+where mcp-code-checker  # Windows
+```
+
 ## Configuration Storage
 
 Configurations are stored in platform-specific locations:
@@ -209,10 +243,39 @@ Configurations are stored in platform-specific locations:
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Linux**: `~/.config/claude/claude_desktop_config.json`
 
+**Example configuration:**
+```json
+{
+  "mcpServers": {
+    "my-project": {
+      "command": "mcp-code-checker",
+      "args": [
+        "--project-dir",
+        "/path/to/project",
+        "--log-level",
+        "INFO"
+      ]
+    }
+  }
+}
+```
+
 ### VSCode Workspace
 - **All platforms**: `.vscode/mcp.json` in project root
 - Shareable via version control
 - Takes precedence over user profile
+
+**Example configuration:**
+```json
+{
+  "servers": {
+    "my-project": {
+      "command": "mcp-code-checker",
+      "args": ["--project-dir", "."]
+    }
+  }
+}
+```
 
 ### VSCode User Profile
 - **Windows**: `%APPDATA%\Code\User\mcp.json`
@@ -231,17 +294,33 @@ Configurations are stored in platform-specific locations:
 ### Claude Desktop Setup
 
 ```bash
+# Ensure MCP Code Checker is installed
+pip install mcp-code-checker
+
+# Navigate to your project
 cd ~/projects/my-app
+
+# Configure for Claude
 mcp-config setup mcp-code-checker "my-app" --project-dir .
+
 # Restart Claude Desktop
 ```
 
 ### VSCode Team Project
 
 ```bash
+# Ensure MCP Code Checker is installed for all team members
+echo "mcp-code-checker" >> requirements.txt
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure for VSCode workspace
 cd ~/projects/team-project
 mcp-config setup mcp-code-checker "team-project" --client vscode --project-dir .
-git add .vscode/mcp.json
+
+# Commit configuration
+git add .vscode/mcp.json requirements.txt
 git commit -m "Add MCP configuration for team"
 # Team members: pull and restart VSCode
 ```
@@ -274,13 +353,25 @@ mcp-config setup mcp-code-checker "my-app" \
 
 ### Troubleshooting
 
-```bash
-# Validate configuration
-mcp-config validate "my-app"
+If you encounter issues:
 
-# Check detailed config
-mcp-config list --detailed
-```
+1. **Command not found**: Ensure `mcp-code-checker` is installed:
+   ```bash
+   pip install mcp-code-checker
+   # Or for development: pip install -e .
+   ```
+
+2. **Validate configuration**: Check your setup:
+   ```bash
+   mcp-config validate "my-app"
+   ```
+
+3. **Check detailed configuration**:
+   ```bash
+   mcp-config list --detailed
+   ```
+
+4. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed solutions
 
 ## Next Steps
 

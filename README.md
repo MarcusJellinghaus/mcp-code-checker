@@ -66,33 +66,28 @@ Both `run_pytest_check` and `run_all_checks` expose the following parameters for
 
 ## Installation
 
-### Option 1: Direct Installation from GitHub (Recommended)
+See [INSTALL.md](INSTALL.md) for detailed installation instructions.
+
+**Quick install:**
 
 ```bash
-# Install directly from GitHub
+# Install from GitHub (recommended)
 pip install git+https://github.com/MarcusJellinghaus/mcp-code-checker.git
 
-# Or in a virtual environment (recommended)
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install git+https://github.com/MarcusJellinghaus/mcp-code-checker.git
+# Verify installation
+mcp-code-checker --help
 ```
 
-### Option 2: Clone and Install for Development
+**Development install:**
 
 ```bash
-# Clone the repository
+# Clone and install for development
 git clone https://github.com/MarcusJellinghaus/mcp-code-checker.git
 cd mcp-code-checker
-
-# Create and activate a virtual environment (recommended)
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install in editable mode
-pip install -e .
-# Or with development dependencies
 pip install -e ".[dev]"
+mcp-code-checker --help
 ```
 
 ## Using as a Dependency
@@ -139,19 +134,41 @@ pip install ".[dev]"
 
 ## Running the Server
 
+### Using the CLI Command (Recommended)
+After installation, you can run the server using the `mcp-code-checker` command:
+
 ```bash
-python -m src.main --project-dir /path/to/project [--python-executable /path/to/python] [--venv-path /path/to/venv] [--log-level LEVEL] [--log-file PATH]
+mcp-code-checker --project-dir /path/to/project [options]
 ```
 
-The server uses FastMCP for operation. The project directory parameter (`--project-dir`) is **required** for security reasons. All code checking operations will be restricted to this directory.
+### Using Python Module (Alternative)
+You can also run the server as a Python module:
 
-Additional parameters:
+```bash
+python -m mcp_code_checker --project-dir /path/to/project [options]
 
-- `--python-executable`: Optional path to Python interpreter to use for running tests
-- `--venv-path`: Optional path to virtual environment to activate for running tests
-- `--log-level`: Optional logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). Defaults to INFO
-- `--log-file`: Optional path for structured JSON logs. If not specified, logs to mcp_code_checker_{timestamp}.log in project_dir/logs/
-- `--console-only`: Optional flag to log only to console, ignoring --log-file parameter
+# Or for development (from source directory)
+python -m src.main --project-dir /path/to/project [options]
+```
+
+### Available Options
+
+- `--project-dir`: **Required**. Path to the project directory to analyze
+- `--python-executable`: Optional. Path to Python interpreter for running tests
+- `--venv-path`: Optional. Path to virtual environment to activate
+- `--test-folder`: Optional. Test folder path relative to project (default: "tests")
+- `--log-level`: Optional. Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- `--log-file`: Optional. Path for structured JSON logs
+- `--console-only`: Optional. Log only to console
+- `--keep-temp-files`: Optional. Keep temporary files after execution
+
+Example with options:
+```bash
+mcp-code-checker \
+  --project-dir /path/to/project \
+  --venv-path /path/to/project/.venv \
+  --log-level DEBUG
+```
 
 ## Project Structure Support
 
@@ -202,122 +219,127 @@ Use `--console-only` to disable file logging for simple development scenarios.
 
 ## Using with Claude Desktop App
 
-To enable Claude to use this code checking server for analyzing files in your local environment:
+To enable Claude to use this code checking server:
 
-1. Create or modify the Claude configuration file:
-   - Location: `%APPDATA%\Claude\claude_desktop_config.json` (on Windows)
-   - On macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+1. Install MCP Code Checker:
+   ```bash
+   pip install mcp-code-checker
+   # Or from source: pip install -e .
+   ```
 
-2. Add the MCP server configuration to the file:
+2. Configure using the helper tool (recommended):
+   ```bash
+   mcp-config setup mcp-code-checker "my-project" --project-dir /path/to/project
+   ```
 
-```json
-{
-    "mcpServers": {
-        "code_checker": {
-            "command": "C:\\path\\to\\mcp_code_checker\\.venv\\Scripts\\python.exe",
-            "args": [                
-                "C:\\path\\to\\mcp_code_checker\\src\\main.py",
-                "--project-dir",
-                "C:\\path\\to\\your\\project",
-            "--python-executable",
-            "C:\\path\\to\\python.exe",
-            "--venv-path",
-            "C:\\path\\to\\venv",
-            "--log-level",
-            "INFO"
-                ],
-            "env": {
-        "PYTHONPATH": "C:\\path\\to\\mcp_code_checker\\"
-    }
-}
-}
-}
-```
+3. Or manually edit the configuration file:
+   - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+   - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - Linux: `~/.config/claude/claude_desktop_config.json`
 
-3. Replace all `C:\\path\\to\\` instances with your actual paths:
-   - Point to your Python virtual environment 
-   - Set the project directory to the folder you want Claude to check
-   - Make sure the PYTHONPATH points to the mcp_code_checker root folder
+   Example configuration (when installed as package):
+   ```json
+   {
+       "mcpServers": {
+           "code_checker": {
+               "command": "mcp-code-checker",
+               "args": [
+                   "--project-dir",
+                   "/path/to/your/project",
+                   "--log-level",
+                   "INFO"
+               ]
+           }
+       }
+   }
+   ```
 
-4. Restart the Claude desktop app to apply changes
+   Example configuration (development mode):
+   ```json
+   {
+       "mcpServers": {
+           "code_checker": {
+               "command": "python",
+               "args": [                
+                   "-m",
+                   "src.main",
+                   "--project-dir",
+                   "/path/to/your/project"
+               ],
+               "env": {
+                   "PYTHONPATH": "/path/to/mcp-code-checker/"
+               }
+           }
+       }
+   }
+   ```
 
-Claude will now be able to analyze code in your specified project directory.
-
-5. Log files location:
-   - Windows: `%APPDATA%\Claude\logs`
-   - These logs can be helpful for troubleshooting issues with the MCP server connection
-
-For more information on logging and troubleshooting, see the [MCP Documentation](https://modelcontextprotocol.io/quickstart/user#getting-logs-from-claude-for-desktop).
+4. Restart Claude Desktop to apply changes
 
 ## Using with VSCode
 
-VSCode 1.102+ has native MCP support that works with GitHub Copilot and other extensions. The MCP Configuration Tool can automatically configure VSCode for you.
+VSCode 1.102+ supports MCP servers natively. Configure using the helper tool or manually:
 
-### Quick Setup
+### Quick Setup (Recommended)
 
 ```bash
-# Configure for current workspace (recommended for team projects)
+# Install MCP Code Checker
+pip install mcp-code-checker
+
+# Configure for current workspace
 mcp-config setup mcp-code-checker "my-project" --client vscode --project-dir .
 
-# Configure globally for user profile
-mcp-config setup mcp-code-checker "global-checker" --client vscode-user --project-dir ~/projects
-
-# List configured servers
-mcp-config list --client vscode
+# Or configure globally
+mcp-config setup mcp-code-checker "global" --client vscode-user --project-dir ~/projects
 ```
 
 ### Manual Configuration
 
-VSCode MCP configuration is stored in:
-- **Workspace**: `.vscode/mcp.json` (shareable via git)
-- **User Profile**: 
-  - Windows: `%APPDATA%\Code\User\mcp.json`
-  - macOS: `~/Library/Application Support/Code/User/mcp.json`
-  - Linux: `~/.config/Code/User/mcp.json`
+Create or edit `.vscode/mcp.json` in your workspace:
 
-Example `.vscode/mcp.json`:
 ```json
 {
   "servers": {
     "code-checker": {
-      "command": "python",
-      "args": ["-m", "mcp_code_checker", "--project-dir", "."],
-      "env": {}
+      "command": "mcp-code-checker",
+      "args": ["--project-dir", "."]
     }
   }
 }
 ```
 
-### Requirements
-
-- VSCode 1.102 or later
-- GitHub Copilot (for using MCP servers with Copilot)
-- For organizations: "MCP servers in Copilot" policy must be enabled
-
-After configuration, restart VSCode to load the MCP servers.
+For development mode:
+```json
+{
+  "servers": {
+    "code-checker": {
+      "command": "python",
+      "args": ["-m", "src.main", "--project-dir", "."],
+      "env": {
+        "PYTHONPATH": "/path/to/mcp-code-checker"
+      }
+    }
+  }
+}
+```
 
 ## Using MCP Inspector
 
 MCP Inspector allows you to debug and test your MCP server:
 
-1. Start MCP Inspector by running:
-
+### For Installed Package
 ```bash
-npx @modelcontextprotocol/inspector \
-  uv \
-  --directory C:\path\to\mcp_code_checker \
-  run \
-  src\main.py
+npx @modelcontextprotocol/inspector mcp-code-checker --project-dir /path/to/project
 ```
 
-2. In the MCP Inspector web UI, configure with the following:
-   - Python interpreter: `C:\path\to\mcp_code_checker\.venv\Scripts\python.exe`
-   - Arguments: `C:\path\to\mcp_code_checker\src\main.py --project-dir C:\path\to\your\project --log-level DEBUG`
-   - Environment variables:
-     - Name: `PYTHONPATH`
-     - Value: `C:\path\to\mcp_code_checker\`
-
-3. This will launch the server and provide a debug interface for testing the available tools.
+### For Development Mode
+```bash
+npx @modelcontextprotocol/inspector \
+  python \
+  -m \
+  src.main \
+  --project-dir /path/to/project
+```
 
 ## Available Tools
 
