@@ -20,10 +20,10 @@ from src.config.utils import (
 
 def is_package_installed(package_name: str) -> bool:
     """Check if a package is installed.
-    
+
     Args:
         package_name: Name of the package to check
-    
+
     Returns:
         True if package is installed and importable
     """
@@ -35,22 +35,20 @@ def is_package_installed(package_name: str) -> bool:
 
 
 def generate_vscode_command(
-    server_type: str,
-    server_config: dict[str, Any],
-    workspace: bool = True
+    server_type: str, server_config: dict[str, Any], workspace: bool = True
 ) -> dict[str, Any]:
     """Generate VSCode-compatible server configuration.
-    
+
     Args:
         server_type: Type of server (e.g., "mcp-code-checker")
         server_config: Raw server configuration
         workspace: Whether this is for workspace config
-    
+
     Returns:
         VSCode-formatted server configuration
     """
     config: dict[str, Any] = {}
-    
+
     # Determine if we should use module invocation
     if server_type == "mcp-code-checker":
         if is_package_installed("mcp_code_checker"):
@@ -71,15 +69,15 @@ def generate_vscode_command(
         # Other server types - use as-is
         config["command"] = server_config.get("command")
         config["args"] = server_config.get("args", [])
-    
+
     # Handle environment variables
     if "env" in server_config and server_config["env"]:
         config["env"] = server_config["env"]
-    
+
     # Preserve metadata field for internal use
     if "_server_type" in server_config:
         config["_server_type"] = server_config["_server_type"]
-    
+
     # Normalize paths based on workspace vs user config
     if workspace:
         # For workspace configs, prefer relative paths where possible
@@ -87,27 +85,27 @@ def generate_vscode_command(
     else:
         # For user configs, ensure absolute paths
         config = make_paths_absolute(config)
-    
+
     return config
 
 
 def make_paths_relative(config: dict[str, Any], base_path: Path) -> dict[str, Any]:
     """Convert absolute paths to relative where possible.
-    
+
     Args:
         config: Server configuration
         base_path: Base path to make paths relative to
-    
+
     Returns:
         Configuration with relative paths
     """
     updated = config.copy()
-    
+
     # Process arguments
     if "args" in updated:
         updated_args = []
         skip_next = False
-        
+
         for i, arg in enumerate(updated["args"]):
             if skip_next:
                 skip_next = False
@@ -129,33 +127,38 @@ def make_paths_relative(config: dict[str, Any], base_path: Path) -> dict[str, An
                         updated_args.append(arg)
                 except (ValueError, OSError):
                     updated_args.append(arg)
-            elif arg in ["--project-dir", "--python-executable", "--venv-path", "--log-file"]:
+            elif arg in [
+                "--project-dir",
+                "--python-executable",
+                "--venv-path",
+                "--log-file",
+            ]:
                 skip_next = True
                 updated_args.append(arg)
             else:
                 updated_args.append(arg)
-        
+
         updated["args"] = updated_args
-    
+
     return updated
 
 
 def make_paths_absolute(config: dict[str, Any]) -> dict[str, Any]:
     """Ensure all paths are absolute.
-    
+
     Args:
         config: Server configuration
-    
+
     Returns:
         Configuration with absolute paths
     """
     updated = config.copy()
-    
+
     # Process arguments
     if "args" in updated:
         updated_args = []
         skip_next = False
-        
+
         for i, arg in enumerate(updated["args"]):
             if skip_next:
                 skip_next = False
@@ -168,14 +171,19 @@ def make_paths_absolute(config: dict[str, Any]) -> dict[str, Any]:
                         updated_args.append(arg)
                 except (ValueError, OSError):
                     updated_args.append(arg)
-            elif arg in ["--project-dir", "--python-executable", "--venv-path", "--log-file"]:
+            elif arg in [
+                "--project-dir",
+                "--python-executable",
+                "--venv-path",
+                "--log-file",
+            ]:
                 skip_next = True
                 updated_args.append(arg)
             else:
                 updated_args.append(arg)
-        
+
         updated["args"] = updated_args
-    
+
     return updated
 
 
@@ -301,7 +309,7 @@ def generate_client_config(
         "command": python_executable,
         "args": args,
     }
-    
+
     # Store metadata separately (will be handled by ClientHandler)
     # The _server_type will be passed through setup_server and extracted there
     client_config["_server_type"] = server_config.name

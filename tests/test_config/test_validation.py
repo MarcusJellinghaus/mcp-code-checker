@@ -49,7 +49,9 @@ class TestPathValidation:
         # File instead of directory
         test_file = tmp_path / "test.txt"
         test_file.write_text("test")
-        errors = validate_path(test_file, "test_param", must_exist=True, must_be_dir=True)
+        errors = validate_path(
+            test_file, "test_param", must_exist=True, must_be_dir=True
+        )
         assert len(errors) == 1
         assert "is not a directory" in errors[0]
 
@@ -62,7 +64,9 @@ class TestPathValidation:
         assert errors == []
 
         # Directory instead of file
-        errors = validate_path(tmp_path, "test_param", must_exist=True, must_be_file=True)
+        errors = validate_path(
+            tmp_path, "test_param", must_exist=True, must_be_file=True
+        )
         assert len(errors) == 1
         assert "is not a file" in errors[0]
 
@@ -80,7 +84,9 @@ class TestPathValidation:
         assert errors == []
 
         # Non-existent path (should not error for permissions)
-        errors = validate_path(tmp_path / "nonexistent", "test_param", check_permissions="r")
+        errors = validate_path(
+            tmp_path / "nonexistent", "test_param", check_permissions="r"
+        )
         assert errors == []
 
 

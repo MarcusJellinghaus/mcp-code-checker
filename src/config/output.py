@@ -63,7 +63,7 @@ class OutputFormatter:
         print("\nSetup Summary:")
         print(f"  Server Name: {server_name}")
         print(f"  Server Type: {server_type}")
-        
+
         if params:
             print("  Parameters:")
             for key, value in params.items():
@@ -92,7 +92,7 @@ class OutputFormatter:
             managed = server.get("managed", False)
             server_type = server.get("type", "external")
             marker = OutputFormatter.INFO
-            
+
             if managed:
                 print(f"  {marker} {server['name']} ({server_type})")
             else:
@@ -172,7 +172,7 @@ class OutputFormatter:
         """
         print(f"\nConfiguration for '{server_name}':")
         print(f"  Type: {server_type}")
-        
+
         if params:
             for key, value in params.items():
                 if value is not None:
@@ -205,7 +205,9 @@ class OutputFormatter:
         if backup_path:
             print(f"  Backup: {backup_path}")
 
-        print(f"\n{OutputFormatter.SUCCESS} Configuration valid. Run without --dry-run to apply.")
+        print(
+            f"\n{OutputFormatter.SUCCESS} Configuration valid. Run without --dry-run to apply."
+        )
 
     @staticmethod
     def print_dry_run_remove_preview(
@@ -226,7 +228,7 @@ class OutputFormatter:
         """
         print(f"\nWould remove server '{server_name}'")
         print(f"  Type: {server_info.get('type', 'unknown')}")
-        
+
         if other_servers:
             print(f"  Preserving {len(other_servers)} other server(s)")
 
@@ -234,7 +236,9 @@ class OutputFormatter:
         if backup_path:
             print(f"  Backup: {backup_path}")
 
-        print(f"\n{OutputFormatter.SUCCESS} Removal safe. Run without --dry-run to apply.")
+        print(
+            f"\n{OutputFormatter.SUCCESS} Removal safe. Run without --dry-run to apply."
+        )
 
     @staticmethod
     def print_enhanced_server_list(
@@ -259,22 +263,24 @@ class OutputFormatter:
             display_name = "VSCode (User Profile)"
         elif client_name == "claude-desktop":
             display_name = "Claude Desktop"
-        
+
         print(f"\nMCP Servers for {display_name}:")
-        
+
         if not servers:
             print("  No servers configured")
         else:
             for server in servers:
                 managed = server.get("managed", False)
-                server_type = server.get("type", "external" if not managed else "unknown")
+                server_type = server.get(
+                    "type", "external" if not managed else "unknown"
+                )
                 marker = OutputFormatter.INFO
-                
+
                 if managed:
                     print(f"  {marker} {server['name']} ({server_type})")
                 else:
                     print(f"  {marker} {server['name']} (external)")
-                
+
                 if detailed and "command" in server:
                     print(f"      Command: {server['command']}")
 

@@ -105,10 +105,10 @@ def handle_setup_command(args: argparse.Namespace) -> int:
         elif client == "vscode-user":
             # Explicit user profile selection
             pass
-        
+
         # Get client handler
         client_handler = get_client_handler(client)
-        
+
         # Check if client is installed
         client_warnings = validate_client_installation(client)
         if client_warnings and args.verbose:
@@ -171,14 +171,28 @@ def handle_setup_command(args: argparse.Namespace) -> int:
             from datetime import datetime
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            config_name = "mcp_config" if client.startswith("vscode") else "claude_desktop_config"
+            config_name = (
+                "mcp_config" if client.startswith("vscode") else "claude_desktop_config"
+            )
             backup_path = (
                 client_handler.get_config_path().parent
                 / f"{config_name}.backup_{timestamp}.json"
             )
 
+            # Create a preview config with name and type for display
+            preview_config = {
+                "name": args.server_name,
+                "type": (
+                    server_config.name
+                    if hasattr(server_config, "name")
+                    else args.server_type
+                ),
+                "command": server_cfg.get("command", ""),
+                "args": server_cfg.get("args", []),
+            }
+
             OutputFormatter.print_dry_run_config_preview(
-                server_cfg,
+                preview_config,
                 client_handler.get_config_path(),
                 backup_path if args.backup else None,
             )
@@ -234,7 +248,7 @@ def handle_remove_command(args: argparse.Namespace) -> int:
         elif client == "vscode-user":
             # Explicit user profile selection
             pass
-        
+
         # Get client handler
         client_handler = get_client_handler(client)
 
@@ -273,7 +287,9 @@ def handle_remove_command(args: argparse.Namespace) -> int:
             from datetime import datetime
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            config_name = "mcp_config" if client.startswith("vscode") else "claude_desktop_config"
+            config_name = (
+                "mcp_config" if client.startswith("vscode") else "claude_desktop_config"
+            )
             backup_path = (
                 client_handler.get_config_path().parent
                 / f"{config_name}.backup_{timestamp}.json"
@@ -352,7 +368,7 @@ def handle_list_command(args: argparse.Namespace) -> int:
             try:
                 client_handler = get_client_handler(client_name)
                 config_path = client_handler.get_config_path()
-                
+
                 # Skip if config doesn't exist (especially for VSCode configs)
                 if not config_path.exists():
                     continue
@@ -361,7 +377,7 @@ def handle_list_command(args: argparse.Namespace) -> int:
                     servers = client_handler.list_managed_servers()
                 else:
                     servers = client_handler.list_all_servers()
-                
+
                 # Only show if there are servers or if a specific client was requested
                 if servers or args.client:
                     # Use enhanced output formatter
@@ -396,27 +412,24 @@ def handle_help_command(args: argparse.Namespace) -> int:
     """
     try:
         from src.config.help_system import (
+            print_command_help,
             print_parameter_help,
             print_quick_reference,
-            print_command_help
         )
-        
+
         # Handle --all flag
         if args.all:
             return print_command_help("all", verbose=True)
-        
+
         # Determine what kind of help to show
         topic = args.topic
-        
+
         # List of known commands
-        commands = [
-            "setup", "remove", "list", "validate", 
-            "help", "all"
-        ]
-        
+        commands = ["setup", "remove", "list", "validate", "help", "all"]
+
         # List of known server types
         server_types = registry.list_servers()
-        
+
         # If no topic specified, show overview
         if not topic:
             if args.quick:
@@ -425,23 +438,23 @@ def handle_help_command(args: argparse.Namespace) -> int:
             else:
                 # Show tool overview
                 return print_command_help(None, args.verbose)
-        
+
         # Determine topic type
         is_command = topic in commands or args.command
         is_server = topic in server_types or args.server
-        
+
         # Handle conflicts
         if args.command and args.server:
             print("Error: Cannot use both --command and --server flags")
             return 1
-        
+
         # If topic could be both, prefer command unless --server is specified
         if not is_command and not is_server:
             print(f"Unknown topic: {topic}")
             print(f"Available commands: {', '.join(commands)}")
             print(f"Available servers: {', '.join(server_types)}")
             return 1
-        
+
         # Show command help
         if is_command and not args.server:
             if args.parameter:
@@ -451,7 +464,7 @@ def handle_help_command(args: argparse.Namespace) -> int:
                 print("Error: --quick flag is only for server help")
                 return 1
             return print_command_help(topic, args.verbose)
-        
+
         # Show server help
         if is_server and not args.command:
             if args.quick:
@@ -460,7 +473,7 @@ def handle_help_command(args: argparse.Namespace) -> int:
                 return print_parameter_help(topic, args.parameter, verbose=True)
             else:
                 return print_parameter_help(topic, None, args.verbose)
-        
+
         # Shouldn't reach here
         print(f"Could not determine help type for: {topic}")
         return 1
@@ -488,7 +501,7 @@ def handle_validate_command(args: argparse.Namespace) -> int:
         elif client == "vscode-user":
             # Explicit user profile selection
             pass
-        
+
         # Get client handler
         client_handler = get_client_handler(client)
 
@@ -500,7 +513,7 @@ def handle_validate_command(args: argparse.Namespace) -> int:
                 for name, config in sorted(configs.items()):
                     print(f"  • {name}: {config.display_name}")
                 print()
-            
+
             # Also list configured servers for validation
             managed_servers = client_handler.list_managed_servers()
             if managed_servers:
@@ -508,11 +521,15 @@ def handle_validate_command(args: argparse.Namespace) -> int:
                 for server in managed_servers:
                     print(f"  • {server['name']} ({server['type']})")
                 print()
-                print("Use: mcp-config validate <server-name> to check a configured server")
+                print(
+                    "Use: mcp-config validate <server-name> to check a configured server"
+                )
             else:
                 print("No servers configured yet.")
-                print("Use: mcp-config setup <server-type> <server-name> to configure a server")
-            
+                print(
+                    "Use: mcp-config setup <server-type> <server-name> to configure a server"
+                )
+
             return 0
 
         # Get server configuration from client
@@ -558,7 +575,9 @@ def handle_validate_command(args: argparse.Namespace) -> int:
         if "python_executable" not in params and server_info.get("command"):
             params["python_executable"] = server_info["command"]
 
-        print(f"Validating '{args.server_name}' ({server_info.get('type', 'unknown')}):")
+        print(
+            f"Validating '{args.server_name}' ({server_info.get('type', 'unknown')}):"
+        )
 
         # Run comprehensive validation
         validation_result = validate_server_configuration(

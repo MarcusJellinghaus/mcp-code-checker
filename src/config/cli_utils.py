@@ -213,7 +213,7 @@ def create_full_parser() -> argparse.ArgumentParser:
 
     # Add validate command
     add_validate_subcommand(subparsers)
-    
+
     # Add help command
     add_help_subcommand(subparsers)
 
@@ -389,42 +389,42 @@ def add_help_subcommand(subparsers: Any) -> None:
         nargs="?",
         help="Topic to show help for (command or server type)",
     )
-    
+
     help_parser.add_argument(
         "--command",
         "-c",
         action="store_true",
         help="Treat topic as a command name",
     )
-    
+
     help_parser.add_argument(
         "--server",
         "-s",
         action="store_true",
         help="Treat topic as a server type",
     )
-    
+
     help_parser.add_argument(
         "--parameter",
         "-p",
         help="Show detailed help for a specific parameter",
         metavar="PARAM_NAME",
     )
-    
+
     help_parser.add_argument(
         "--quick",
         "-q",
         action="store_true",
         help="Show quick reference card instead of detailed help",
     )
-    
+
     help_parser.add_argument(
         "--verbose",
         "-v",
         action="store_true",
         help="Show extended help with examples and details",
     )
-    
+
     help_parser.add_argument(
         "--all",
         "-a",

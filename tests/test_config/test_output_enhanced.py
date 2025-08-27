@@ -198,7 +198,7 @@ class TestOutputFormatter:
 
             assert "Would remove server 'my-checker'" in output
             assert "mcp-code-checker" in output
-            
+
             # Check preservation message for other servers
             assert "Preserving 2 other server(s)" in output
 
@@ -208,5 +208,3 @@ class TestOutputFormatter:
 
             # Check success message
             assert "Removal safe" in output
-
-

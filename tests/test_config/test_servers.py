@@ -148,7 +148,9 @@ class TestServerConfig:
         assert "test-folder" in non_auto_params
         assert "keep-temp-files" in non_auto_params
         assert "log-level" in non_auto_params
-        assert "log-file" in non_auto_params  # Changed: log-file is no longer auto-detect
+        assert (
+            "log-file" in non_auto_params
+        )  # Changed: log-file is no longer auto-detect
         assert "console-only" in non_auto_params
 
     def test_generate_args_basic(self) -> None:

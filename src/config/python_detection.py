@@ -653,7 +653,11 @@ def validate_python_executable(python_path: Path | str) -> bool:
 
     try:
         result = subprocess.run(
-            [str(python_path), "--version"], capture_output=True, text=True, timeout=5, check=False
+            [str(python_path), "--version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
         )
         return result.returncode == 0
     except (subprocess.SubprocessError, OSError):
@@ -697,7 +701,11 @@ print(json.dumps(info))
 
     try:
         result = subprocess.run(
-            [str(python_path), "-c", code], capture_output=True, text=True, timeout=5, check=False
+            [str(python_path), "-c", code],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
         )
 
         if result.returncode != 0:

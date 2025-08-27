@@ -108,7 +108,9 @@ class TestServerConfigurationValidation:
         )
 
         assert result["success"] is False
-        assert any("not found" in err or "does not exist" in err for err in result["errors"])
+        assert any(
+            "not found" in err or "does not exist" in err for err in result["errors"]
+        )
 
     def test_validate_server_configuration_warnings(self, tmp_path: Path) -> None:
         """Test validation that produces warnings."""

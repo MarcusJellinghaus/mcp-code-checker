@@ -206,7 +206,7 @@ def validate_python_executable(python_path: str) -> bool:
     """
     if not python_path:
         return False
-    
+
     path_obj = Path(python_path)
     if not path_obj.exists():
         return False

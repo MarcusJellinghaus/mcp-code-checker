@@ -48,16 +48,16 @@ class TestVSCodeCommandGeneration:
 
     def test_generate_vscode_command_with_package(self):
         """Test command generation when package is installed."""
-        with patch(
-            "src.config.integration.is_package_installed", return_value=True
-        ):
+        with patch("src.config.integration.is_package_installed", return_value=True):
             config = {
                 "command": sys.executable,
                 "args": ["src/main.py", "--project-dir", "/path/to/project"],
                 "_server_type": "mcp-code-checker",
             }
 
-            result = generate_vscode_command("mcp-code-checker", config, workspace=False)
+            result = generate_vscode_command(
+                "mcp-code-checker", config, workspace=False
+            )
 
             assert result["command"] == sys.executable
             assert result["args"][:2] == ["-m", "mcp_code_checker"]
@@ -66,9 +66,7 @@ class TestVSCodeCommandGeneration:
 
     def test_generate_vscode_command_without_package(self):
         """Test command generation when package is not installed."""
-        with patch(
-            "src.config.integration.is_package_installed", return_value=False
-        ):
+        with patch("src.config.integration.is_package_installed", return_value=False):
             config = {
                 "command": sys.executable,
                 "args": ["src/main.py", "--project-dir", "/path/to/project"],
@@ -111,9 +109,7 @@ class TestPathNormalization:
 
     def test_make_paths_relative_project_dir(self, tmp_path):
         """Test making project directory relative."""
-        config = {
-            "args": ["--project-dir", str(tmp_path / "subdir")]
-        }
+        config = {"args": ["--project-dir", str(tmp_path / "subdir")]}
 
         result = make_paths_relative(config, tmp_path)
 
@@ -121,9 +117,7 @@ class TestPathNormalization:
 
     def test_make_paths_relative_already_relative(self, tmp_path):
         """Test that already relative paths are preserved."""
-        config = {
-            "args": ["--project-dir", "subdir/project"]
-        }
+        config = {"args": ["--project-dir", "subdir/project"]}
 
         result = make_paths_relative(config, tmp_path)
 
@@ -134,9 +128,7 @@ class TestPathNormalization:
         if sys.platform != "win32":
             pytest.skip("Windows-specific test")
 
-        config = {
-            "args": ["--project-dir", "D:\\projects\\test"]
-        }
+        config = {"args": ["--project-dir", "D:\\projects\\test"]}
 
         # Use C: as base (assuming tests run on C: drive)
         result = make_paths_relative(config, Path("C:\\workspace"))
@@ -147,9 +139,7 @@ class TestPathNormalization:
     def test_make_paths_relative_parent_directory(self, tmp_path):
         """Test that paths going up directories stay absolute."""
         parent = tmp_path.parent
-        config = {
-            "args": ["--project-dir", str(parent)]
-        }
+        config = {"args": ["--project-dir", str(parent)]}
 
         result = make_paths_relative(config, tmp_path)
 
@@ -162,11 +152,10 @@ class TestPathNormalization:
         try:
             # Change to tmp_path for testing
             import os
+
             os.chdir(tmp_path)
 
-            config = {
-                "args": ["--project-dir", "subdir"]
-            }
+            config = {"args": ["--project-dir", "subdir"]}
 
             result = make_paths_absolute(config)
 
@@ -179,15 +168,14 @@ class TestPathNormalization:
     def test_make_paths_absolute_already_absolute(self):
         """Test that absolute paths are preserved."""
         import os
+
         # Use platform-appropriate absolute path
         if os.name == "nt":
             abs_path = "C:\\absolute\\path"
         else:
             abs_path = "/absolute/path"
-        
-        config = {
-            "args": ["--project-dir", abs_path]
-        }
+
+        config = {"args": ["--project-dir", abs_path]}
 
         result = make_paths_absolute(config)
 
@@ -197,20 +185,28 @@ class TestPathNormalization:
         """Test normalizing multiple path arguments."""
         config = {
             "args": [
-                "--project-dir", str(tmp_path / "project"),
-                "--venv-path", str(tmp_path / "venv"),
-                "--log-file", str(tmp_path / "log.txt"),
-                "--other-arg", "value"
+                "--project-dir",
+                str(tmp_path / "project"),
+                "--venv-path",
+                str(tmp_path / "venv"),
+                "--log-file",
+                str(tmp_path / "log.txt"),
+                "--other-arg",
+                "value",
             ]
         }
 
         result = make_paths_relative(config, tmp_path)
 
         assert result["args"] == [
-            "--project-dir", "project",
-            "--venv-path", "venv", 
-            "--log-file", "log.txt",
-            "--other-arg", "value"
+            "--project-dir",
+            "project",
+            "--venv-path",
+            "venv",
+            "--log-file",
+            "log.txt",
+            "--other-arg",
+            "value",
         ]
 
 
@@ -323,9 +319,7 @@ class TestIntegrationWithVSCodeHandler:
         handler = VSCodeHandler(workspace=True)
 
         # Mock package installation check
-        with patch(
-            "src.config.integration.is_package_installed", return_value=True
-        ):
+        with patch("src.config.integration.is_package_installed", return_value=True):
             config = generate_client_config(
                 server_config,
                 "test-server",
@@ -365,9 +359,7 @@ class TestIntegrationWithVSCodeHandler:
         handler.setup_server.return_value = True
 
         # Mock package detection
-        with patch(
-            "src.config.integration.is_package_installed", return_value=True
-        ):
+        with patch("src.config.integration.is_package_installed", return_value=True):
             result = setup_mcp_server(
                 handler,
                 server_config,

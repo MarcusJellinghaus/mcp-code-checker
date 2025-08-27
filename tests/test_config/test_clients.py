@@ -243,7 +243,7 @@ class TestClaudeDesktopHandler:
         checker_config = config["mcpServers"]["my-checker"]
         assert "_managed_by" not in checker_config
         assert "_server_type" not in checker_config
-        
+
         # Check metadata is stored separately
         metadata = handler.load_metadata()
         assert "my-checker" in metadata
@@ -471,33 +471,35 @@ class TestMetadataSeparation:
             "_managed_by": "mcp-config-managed",
             "_server_type": "mcp-code-checker",
         }
-        
+
         # Add the server
         success = handler.setup_server("test-server", server_config)
         assert success
-        
+
         # Read the raw config file
         config_path = handler.get_config_path()
         with open(config_path, "r") as f:
             raw_config = json.load(f)
-        
+
         # Verify no metadata fields in the raw config
         test_server_config = raw_config["mcpServers"]["test-server"]
         assert "_managed_by" not in test_server_config
         assert "_server_type" not in test_server_config
-        
+
         # Verify metadata is in separate file
         metadata_path = handler.get_metadata_path()
         assert metadata_path.exists()
-        
+
         with open(metadata_path, "r") as f:
             metadata = json.load(f)
-        
+
         assert "test-server" in metadata
         assert metadata["test-server"]["_managed_by"] == "mcp-config-managed"
         assert metadata["test-server"]["_server_type"] == "mcp-code-checker"
 
-    def test_migration_removes_inline_metadata(self, handler: ClaudeDesktopHandler) -> None:
+    def test_migration_removes_inline_metadata(
+        self, handler: ClaudeDesktopHandler
+    ) -> None:
         """Test that migrate_inline_metadata removes metadata from main config."""
         # Manually create a config with inline metadata (old format)
         config_with_metadata = {
@@ -511,31 +513,33 @@ class TestMetadataSeparation:
                 "external-server": {
                     "command": "node",
                     "args": ["external.js"],
-                }
+                },
             }
         }
-        
+
         # Save the old-format config
         config_path = handler.get_config_path()
         config_path.parent.mkdir(parents=True, exist_ok=True)
         with open(config_path, "w") as f:
             json.dump(config_with_metadata, f)
-        
+
         # Run migration
         migrated = handler.migrate_inline_metadata()
         assert migrated
-        
+
         # Verify config is cleaned
         with open(config_path, "r") as f:
             cleaned_config = json.load(f)
-        
+
         assert "_managed_by" not in cleaned_config["mcpServers"]["old-server"]
         assert "_server_type" not in cleaned_config["mcpServers"]["old-server"]
         assert "_managed_by" not in cleaned_config["mcpServers"]["external-server"]
-        
+
         # Verify metadata was moved
         metadata = handler.load_metadata()
         assert "old-server" in metadata
         assert metadata["old-server"]["_managed_by"] == "mcp-config-managed"
         assert metadata["old-server"]["_server_type"] == "old-type"
-        assert "external-server" not in metadata  # External server should not have metadata
+        assert (
+            "external-server" not in metadata
+        )  # External server should not have metadata

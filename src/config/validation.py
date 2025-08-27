@@ -10,12 +10,12 @@ from typing import Any
 
 
 def validate_path(
-    path: Path | str, 
-    param_name: str, 
+    path: Path | str,
+    param_name: str,
     must_exist: bool = False,
     must_be_dir: bool = False,
     must_be_file: bool = False,
-    check_permissions: str | None = None
+    check_permissions: str | None = None,
 ) -> list[str]:
     """Unified path validation function.
 
@@ -37,14 +37,14 @@ def validate_path(
     if must_exist and not path_obj.exists():
         errors.append(f"Path for '{param_name}' does not exist: {path}")
         return errors  # No point checking other properties if doesn't exist
-    
+
     # Type checks (only if path exists)
     if path_obj.exists():
         if must_be_dir and not path_obj.is_dir():
             errors.append(f"Path for '{param_name}' is not a directory: {path}")
         elif must_be_file and not path_obj.is_file():
             errors.append(f"Path for '{param_name}' is not a file: {path}")
-        
+
         # Permission checks
         if check_permissions:
             try:
@@ -56,7 +56,7 @@ def validate_path(
                     errors.append(f"No execute permission for '{param_name}': {path}")
             except (OSError, PermissionError) as e:
                 errors.append(f"Permission error for '{param_name}': {e}")
-    
+
     return errors
 
 
@@ -84,7 +84,11 @@ def validate_python_executable(path: Path | str, param_name: str) -> list[str]:
     # Try to run it and get version
     try:
         result = subprocess.run(
-            [path_str, "--version"], capture_output=True, text=True, timeout=5, check=False
+            [path_str, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
         )
         if result.returncode != 0:
             errors.append(f"Python executable for '{param_name}' failed to run: {path}")
@@ -108,7 +112,9 @@ def validate_venv_path(path: Path | str, param_name: str) -> list[str]:
     venv_path = Path(path) if isinstance(path, str) else path
 
     # Check basic path requirements
-    path_errors = validate_path(venv_path, param_name, must_exist=True, must_be_dir=True)
+    path_errors = validate_path(
+        venv_path, param_name, must_exist=True, must_be_dir=True
+    )
     if path_errors:
         return path_errors
 
@@ -234,15 +240,14 @@ def validate_server_configuration(
         servers = client_handler.list_all_servers()
         server_names = [s["name"] for s in servers]
         if server_name in server_names:
-            checks.append({
-                "status": "success",
-                "message": "Configuration found"
-            })
+            checks.append({"status": "success", "message": "Configuration found"})
         else:
-            checks.append({
-                "status": "error",
-                "message": f"Server '{server_name}' not found in configuration"
-            })
+            checks.append(
+                {
+                    "status": "error",
+                    "message": f"Server '{server_name}' not found in configuration",
+                }
+            )
             errors.append(f"Server '{server_name}' not found")
 
     # Project directory validation
@@ -251,34 +256,32 @@ def validate_server_configuration(
         path_errors = validate_path(
             project_dir, "project_dir", must_exist=True, must_be_dir=True
         )
-        
+
         if not path_errors:
-            checks.append({
-                "status": "success",
-                "message": f"Project directory exists: {project_dir}"
-            })
+            checks.append(
+                {
+                    "status": "success",
+                    "message": f"Project directory exists: {project_dir}",
+                }
+            )
         else:
-            checks.append({
-                "status": "error",
-                "message": path_errors[0]
-            })
+            checks.append({"status": "error", "message": path_errors[0]})
             errors.extend(path_errors)
 
     # Python executable validation
     if "python_executable" in params and params["python_executable"]:
         python_exe = Path(params["python_executable"])
         exe_errors = validate_python_executable(python_exe, "python_executable")
-        
+
         if not exe_errors:
-            checks.append({
-                "status": "success",
-                "message": f"Python executable found: {python_exe.name}"
-            })
+            checks.append(
+                {
+                    "status": "success",
+                    "message": f"Python executable found: {python_exe.name}",
+                }
+            )
         else:
-            checks.append({
-                "status": "error",
-                "message": exe_errors[0]
-            })
+            checks.append({"status": "error", "message": exe_errors[0]})
             errors.extend(exe_errors)
 
     # Virtual environment validation (if specified)
@@ -287,33 +290,39 @@ def validate_server_configuration(
         venv_errors = validate_venv_path(venv_path, "venv_path")
 
         if not venv_errors:
-            checks.append({
-                "status": "success",
-                "message": f"Virtual environment found: {venv_path.name}"
-            })
+            checks.append(
+                {
+                    "status": "success",
+                    "message": f"Virtual environment found: {venv_path.name}",
+                }
+            )
         else:
-            checks.append({
-                "status": "warning",
-                "message": f"Virtual environment issue: {venv_path.name}"
-            })
+            checks.append(
+                {
+                    "status": "warning",
+                    "message": f"Virtual environment issue: {venv_path.name}",
+                }
+            )
             warnings.extend(venv_errors)
 
     # Test folder check for mcp-code-checker
-    if server_type == "mcp-code-checker" and "project_dir" in params and params["project_dir"]:
+    if (
+        server_type == "mcp-code-checker"
+        and "project_dir" in params
+        and params["project_dir"]
+    ):
         project_dir = Path(params["project_dir"])
         test_folder = params.get("test_folder", "tests")
         test_path = project_dir / test_folder
-        
+
         if test_path.exists() and test_path.is_dir():
-            checks.append({
-                "status": "success",
-                "message": f"Test folder exists: {test_folder}"
-            })
+            checks.append(
+                {"status": "success", "message": f"Test folder exists: {test_folder}"}
+            )
         else:
-            checks.append({
-                "status": "warning",
-                "message": f"Test folder missing: {test_folder}"
-            })
+            checks.append(
+                {"status": "warning", "message": f"Test folder missing: {test_folder}"}
+            )
             warnings.append(f"Test folder '{test_folder}' not found")
 
     return {
@@ -348,40 +357,40 @@ def validate_parameter_combination(params: dict[str, Any]) -> list[str]:
 
 def validate_client_installation(client: str) -> list[str]:
     """Check if the target client is installed.
-    
+
     Args:
         client: Client name to check
-    
+
     Returns:
         List of warnings (empty if client is detected)
     """
     warnings = []
-    
+
     if client.startswith("vscode"):
         # Check if VSCode is installed
         vscode_commands = ["code", "code-insiders", "codium"]
         vscode_found = False
-        
+
         for cmd in vscode_commands:
             if shutil.which(cmd):
                 vscode_found = True
                 break
-        
+
         if not vscode_found:
             warnings.append(
                 "VSCode not detected. Please ensure VSCode 1.102+ is installed "
                 "for native MCP support."
             )
-        
+
         # Check for workspace config location if using workspace mode
         if client in ["vscode", "vscode-workspace"]:
             if not Path(".vscode").exists():
                 warnings.append(
                     "No .vscode directory found. It will be created for workspace configuration."
                 )
-    
+
     elif client == "claude-desktop":
         # Check for Claude Desktop (platform-specific checks could be added here)
         pass
-    
+
     return warnings

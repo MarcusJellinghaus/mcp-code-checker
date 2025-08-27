@@ -151,8 +151,6 @@ class TestOutputFormatter:
         assert captured.out == ""
 
 
-
-
 class TestOutputFormatterIntegration:
     """Integration tests for OutputFormatter."""
 

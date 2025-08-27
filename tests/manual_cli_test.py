@@ -24,12 +24,8 @@ def run_command(cmd: list[str]) -> tuple[int, str, str]:
         return 1, "", str(e)
 
 
-def test_cli_commands() -> bool:
-    """Test basic CLI commands.
-
-    Returns:
-        True if all tests pass, False otherwise
-    """
+def test_cli_commands() -> None:
+    """Test basic CLI commands."""
     tests = [
         # Help commands
         (["python", "-m", "src.config.main", "--help"], 0, "Should show main help"),
@@ -113,7 +109,7 @@ def test_cli_commands() -> bool:
                 "--project-dir",
                 ".",
             ],
-            1,
+            2,  # argparse returns 2 for invalid arguments
             "Should fail with invalid server type",
         ),
         (
@@ -160,7 +156,8 @@ def test_cli_commands() -> bool:
     print(f"Results: {passed} passed, {failed} failed")
     print("=" * 70)
 
-    return failed == 0
+    # Use assertion instead of returning a value
+    assert failed == 0, f"{failed} tests failed"
 
 
 def test_with_installed_package() -> None:
@@ -243,23 +240,20 @@ def main() -> int:
     Returns:
         0 if all tests pass, 1 otherwise
     """
-    all_passed = True
+    try:
+        # Run basic CLI tests
+        test_cli_commands()
 
-    # Run basic CLI tests
-    if not test_cli_commands():
-        all_passed = False
+        # Test parameter validation
+        test_parameter_validation()
 
-    # Test parameter validation
-    test_parameter_validation()
+        # Test with installed package
+        test_with_installed_package()
 
-    # Test with installed package
-    test_with_installed_package()
-
-    if all_passed:
         print("\n✓ All manual tests passed!")
         return 0
-    else:
-        print("\n✗ Some tests failed.")
+    except AssertionError as e:
+        print(f"\n✗ Tests failed: {e}")
         return 1
 
 
