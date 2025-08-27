@@ -92,14 +92,15 @@ class ServerConfig:
     main_module: str
     parameters: list[ParameterDef] = field(default_factory=list)
 
-    def generate_args(self, user_params: dict[str, Any]) -> list[str]:
+    def generate_args(self, user_params: dict[str, Any], use_cli_command: bool = False) -> list[str]:
         """Generate command line args from user parameters.
 
         Args:
             user_params: Dictionary of parameter names to values
+            use_cli_command: If True, generate args for CLI command (skip main module)
 
         Returns:
-            List of command-line arguments including the main module
+            List of command-line arguments
         """
         from src.config.validation import (
             auto_detect_python_executable,
@@ -107,14 +108,18 @@ class ServerConfig:
             normalize_path,
         )
 
-        # Get the absolute path to the main module
-        # For MCP Code Checker, resolve main_module relative to project_dir
-        if self.name == "mcp-code-checker" and "project_dir" in user_params:
-            proj_dir = Path(user_params["project_dir"]).resolve()
-            main_module_path = proj_dir / self.main_module
-            args = [str(main_module_path.resolve())]
+        # For CLI command mode, don't include the main module
+        if use_cli_command:
+            args = []
         else:
-            args = [self.main_module]
+            # Get the absolute path to the main module
+            # For MCP Code Checker, resolve main_module relative to project_dir
+            if self.name == "mcp-code-checker" and "project_dir" in user_params:
+                proj_dir = Path(user_params["project_dir"]).resolve()
+                main_module_path = proj_dir / self.main_module
+                args = [str(main_module_path.resolve())]
+            else:
+                args = [self.main_module]
 
         # Process parameters with auto-detection
         processed_params = dict(user_params)
@@ -137,9 +142,11 @@ class ServerConfig:
             # Auto-detect if possible
             if param.auto_detect and project_dir:
                 if param.name == "python-executable":
-                    detected = auto_detect_python_executable(project_dir)
-                    if detected:
-                        processed_params[param_key] = str(detected)
+                    # Don't auto-detect python-executable in CLI command mode
+                    if not use_cli_command:
+                        detected = auto_detect_python_executable(project_dir)
+                        if detected:
+                            processed_params[param_key] = str(detected)
                 elif param.name == "venv-path":
                     detected = auto_detect_venv_path(project_dir)
                     if detected:
@@ -157,6 +164,10 @@ class ServerConfig:
 
             # Skip if no value provided
             if value is None:
+                continue
+
+            # Skip python-executable in CLI command mode (not needed)
+            if use_cli_command and param.name == "python-executable":
                 continue
 
             # Handle boolean flags
@@ -182,6 +193,17 @@ class ServerConfig:
         """
         return [param.name for param in self.parameters if param.required]
 
+    def supports_cli_command(self) -> bool:
+        """Check if this server supports CLI command mode.
+        
+        Returns:
+            True if the server has a CLI command available
+        """
+        if self.name == "mcp-code-checker":
+            import shutil
+            return shutil.which("mcp-code-checker") is not None
+        return False
+
     def validate_project(self, project_dir: Path) -> bool:
         """Check if project is compatible (server-specific logic).
 
@@ -194,7 +216,11 @@ class ServerConfig:
             True if the project is valid for this server
         """
         if self.name == "mcp-code-checker":
-            # Check for expected MCP Code Checker structure
+            # If using CLI command, just check that it's a valid directory
+            if self.supports_cli_command():
+                return project_dir.exists() and project_dir.is_dir()
+            
+            # For development mode, check for expected structure
             main_path = project_dir / self.main_module
             src_path = project_dir / "src"
 

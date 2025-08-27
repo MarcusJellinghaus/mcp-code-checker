@@ -240,15 +240,15 @@ def build_server_config(
         else:
             normalized_params[key] = value
 
-    # Generate args
-    args = server_config.generate_args(normalized_params)
+    # Check if we should use CLI command mode
+    use_cli = server_config.supports_cli_command()
+    
+    # Generate args with appropriate mode
+    args = server_config.generate_args(normalized_params, use_cli_command=use_cli)
 
-    # Check if we should use the CLI command
+    # Build config based on mode
     config: dict[str, Any]
-    if server_config.name == "mcp-code-checker" and is_command_available("mcp-code-checker"):
-        # Use CLI command, skip the script path from args if present
-        if args and args[0].endswith(("main.py", "server.py")):
-            args = args[1:]
+    if use_cli:
         config = {
             "command": "mcp-code-checker",
             "args": args,
@@ -333,15 +333,16 @@ def generate_client_config(
     if python_executable is None:
         python_executable = sys.executable
 
-    # Generate command-line arguments
-    args = server_config.generate_args(normalized_params)
+    # Check if we should use CLI command mode
+    use_cli = server_config.supports_cli_command()
+    
+    # Generate command-line arguments with appropriate mode
+    args = server_config.generate_args(normalized_params, use_cli_command=use_cli)
 
-    # Build the client configuration
+    # Build the client configuration based on mode
     client_config: dict[str, Any]
-    if server_config.name == "mcp-code-checker" and is_command_available("mcp-code-checker"):
+    if use_cli:
         # Use CLI command
-        if args and args[0].endswith(("main.py", "server.py")):
-            args = args[1:]  # Skip script path
         client_config = {
             "command": "mcp-code-checker",
             "args": args,
