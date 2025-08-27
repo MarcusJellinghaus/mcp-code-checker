@@ -47,6 +47,27 @@ def is_package_installed(package_name: str) -> bool:
         return False
 
 
+def get_mcp_code_checker_command_mode() -> str:
+    """Determine the best command mode for MCP Code Checker.
+    
+    Returns:
+        One of: 'cli_command', 'python_module', 'development', 'not_available'
+    """
+    # First check for CLI command
+    if is_command_available("mcp-code-checker"):
+        return "cli_command"
+    
+    # Check if package is installed
+    if is_package_installed("mcp_code_checker"):
+        return "python_module"
+    
+    # Check if we're in development mode (src/main.py exists)
+    if Path("src/main.py").exists():
+        return "development"
+    
+    return "not_available"
+
+
 def generate_vscode_command(
     server_type: str, server_config: dict[str, Any], workspace: bool = True
 ) -> dict[str, Any]:
@@ -62,28 +83,31 @@ def generate_vscode_command(
     """
     config: dict[str, Any] = {}
 
-    # Determine if we should use the CLI command or module invocation
+    # Determine command mode for mcp-code-checker
     if server_type == "mcp-code-checker":
-        # First check if mcp-code-checker command is available
-        if is_command_available("mcp-code-checker"):
+        mode = get_mcp_code_checker_command_mode()
+        
+        if mode == "cli_command":
             # Use the CLI command directly
             config["command"] = "mcp-code-checker"
-            # Skip the first arg (script path) if present, keep other args
+            # Skip the first arg (script path) if present
             original_args = server_config.get("args", [])
             if original_args and original_args[0].endswith(("main.py", "server.py")):
                 config["args"] = original_args[1:]  # Skip the script path
             else:
                 config["args"] = original_args
-        elif is_package_installed("mcp_code_checker"):
-            # Fallback to package module invocation
+                
+        elif mode == "python_module":
+            # Use package module invocation
             config["command"] = sys.executable
             original_args = server_config.get("args", [])
             if original_args and original_args[0].endswith(("main.py", "server.py")):
                 config["args"] = ["-m", "mcp_code_checker"] + original_args[1:]
             else:
                 config["args"] = ["-m", "mcp_code_checker"] + original_args
-        else:
-            # Running from source - use direct path
+                
+        else:  # development or not_available
+            # Use direct path (existing behavior)
             config["command"] = server_config.get("command", sys.executable)
             config["args"] = server_config.get("args", [])
     else:
@@ -240,21 +264,35 @@ def build_server_config(
         else:
             normalized_params[key] = value
 
-    # Check if we should use CLI command mode
-    use_cli = server_config.supports_cli_command()
-    
-    # Generate args with appropriate mode
-    args = server_config.generate_args(normalized_params, use_cli_command=use_cli)
-
-    # Build config based on mode
+    # Determine command mode
     config: dict[str, Any]
-    if use_cli:
-        config = {
-            "command": "mcp-code-checker",
-            "args": args,
-        }
+    if server_config.name == "mcp-code-checker":
+        mode = get_mcp_code_checker_command_mode()
+        
+        if mode == "cli_command":
+            # Generate args for CLI command (without script path)
+            args = server_config.generate_args(normalized_params, use_cli_command=True)
+            config = {
+                "command": "mcp-code-checker",
+                "args": args,
+            }
+        elif mode == "python_module":
+            # Generate args for module invocation
+            args = server_config.generate_args(normalized_params, use_cli_command=True)
+            config = {
+                "command": python_executable or sys.executable,
+                "args": ["-m", "mcp_code_checker"] + args,
+            }
+        else:
+            # Development/fallback mode
+            args = server_config.generate_args(normalized_params)
+            config = {
+                "command": python_executable or sys.executable,
+                "args": args,
+            }
     else:
-        # Use Python executable
+        # Other servers
+        args = server_config.generate_args(normalized_params)
         config = {
             "command": python_executable or sys.executable,
             "args": args,
@@ -333,24 +371,34 @@ def generate_client_config(
     if python_executable is None:
         python_executable = sys.executable
 
-    # Check if we should use CLI command mode
-    use_cli = server_config.supports_cli_command()
-    
-    # Generate command-line arguments with appropriate mode
-    args = server_config.generate_args(normalized_params, use_cli_command=use_cli)
-
-    # Build the client configuration based on mode
+    # Determine command mode for mcp-code-checker
     client_config: dict[str, Any]
-    if use_cli:
-        # Use CLI command
-        client_config = {
-            "command": "mcp-code-checker",
-            "args": args,
-        }
+    if server_config.name == "mcp-code-checker":
+        mode = get_mcp_code_checker_command_mode()
+        
+        if mode == "cli_command":
+            args = server_config.generate_args(normalized_params, use_cli_command=True)
+            client_config = {
+                "command": "mcp-code-checker",
+                "args": args,
+            }
+        elif mode == "python_module":
+            args = server_config.generate_args(normalized_params, use_cli_command=True)
+            client_config = {
+                "command": python_executable or sys.executable,
+                "args": ["-m", "mcp_code_checker"] + args,
+            }
+        else:
+            args = server_config.generate_args(normalized_params)
+            client_config = {
+                "command": python_executable or sys.executable,
+                "args": args,
+            }
     else:
-        # Use Python executable (existing logic)
+        # Other servers
+        args = server_config.generate_args(normalized_params)
         client_config = {
-            "command": python_executable,
+            "command": python_executable or sys.executable,
             "args": args,
         }
 
@@ -380,7 +428,9 @@ def generate_client_config(
                 venv_python = venv_path / "bin" / "python"
 
             if venv_python.exists():
-                client_config["command"] = str(venv_python)
+                # Only update command if not using CLI command
+                if client_config["command"] != "mcp-code-checker":
+                    client_config["command"] = str(venv_python)
 
     if env:
         client_config["env"] = env
