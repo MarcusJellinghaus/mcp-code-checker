@@ -66,42 +66,27 @@ Both `run_pytest_check` and `run_all_checks` expose the following parameters for
 
 ## Installation
 
-### Option 1: Install from PyPI (When Available)
+See [INSTALL.md](INSTALL.md) for detailed installation instructions.
+
+**Quick install:**
 
 ```bash
-pip install mcp-code-checker
-
-# Verify installation
-mcp-code-checker --help
-```
-
-### Option 2: Install from GitHub (Recommended)
-
-```bash
-# Install directly from GitHub
+# Install from GitHub (recommended)
 pip install git+https://github.com/MarcusJellinghaus/mcp-code-checker.git
 
 # Verify installation
 mcp-code-checker --help
 ```
 
-### Option 3: Development Installation
+**Development install:**
 
 ```bash
 # Clone and install for development
 git clone https://github.com/MarcusJellinghaus/mcp-code-checker.git
 cd mcp-code-checker
-
-# Create virtual environment
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install in editable mode (includes CLI command)
-pip install -e .
-# Or with development dependencies
 pip install -e ".[dev]"
-
-# Verify installation
 mcp-code-checker --help
 ```
 
