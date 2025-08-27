@@ -54,6 +54,10 @@ where = ["."]
 testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
 pythonpath = ["."]
+markers = [
+    "cli: Tests for CLI command functionality",
+    "installation: Tests for installation modes"
+]
 
 
 [tool.black]
