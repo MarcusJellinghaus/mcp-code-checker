@@ -222,10 +222,20 @@ class OutputFormatter:
         print("\nWould update configuration:")
         print(f"  Server: {config.get('name', 'unnamed')}")
         print(f"  Type: {config.get('type', 'unknown')}")
-        print(f"  File: {config_path}")
+        
+        # Safely convert path to string to avoid encoding issues
+        try:
+            config_path_str = str(config_path)
+            print(f"  File: {config_path_str}")
+        except Exception as e:
+            print(f"  File: <path conversion error: {e}>")
 
         if backup_path:
-            print(f"  Backup: {backup_path}")
+            try:
+                backup_path_str = str(backup_path)
+                print(f"  Backup: {backup_path_str}")
+            except Exception as e:
+                print(f"  Backup: <path conversion error: {e}>")
 
         print(
             f"\n{OutputFormatter.SUCCESS} Configuration valid. Run without --dry-run to apply."
