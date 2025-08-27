@@ -5,6 +5,7 @@ and client handlers for setting up MCP servers.
 """
 
 import importlib.util
+import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,18 @@ from src.config.utils import (
     validate_parameter_value,
     validate_required_parameters,
 )
+
+
+def is_command_available(command: str) -> bool:
+    """Check if a command is available in the system PATH.
+    
+    Args:
+        command: Command name to check
+        
+    Returns:
+        True if command is available in PATH
+    """
+    return shutil.which(command) is not None
 
 
 def is_package_installed(package_name: str) -> bool:
@@ -49,15 +62,23 @@ def generate_vscode_command(
     """
     config: dict[str, Any] = {}
 
-    # Determine if we should use module invocation
+    # Determine if we should use the CLI command or module invocation
     if server_type == "mcp-code-checker":
-        if is_package_installed("mcp_code_checker"):
-            # Installed as package - use module invocation
-            config["command"] = sys.executable
-            # Skip the first arg (python executable path) if present
+        # First check if mcp-code-checker command is available
+        if is_command_available("mcp-code-checker"):
+            # Use the CLI command directly
+            config["command"] = "mcp-code-checker"
+            # Skip the first arg (script path) if present, keep other args
             original_args = server_config.get("args", [])
             if original_args and original_args[0].endswith(("main.py", "server.py")):
-                # Replace script path with module invocation
+                config["args"] = original_args[1:]  # Skip the script path
+            else:
+                config["args"] = original_args
+        elif is_package_installed("mcp_code_checker"):
+            # Fallback to package module invocation
+            config["command"] = sys.executable
+            original_args = server_config.get("args", [])
+            if original_args and original_args[0].endswith(("main.py", "server.py")):
                 config["args"] = ["-m", "mcp_code_checker"] + original_args[1:]
             else:
                 config["args"] = ["-m", "mcp_code_checker"] + original_args
@@ -222,11 +243,22 @@ def build_server_config(
     # Generate args
     args = server_config.generate_args(normalized_params)
 
-    # Build config (without metadata fields for Claude Desktop compatibility)
-    config: dict[str, Any] = {
-        "command": python_executable or sys.executable,
-        "args": args,
-    }
+    # Check if we should use the CLI command
+    config: dict[str, Any]
+    if server_config.name == "mcp-code-checker" and is_command_available("mcp-code-checker"):
+        # Use CLI command, skip the script path from args if present
+        if args and args[0].endswith(("main.py", "server.py")):
+            args = args[1:]
+        config = {
+            "command": "mcp-code-checker",
+            "args": args,
+        }
+    else:
+        # Use Python executable
+        config = {
+            "command": python_executable or sys.executable,
+            "args": args,
+        }
 
     # Add environment if needed
     if "project_dir" in normalized_params:
@@ -304,11 +336,22 @@ def generate_client_config(
     # Generate command-line arguments
     args = server_config.generate_args(normalized_params)
 
-    # Build the client configuration (without metadata fields for Claude Desktop compatibility)
-    client_config: dict[str, Any] = {
-        "command": python_executable,
-        "args": args,
-    }
+    # Build the client configuration
+    client_config: dict[str, Any]
+    if server_config.name == "mcp-code-checker" and is_command_available("mcp-code-checker"):
+        # Use CLI command
+        if args and args[0].endswith(("main.py", "server.py")):
+            args = args[1:]  # Skip script path
+        client_config = {
+            "command": "mcp-code-checker",
+            "args": args,
+        }
+    else:
+        # Use Python executable (existing logic)
+        client_config = {
+            "command": python_executable,
+            "args": args,
+        }
 
     # Store metadata separately (will be handled by ClientHandler)
     # The _server_type will be passed through setup_server and extracted there
