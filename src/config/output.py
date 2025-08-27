@@ -129,6 +129,17 @@ class OutputFormatter:
         Args:
             validation_result: Dictionary with validation results
         """
+        # Show installation mode if available
+        if "installation_mode" in validation_result:
+            mode = validation_result["installation_mode"]
+            mode_display = {
+                "cli_command": f"{OutputFormatter.SUCCESS} CLI Command",
+                "python_module": f"{OutputFormatter.WARNING} Python Module", 
+                "development": f"{OutputFormatter.INFO} Development Mode",
+                "not_installed": f"{OutputFormatter.ERROR} Not Installed"
+            }.get(mode, mode)
+            print(f"\nInstallation Mode: {mode_display}")
+        
         # Print each check with appropriate symbol
         for check in validation_result.get("checks", []):
             status = check.get("status", "unknown")
@@ -140,6 +151,8 @@ class OutputFormatter:
                 symbol = OutputFormatter.ERROR
             elif status == "warning":
                 symbol = OutputFormatter.WARNING
+            elif status == "info":
+                symbol = OutputFormatter.INFO
             else:
                 symbol = OutputFormatter.INFO
 
@@ -154,6 +167,15 @@ class OutputFormatter:
                 print("Status: Working")
         else:
             print("Status: Configuration has errors")
+            
+        # Show installation instructions if needed
+        if "installation_mode" in validation_result:
+            mode = validation_result["installation_mode"]
+            if mode != "cli_command":
+                from src.config.validation import get_installation_instructions
+                instructions = get_installation_instructions("mcp-code-checker", mode)
+                if instructions and instructions != "Please check the documentation for installation instructions.":
+                    print(f"\n{instructions}")
 
     @staticmethod
     def print_configuration_details(
