@@ -178,6 +178,9 @@ def handle_setup_command(args: argparse.Namespace) -> int:
                 client_handler.get_config_path().parent
                 / f"{config_name}.backup_{timestamp}.json"
             )
+            
+            # Check if backup should be used
+            use_backup = getattr(args, 'backup', True)
 
             # Create a preview config with name and type for display
             preview_config = {
@@ -191,11 +194,18 @@ def handle_setup_command(args: argparse.Namespace) -> int:
                 "args": server_cfg.get("args", []),
             }
 
-            OutputFormatter.print_dry_run_config_preview(
-                preview_config,
-                client_handler.get_config_path(),
-                backup_path if args.backup else None,
-            )
+            try:
+                OutputFormatter.print_dry_run_config_preview(
+                    preview_config,
+                    client_handler.get_config_path(),
+                    backup_path if use_backup else None,
+                )
+            except Exception as e:
+                print(f"Error in preview: {e}")
+                if args.verbose:
+                    import traceback
+                    traceback.print_exc()
+                return 1
             return 0
         elif args.verbose:
             OutputFormatter.print_configuration_details(
