@@ -96,4 +96,4 @@ class TestCLICommand:
         
         # Also check mcp-config exists
         assert "mcp-config" in scripts
-        assert scripts["mcp-config"] == "config.main:main"
+        assert scripts["mcp-config"] == "src.config.main:main"
