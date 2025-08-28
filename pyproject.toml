@@ -43,7 +43,8 @@ mcp-config = "src.config.main:main"
 mcp-code-checker = "src.main:main"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
+include = ["*"]
 
 [project.urls]
 "Homepage" = "https://github.com/yourusername/mcp-code-checker"
