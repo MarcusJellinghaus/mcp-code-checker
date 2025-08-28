@@ -1,0 +1,20 @@
+fix: resolve console script entry point packaging issue
+
+Fix ModuleNotFoundError when running mcp-code-checker after pip install.
+
+The issue was caused by incorrect packaging configuration in pyproject.toml:
+- Console scripts referenced non-existent 'src.main:main' module path
+- Missing setuptools package directory mapping for src-layout
+
+Changes:
+- Add package-dir = {"" = "src"} to properly map src directory
+- Update console scripts to use correct module paths:
+  - mcp-code-checker: src.main:main → main:main  
+  - mcp-config: src.config.main:main → config.main:main
+- Update test expectations to match new entry point format
+
+This implements standard Python src-layout packaging correctly while
+maintaining all existing functionality and imports.
+
+Closes: PackagingError
+Tested: All pylint, pytest, and mypy checks pass

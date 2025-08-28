@@ -39,12 +39,14 @@ dev = [
     ]
 
 [project.scripts]
-mcp-config = "src.config.main:main"
-mcp-code-checker = "src.main:main"
+mcp-config = "config.main:main"
+mcp-code-checker = "main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["*"]
 
 [project.urls]
 "Homepage" = "https://github.com/yourusername/mcp-code-checker"
