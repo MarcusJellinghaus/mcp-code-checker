@@ -9,8 +9,16 @@ import sys
 from pathlib import Path
 
 
-def run_command(cmd, description):
-    """Run a command and report results."""
+def run_command(cmd: list[str], description: str) -> bool:
+    """Run a command and report results.
+    
+    Args:
+        cmd: Command and arguments to run
+        description: Description of what the command does
+        
+    Returns:
+        True if command succeeded, False otherwise
+    """
     print(f"\n{'='*60}")
     print(f"Running: {description}")
     print(f"Command: {' '.join(cmd)}")
@@ -32,8 +40,12 @@ def run_command(cmd, description):
     return result.returncode == 0
 
 
-def main():
-    """Run all VSCode tests."""
+def main() -> int:
+    """Run all VSCode tests.
+    
+    Returns:
+        0 if all tests pass, 1 if some tests fail
+    """
     print("VSCode Support Test Runner")
     print("=" * 60)
 

@@ -2,6 +2,7 @@
 
 import sys
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -224,7 +225,7 @@ class TestInstallationDetection:
             mock_module.__version__ = "1.0.0"
 
             with patch.dict("sys.modules", {"mcp_code_checker": mock_module}):
-                info = detect_mcp_installation(tmp_path)
+                info: dict[str, Any] = detect_mcp_installation(tmp_path)
 
             assert info["installed_as_package"] is True
             assert info["module_name"] == "mcp_code_checker"

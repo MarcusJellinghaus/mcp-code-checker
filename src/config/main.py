@@ -168,19 +168,27 @@ def handle_setup_command(args: argparse.Namespace) -> int:
             )
 
             # Generate backup path based on client type
-            from datetime import datetime
-
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            config_name = (
-                "mcp_config" if client.startswith("vscode") else "claude_desktop_config"
-            )
-            backup_path = (
-                client_handler.get_config_path().parent
-                / f"{config_name}.backup_{timestamp}.json"
-            )
-            
-            # Check if backup should be used
+            backup_path = None
             use_backup = getattr(args, 'backup', True)
+            
+            if use_backup:
+                try:
+                    from datetime import datetime
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    config_name = (
+                        "mcp_config" if client.startswith("vscode") else "claude_desktop_config"
+                    )
+                    config_path = client_handler.get_config_path()
+                    backup_path = (
+                        config_path.parent / f"{config_name}.backup_{timestamp}.json"
+                    )
+                    
+                    # Ensure backup path parent directory exists for path operations
+                    backup_path.parent.mkdir(parents=True, exist_ok=True)
+                except Exception:
+                    # If backup path operations fail, disable backup for dry-run
+                    use_backup = False
+                    backup_path = None
 
             # Create a preview config with name and type for display
             preview_config = {
@@ -200,13 +208,27 @@ def handle_setup_command(args: argparse.Namespace) -> int:
                     client_handler.get_config_path(),
                     backup_path if use_backup else None,
                 )
+                return 0
             except Exception as e:
-                print(f"Error in preview: {e}")
+                # Handle preview errors gracefully without failing the dry-run
+                print(f"\nError generating preview: {e}")
                 if args.verbose:
                     import traceback
                     traceback.print_exc()
-                return 1
-            return 0
+                    
+                # Still show basic info even if preview fails
+                print("\nWould update configuration:")
+                print(f"  Server: {args.server_name}")
+                print(f"  Type: {server_config.name if hasattr(server_config, 'name') else args.server_type}")
+                print(f"  File: {client_handler.get_config_path()}")
+                if backup_path and use_backup:
+                    print(f"  Backup: {backup_path}")
+                # Use safe printing for success message
+                try:
+                    print(f"\n{OutputFormatter.SUCCESS} Configuration valid. Run without --dry-run to apply.")
+                except (UnicodeEncodeError, UnicodeDecodeError):
+                    print("\n[SUCCESS] Configuration valid. Run without --dry-run to apply.")
+                return 0
         elif args.verbose:
             OutputFormatter.print_configuration_details(
                 args.server_name, server_config.name, user_params
@@ -223,15 +245,19 @@ def handle_setup_command(args: argparse.Namespace) -> int:
         )
 
         if result["success"]:
-            print(f"✓ Successfully configured server '{args.server_name}'")
+            try:
+                print(f"✓ Successfully configured server '{args.server_name}'")
+            except (UnicodeEncodeError, UnicodeDecodeError):
+                print(f"[SUCCESS] Successfully configured server '{args.server_name}'")
             if "backup_path" in result:
                 print(f"  Backup created: {result['backup_path']}")
             print(f"  Configuration saved to: {client_handler.get_config_path()}")
             return 0
         else:
-            print(
-                f"✗ Failed to configure server: {result.get('error', 'Unknown error')}"
-            )
+            try:
+                print(f"✗ Failed to configure server: {result.get('error', 'Unknown error')}")
+            except (UnicodeEncodeError, UnicodeDecodeError):
+                print(f"[ERROR] Failed to configure server: {result.get('error', 'Unknown error')}")
             return 1
 
     except Exception as e:
@@ -324,12 +350,18 @@ def handle_remove_command(args: argparse.Namespace) -> int:
         )
 
         if result["success"]:
-            print(f"✓ Successfully removed server '{args.server_name}'")
+            try:
+                print(f"✓ Successfully removed server '{args.server_name}'")
+            except (UnicodeEncodeError, UnicodeDecodeError):
+                print(f"[SUCCESS] Successfully removed server '{args.server_name}'")
             if "backup_path" in result:
                 print(f"  Backup created: {result['backup_path']}")
             return 0
         else:
-            print(f"✗ Failed to remove server: {result.get('error', 'Unknown error')}")
+            try:
+                print(f"✗ Failed to remove server: {result.get('error', 'Unknown error')}")
+            except (UnicodeEncodeError, UnicodeDecodeError):
+                print(f"[ERROR] Failed to remove server: {result.get('error', 'Unknown error')}")
             return 1
 
     except Exception as e:

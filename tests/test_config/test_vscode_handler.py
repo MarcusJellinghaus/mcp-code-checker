@@ -14,7 +14,7 @@ from src.config.clients import VSCodeHandler
 class TestVSCodeHandler:
     """Test VSCode handler functionality."""
 
-    def test_workspace_config_path(self):
+    def test_workspace_config_path(self) -> None:
         """Test workspace configuration path."""
         handler = VSCodeHandler(workspace=True)
 
@@ -299,7 +299,7 @@ class TestVSCodeHandler:
                 f.write("{ invalid json }")
 
             # load_config should handle gracefully and return default config
-            config = handler.load_config()
+            config: dict[str, dict[str, dict]] = handler.load_config()
             assert config == {"servers": {}}  # Should return default config
 
             # List operations should work even with malformed JSON

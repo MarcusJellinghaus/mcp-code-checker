@@ -13,7 +13,7 @@ from src.config.clients import VSCodeHandler
 class TestVSCodePerformance:
     """Test performance aspects of VSCode support."""
 
-    def test_large_config_handling(self, tmp_path):
+    def test_large_config_handling(self, tmp_path: Path) -> None:
         """Test handling of large configuration files."""
         with patch("src.config.clients.Path.cwd") as mock_cwd:
             mock_cwd.return_value = tmp_path
@@ -70,7 +70,7 @@ class TestVSCodePerformance:
                 duration < 3.0
             )  # Should be faster than listing all (very lenient for CI)
 
-    def test_repeated_operations(self, tmp_path):
+    def test_repeated_operations(self, tmp_path: Path) -> None:
         """Test that repeated operations don't degrade performance."""
         with patch("src.config.clients.Path.cwd") as mock_cwd:
             mock_cwd.return_value = tmp_path
@@ -116,7 +116,7 @@ class TestVSCodePerformance:
                 f"second half avg={second_half_avg:.4f}s"
             )
 
-    def test_config_validation_performance(self, tmp_path):
+    def test_config_validation_performance(self, tmp_path: Path) -> None:
         """Test that validation is performant even with complex configs."""
         with patch("src.config.clients.Path.cwd") as mock_cwd:
             mock_cwd.return_value = tmp_path
@@ -157,7 +157,7 @@ class TestVSCodePerformance:
             )  # Validation should be reasonably fast (very lenient for CI)
             assert len(errors) == 0  # Config should be valid
 
-    def test_file_operations_efficiency(self, tmp_path):
+    def test_file_operations_efficiency(self, tmp_path: Path) -> None:
         """Test that file operations are efficient."""
         with patch("src.config.clients.Path.cwd") as mock_cwd:
             mock_cwd.return_value = tmp_path
@@ -189,7 +189,7 @@ class TestVSCodePerformance:
             assert duration < 1.0  # JSON parsing should be fast (very lenient for CI)
 
     @pytest.mark.parametrize("num_servers", [10, 50, 100])
-    def test_scalability(self, tmp_path, num_servers):
+    def test_scalability(self, tmp_path: Path, num_servers: int) -> None:
         """Test that operations scale reasonably with number of servers."""
         with patch("src.config.clients.Path.cwd") as mock_cwd:
             mock_cwd.return_value = tmp_path
@@ -221,7 +221,7 @@ class TestVSCodePerformance:
             max_time = 0.05 * num_servers  # Linear scaling allowance (very generous)
             assert duration < max(max_time, 5.0)  # Very lenient for CI systems
 
-    def test_concurrent_operations_safety(self, tmp_path):
+    def test_concurrent_operations_safety(self, tmp_path: Path) -> None:
         """Test that concurrent operations don't cause issues."""
         import threading
 
@@ -240,7 +240,7 @@ class TestVSCodePerformance:
             results = []
             errors = []
 
-            def read_operation(handler, index):
+            def read_operation(handler: VSCodeHandler, index: int) -> None:
                 """Simulate read operation."""
                 try:
                     servers = handler.list_all_servers()
