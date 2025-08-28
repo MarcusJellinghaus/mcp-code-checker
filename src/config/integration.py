@@ -10,9 +10,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from src.config.clients import ClientHandler, VSCodeHandler
-from src.config.servers import ServerConfig
-from src.config.utils import (
+from .clients import ClientHandler, VSCodeHandler
+from .servers import ServerConfig
+from .utils import (
     normalize_path_parameter,
     validate_parameter_value,
     validate_required_parameters,

@@ -12,7 +12,7 @@ import pytest
 class TestInstallationModes:
     """Test different installation modes detection."""
 
-    def test_get_installation_mode_cli_command(self):
+    def test_get_installation_mode_cli_command(self) -> None:
         """Test CLI command mode detection."""
         with patch("shutil.which") as mock_which:
             mock_which.return_value = "/usr/bin/mcp-code-checker"
@@ -23,7 +23,7 @@ class TestInstallationModes:
             
             assert config.get_installation_mode() == "cli_command"
 
-    def test_get_installation_mode_python_module(self):
+    def test_get_installation_mode_python_module(self) -> None:
         """Test Python module mode detection."""
         with patch("shutil.which") as mock_which:
             mock_which.return_value = None
@@ -38,7 +38,7 @@ class TestInstallationModes:
                 mode = config.get_installation_mode()
                 assert mode in ["python_module", "development"]  # Could be either
 
-    def test_get_installation_mode_development(self):
+    def test_get_installation_mode_development(self) -> None:
         """Test development mode detection."""
         # This should pass when running from source
         from src.config.servers import registry
@@ -52,7 +52,7 @@ class TestInstallationModes:
         else:
             pytest.skip("Not running from source directory")
 
-    def test_generate_args_cli_mode(self):
+    def test_generate_args_cli_mode(self) -> None:
         """Test argument generation for CLI command mode."""
         from src.config.servers import registry
         
@@ -76,7 +76,7 @@ class TestInstallationModes:
         assert "--log-level" in args
         assert "DEBUG" in args
 
-    def test_generate_args_module_mode(self):
+    def test_generate_args_module_mode(self) -> None:
         """Test argument generation for module mode."""
         from src.config.servers import registry
         
@@ -96,7 +96,7 @@ class TestInstallationModes:
         assert "--project-dir" in args
         assert "--log-level" in args
 
-    def test_config_generation_with_cli_command(self):
+    def test_config_generation_with_cli_command(self) -> None:
         """Test configuration generation when CLI command is available."""
         with patch("src.config.integration.is_command_available") as mock_cmd:
             mock_cmd.return_value = True
@@ -113,7 +113,7 @@ class TestInstallationModes:
             assert config["command"] == "mcp-code-checker"
             assert "--project-dir" in config["args"]
 
-    def test_config_generation_without_cli_command(self):
+    def test_config_generation_without_cli_command(self) -> None:
         """Test configuration generation without CLI command."""
         with patch("src.config.integration.get_mcp_code_checker_command_mode") as mock_mode:
             mock_mode.return_value = "python_module"
@@ -131,7 +131,7 @@ class TestInstallationModes:
             assert config["command"].endswith("python") or config["command"].endswith("python.exe")
             assert "-m" in config["args"] or config["args"][0].endswith("main.py")
 
-    def test_validation_with_different_modes(self):  # pylint: disable=invalid-sequence-index
+    def test_validation_with_different_modes(self) -> None:  # pylint: disable=invalid-sequence-index
         """Test validation messages for different installation modes."""
         from src.config.validation import validate_server_configuration
         

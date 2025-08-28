@@ -11,8 +11,8 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
-from src.log_utils import log_function_call
-from src.utils.subprocess_runner import execute_command
+from ..log_utils import log_function_call
+from ..utils.subprocess_runner import execute_command
 
 from .models import PytestReport
 from .parsers import parse_pytest_report

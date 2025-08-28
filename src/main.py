@@ -8,8 +8,8 @@ from pathlib import Path
 import structlog
 
 # Import logging utilities
-from src.log_utils import setup_logging
-from src.server import create_server
+from .log_utils import setup_logging
+from .server import create_server
 
 # Create loggers
 stdlogger = logging.getLogger(__name__)

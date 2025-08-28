@@ -18,7 +18,7 @@ from typing import Any
 
 import structlog
 
-from src.log_utils import log_function_call
+from ..log_utils import log_function_call
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)

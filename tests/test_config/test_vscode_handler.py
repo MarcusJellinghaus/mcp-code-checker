@@ -28,7 +28,7 @@ class TestVSCodeHandler:
         os.name == "nt",
         reason="Linux-specific path handling cannot be tested on Windows",
     )
-    def test_user_config_path_linux(self):
+    def test_user_config_path_linux(self) -> None:
         """Test user profile configuration path on Linux."""
         with patch("platform.system", return_value="Linux"):
             with patch.object(os, "name", "posix"):
@@ -42,7 +42,7 @@ class TestVSCodeHandler:
                 assert "Code" in path_str
                 assert "mcp.json" in path_str
 
-    def test_user_config_path_windows(self):
+    def test_user_config_path_windows(self) -> None:
         """Test user profile configuration path on Windows."""
         handler = VSCodeHandler(workspace=False)
 
@@ -60,7 +60,7 @@ class TestVSCodeHandler:
         os.name == "nt",
         reason="macOS-specific path handling cannot be tested on Windows",
     )
-    def test_user_config_path_macos(self):
+    def test_user_config_path_macos(self) -> None:
         """Test user profile configuration path on macOS."""
         with patch("platform.system", return_value="Darwin"):
             with patch.object(os, "name", "posix"):
@@ -77,7 +77,7 @@ class TestVSCodeHandler:
                 assert "Code" in path_str
                 assert "mcp.json" in path_str
 
-    def test_setup_server(self, tmp_path):
+    def test_setup_server(self, tmp_path: Path) -> None:
         """Test setting up a server configuration."""
         # Create handler with temp workspace
         with patch("src.config.clients.Path.cwd") as mock_cwd:
@@ -117,7 +117,7 @@ class TestVSCodeHandler:
             assert "test-server" in metadata
             assert metadata["test-server"]["_managed_by"] == "mcp-config-managed"
 
-    def test_remove_managed_server(self, tmp_path):
+    def test_remove_managed_server(self, tmp_path: Path) -> None:
         """Test removing a managed server."""
         with patch("src.config.clients.Path.cwd") as mock_cwd:
             mock_cwd.return_value = tmp_path
@@ -167,7 +167,7 @@ class TestVSCodeHandler:
             result = handler.remove_server("external-server")
             assert result is False
 
-    def test_list_servers(self, tmp_path):
+    def test_list_servers(self, tmp_path: Path) -> None:
         """Test listing all servers."""
         with patch("src.config.clients.Path.cwd") as mock_cwd:
             mock_cwd.return_value = tmp_path
@@ -214,14 +214,14 @@ class TestVSCodeHandler:
             assert len(managed_servers) == 2
             assert all(s["name"] in ["managed1", "managed2"] for s in managed_servers)
 
-    def test_validate_config(self, tmp_path):
+    def test_validate_config(self, tmp_path: Path) -> None:
         """Test configuration validation."""
         with patch("src.config.clients.Path.cwd") as mock_cwd:
             mock_cwd.return_value = tmp_path
             handler = VSCodeHandler(workspace=True)
 
             # Test with invalid config
-            config = {
+            config: dict[str, dict[str, dict[str, list[str]]]] = {
                 "servers": {
                     "invalid-server": {
                         # Missing required 'command' field
@@ -244,7 +244,7 @@ class TestVSCodeHandler:
                 for e in errors
             )
 
-    def test_backup_config(self, tmp_path):
+    def test_backup_config(self, tmp_path: Path) -> None:
         """Test configuration backup."""
         with patch("src.config.clients.Path.cwd") as mock_cwd:
             mock_cwd.return_value = tmp_path
@@ -271,7 +271,7 @@ class TestVSCodeHandler:
 
             assert backup_content == config
 
-    def test_empty_config_handling(self, tmp_path):
+    def test_empty_config_handling(self, tmp_path: Path) -> None:
         """Test handling of empty configuration."""
         with patch("src.config.clients.Path.cwd") as mock_cwd:
             mock_cwd.return_value = tmp_path
@@ -285,7 +285,7 @@ class TestVSCodeHandler:
             errors = handler.validate_config()
             assert len(errors) == 0
 
-    def test_malformed_json_handling(self, tmp_path):
+    def test_malformed_json_handling(self, tmp_path: Path) -> None:
         """Test handling of malformed JSON configuration."""
         with patch("src.config.clients.Path.cwd") as mock_cwd:
             mock_cwd.return_value = tmp_path
@@ -299,14 +299,14 @@ class TestVSCodeHandler:
                 f.write("{ invalid json }")
 
             # load_config should handle gracefully and return default config
-            config: dict[str, dict[str, dict]] = handler.load_config()
+            config: dict[str, dict[str, dict[str, str | list[str]]]] = handler.load_config()
             assert config == {"servers": {}}  # Should return default config
 
             # List operations should work even with malformed JSON
             servers = handler.list_all_servers()
             assert len(servers) == 0  # No servers in default config
 
-    def test_workspace_vs_user_distinction(self):
+    def test_workspace_vs_user_distinction(self) -> None:
         """Test that workspace and user handlers are distinct."""
         workspace_handler = VSCodeHandler(workspace=True)
         user_handler = VSCodeHandler(workspace=False)

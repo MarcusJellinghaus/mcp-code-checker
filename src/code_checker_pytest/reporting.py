@@ -7,7 +7,7 @@ from typing import Optional
 
 import structlog
 
-from src.log_utils import log_function_call
+from ..log_utils import log_function_call
 
 from .models import PytestReport
 

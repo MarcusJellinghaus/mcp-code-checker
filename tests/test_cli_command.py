@@ -11,7 +11,7 @@ import pytest
 class TestCLICommand:
     """Test CLI command availability and functionality."""
 
-    def test_cli_command_exists(self):
+    def test_cli_command_exists(self) -> None:
         """Test that mcp-code-checker command is available."""
         import shutil
         
@@ -24,7 +24,7 @@ class TestCLICommand:
         else:
             pytest.skip("CLI command not installed (expected in CI)")
 
-    def test_cli_command_help(self):
+    def test_cli_command_help(self) -> None:
         """Test that CLI command shows help."""
         import shutil
         
@@ -42,7 +42,7 @@ class TestCLICommand:
         assert "--project-dir" in result.stdout
         assert "--log-level" in result.stdout
 
-    def test_python_module_fallback(self):
+    def test_python_module_fallback(self) -> None:
         """Test Python module invocation as fallback."""
         result = subprocess.run(
             [sys.executable, "-m", "src.main", "--help"],
@@ -60,7 +60,7 @@ class TestCLICommand:
             pytest.skip("Python module not available in this environment")
 
     @patch("shutil.which")
-    def test_command_detection(self, mock_which):
+    def test_command_detection(self, mock_which: Mock) -> None:
         """Test command detection logic."""
         from src.config.integration import is_command_available
         
@@ -72,7 +72,7 @@ class TestCLICommand:
         mock_which.return_value = None
         assert is_command_available("mcp-code-checker") is False
 
-    def test_entry_point_configuration(self):
+    def test_entry_point_configuration(self) -> None:
         """Test that entry point is correctly configured in pyproject.toml."""
         try:
             import tomllib  # type: ignore[import-not-found]

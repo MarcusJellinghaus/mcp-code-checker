@@ -8,12 +8,12 @@ from typing import Any, Callable, Dict, List, Optional, Protocol, TypeVar
 import structlog
 
 # Import all code checking modules at the top
-from src.code_checker_mypy import MypyResult, get_mypy_prompt
-from src.code_checker_pylint import PylintMessageType, get_pylint_prompt
-from src.code_checker_pytest.reporting import create_prompt_for_failed_tests
-from src.code_checker_pytest.runners import check_code_with_pytest
-from src.log_utils import log_function_call
-from src.utils.subprocess_runner import execute_command
+from .code_checker_mypy import MypyResult, get_mypy_prompt
+from .code_checker_pylint import PylintMessageType, get_pylint_prompt
+from .code_checker_pytest.reporting import create_prompt_for_failed_tests
+from .code_checker_pytest.runners import check_code_with_pytest
+from .log_utils import log_function_call
+from .utils.subprocess_runner import execute_command
 
 # Type definitions for FastMCP
 T = TypeVar("T")

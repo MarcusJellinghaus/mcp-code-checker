@@ -178,7 +178,7 @@ def auto_detect_python_executable(project_dir: Path) -> Path | None:
     Returns:
         Path to Python executable, or None if not found
     """
-    from src.config.detection import detect_python_environment
+    from .detection import detect_python_environment
 
     python_exe, _ = detect_python_environment(project_dir)
     return Path(python_exe) if python_exe else None
@@ -193,7 +193,7 @@ def auto_detect_venv_path(project_dir: Path) -> Path | None:
     Returns:
         Path to virtual environment, or None if not found
     """
-    from src.config.detection import find_virtual_environments
+    from .detection import find_virtual_environments
 
     venvs = find_virtual_environments(project_dir)
     return venvs[0] if venvs else None
@@ -304,16 +304,21 @@ def validate_server_configuration(
         else:
             # Check if package is installed
             try:
-                import src.main
-                checks.append({
-                    "status": "warning",
-                    "message": "Package installed but CLI command not found. Run 'pip install -e .' to install command.",
-                })
-                warnings.append(
-                    "CLI command 'mcp-code-checker' not available. "
-                    "Using Python module fallback."
-                )
-                installation_mode = "python_module"
+                import importlib.util
+                spec = importlib.util.find_spec('mcp_code_checker')
+                installed = spec is not None
+                if installed:
+                    checks.append({
+                        "status": "warning",
+                        "message": "Package installed but CLI command not found. Run 'pip install -e .' to install command.",
+                    })
+                    warnings.append(
+                        "CLI command 'mcp-code-checker' not available. "
+                        "Using Python module fallback."
+                    )
+                    installation_mode = "python_module"
+                else:
+                    raise ImportError("Package not found")
             except ImportError:
                 # Development mode - check for source files
                 current_dir = Path.cwd()

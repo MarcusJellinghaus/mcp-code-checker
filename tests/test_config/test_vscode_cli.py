@@ -11,7 +11,7 @@ import pytest
 from src.config.main import create_main_parser, main
 
 
-def create_mock_parameter(name: str, required: bool = False, default=None):
+def create_mock_parameter(name: str, required: bool = False, default: str | None = None) -> Mock:
     """Helper to create a mock parameter object."""
     param = Mock()
     param.name = name
@@ -29,7 +29,7 @@ def create_mock_parameter(name: str, required: bool = False, default=None):
 class TestVSCodeCLI:
     """Test CLI commands with VSCode support."""
 
-    def test_setup_vscode_workspace(self):
+    def test_setup_vscode_workspace(self) -> None:
         """Test setup command with VSCode workspace config."""
         # Create a mock server config with all required attributes
         mock_server_config = Mock()
@@ -88,7 +88,7 @@ class TestVSCodeCLI:
                 handler = call_args["client_handler"]
                 assert handler.__class__.__name__ == "VSCodeHandler"
 
-    def test_setup_vscode_user(self):
+    def test_setup_vscode_user(self) -> None:
         """Test setup command with VSCode user profile config."""
         # Create a mock server config
         mock_server_config = Mock()
@@ -147,7 +147,7 @@ class TestVSCodeCLI:
                 handler = call_args["client_handler"]
                 assert handler.__class__.__name__ == "VSCodeHandler"
 
-    def test_setup_vscode_default_workspace(self):
+    def test_setup_vscode_default_workspace(self) -> None:
         """Test that VSCode defaults to workspace mode."""
         # Create a mock server config
         mock_server_config = Mock()
@@ -206,7 +206,7 @@ class TestVSCodeCLI:
                 handler = call_args["client_handler"]
                 assert handler.__class__.__name__ == "VSCodeHandler"
 
-    def test_list_vscode_servers(self):
+    def test_list_vscode_servers(self) -> None:
         """Test list command for VSCode servers."""
         mock_handler = Mock()
         mock_handler.list_all_servers.return_value = [
@@ -236,7 +236,7 @@ class TestVSCodeCLI:
                     assert exit_code == 0
                     assert "test-server" in output
 
-    def test_list_vscode_user_servers(self):
+    def test_list_vscode_user_servers(self) -> None:
         """Test list command for VSCode user profile servers."""
         mock_handler = Mock()
         mock_handler.list_all_servers.return_value = [
@@ -266,7 +266,7 @@ class TestVSCodeCLI:
                     assert exit_code == 0
                     assert "global-server" in output
 
-    def test_remove_vscode_server(self):
+    def test_remove_vscode_server(self) -> None:
         """Test remove command for VSCode servers."""
         mock_handler = Mock()
         mock_handler.list_managed_servers.return_value = [
@@ -304,7 +304,7 @@ class TestVSCodeCLI:
                 assert exit_code == 0
                 mock_remove.assert_called_once()
 
-    def test_remove_vscode_server_not_found(self):
+    def test_remove_vscode_server_not_found(self) -> None:
         """Test remove command when server not found."""
         mock_handler = Mock()
         mock_handler.list_managed_servers.return_value = []
@@ -325,7 +325,7 @@ class TestVSCodeCLI:
                     assert exit_code == 1
                     assert "not found" in output.lower()
 
-    def test_validate_vscode_server(self):
+    def test_validate_vscode_server(self) -> None:
         """Test validate command for VSCode servers."""
         mock_handler = Mock()
         mock_handler.list_all_servers.return_value = [
@@ -371,7 +371,7 @@ class TestVSCodeCLI:
                     assert exit_code == 0
                     mock_validate.assert_called_once()
 
-    def test_validate_vscode_server_with_errors(self):
+    def test_validate_vscode_server_with_errors(self) -> None:
         """Test validate command when configuration has errors."""
         mock_handler = Mock()
         mock_handler.list_all_servers.return_value = [
@@ -418,7 +418,7 @@ class TestVSCodeCLI:
                     assert exit_code == 1
                     mock_validate.assert_called_once()
 
-    def test_client_aliases(self):
+    def test_client_aliases(self) -> None:
         """Test that various VSCode client aliases work."""
         mock_handler = Mock()
         mock_handler.list_all_servers.return_value = []
@@ -450,7 +450,7 @@ class TestVSCodeCLI:
                     exit_code = main()
                     assert exit_code == 0
 
-    def test_setup_with_all_parameters(self):
+    def test_setup_with_all_parameters(self) -> None:
         """Test setup command with all available parameters."""
         # Create a mock server config with parameters
         mock_server_config = Mock()
@@ -518,7 +518,7 @@ class TestVSCodeCLI:
                 assert "log_level" in user_params
                 assert user_params["log_level"] == "DEBUG"
 
-    def test_dry_run_with_vscode(self):
+    def test_dry_run_with_vscode(self) -> None:
         """Test dry-run mode with VSCode client."""
         # Create a mock server config
         mock_server_config = Mock()
@@ -581,7 +581,7 @@ class TestVSCodeCLI:
                     assert exit_code == 0
                     assert "DRY RUN" in output or "dry" in output.lower()
 
-    def test_help_for_vscode_options(self):
+    def test_help_for_vscode_options(self) -> None:
         """Test that help text includes VSCode options."""
         # Mock the registry for help text
         mock_server_config = Mock()

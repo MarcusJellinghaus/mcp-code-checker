@@ -20,7 +20,7 @@ from src.config.utils import detect_mcp_installation, recommend_command_format
 class TestPackageDetection:
     """Test package installation detection."""
 
-    def test_is_package_installed_true(self):
+    def test_is_package_installed_true(self) -> None:
         """Test detecting an installed package."""
         with patch("importlib.util.find_spec") as mock_find_spec:
             mock_spec = MagicMock()
@@ -29,14 +29,14 @@ class TestPackageDetection:
             assert is_package_installed("mcp_code_checker") is True
             mock_find_spec.assert_called_once_with("mcp_code_checker")
 
-    def test_is_package_installed_false(self):
+    def test_is_package_installed_false(self) -> None:
         """Test detecting a non-installed package."""
         with patch("importlib.util.find_spec") as mock_find_spec:
             mock_find_spec.return_value = None
 
             assert is_package_installed("nonexistent_package") is False
 
-    def test_is_package_installed_import_error(self):
+    def test_is_package_installed_import_error(self) -> None:
         """Test handling ImportError."""
         with patch("importlib.util.find_spec") as mock_find_spec:
             mock_find_spec.side_effect = ImportError("Module not found")
@@ -47,7 +47,7 @@ class TestPackageDetection:
 class TestVSCodeCommandGeneration:
     """Test VSCode command generation."""
 
-    def test_generate_vscode_command_with_package(self):
+    def test_generate_vscode_command_with_package(self) -> None:
         """Test command generation when package is installed."""
         with patch("src.config.integration.is_package_installed", return_value=True):
             config = {
@@ -65,7 +65,7 @@ class TestVSCodeCommandGeneration:
             assert "--project-dir" in result["args"]
             assert result["_server_type"] == "mcp-code-checker"
 
-    def test_generate_vscode_command_without_package(self):
+    def test_generate_vscode_command_without_package(self) -> None:
         """Test command generation when package is not installed."""
         with patch("src.config.integration.is_package_installed", return_value=False):
             config = {
@@ -78,7 +78,7 @@ class TestVSCodeCommandGeneration:
             assert result["command"] == sys.executable
             assert result["args"][0] == "src/main.py"
 
-    def test_generate_vscode_command_other_server_type(self):
+    def test_generate_vscode_command_other_server_type(self) -> None:
         """Test command generation for non-MCP Code Checker servers."""
         config = {
             "command": "node",
@@ -90,7 +90,7 @@ class TestVSCodeCommandGeneration:
         assert result["command"] == "node"
         assert result["args"] == ["server.js", "--port", "3000"]
 
-    def test_generate_vscode_command_preserves_env(self):
+    def test_generate_vscode_command_preserves_env(self) -> None:
         """Test that environment variables are preserved."""
         config = {
             "command": sys.executable,
@@ -108,7 +108,7 @@ class TestVSCodeCommandGeneration:
 class TestPathNormalization:
     """Test path normalization functions."""
 
-    def test_make_paths_relative_project_dir(self, tmp_path):
+    def test_make_paths_relative_project_dir(self, tmp_path: Path) -> None:
         """Test making project directory relative."""
         config = {"args": ["--project-dir", str(tmp_path / "subdir")]}
 
@@ -116,7 +116,7 @@ class TestPathNormalization:
 
         assert result["args"] == ["--project-dir", "subdir"]
 
-    def test_make_paths_relative_already_relative(self, tmp_path):
+    def test_make_paths_relative_already_relative(self, tmp_path: Path) -> None:
         """Test that already relative paths are preserved."""
         config = {"args": ["--project-dir", "subdir/project"]}
 
@@ -124,7 +124,7 @@ class TestPathNormalization:
 
         assert result["args"] == ["--project-dir", "subdir/project"]
 
-    def test_make_paths_relative_different_drive_windows(self):
+    def test_make_paths_relative_different_drive_windows(self) -> None:
         """Test handling paths on different drives on Windows."""
         if sys.platform != "win32":
             pytest.skip("Windows-specific test")
@@ -137,7 +137,7 @@ class TestPathNormalization:
         # Should keep absolute path since it's on a different drive
         assert result["args"] == ["--project-dir", "D:\\projects\\test"]
 
-    def test_make_paths_relative_parent_directory(self, tmp_path):
+    def test_make_paths_relative_parent_directory(self, tmp_path: Path) -> None:
         """Test that paths going up directories stay absolute."""
         parent = tmp_path.parent
         config = {"args": ["--project-dir", str(parent)]}
@@ -147,7 +147,7 @@ class TestPathNormalization:
         # Should keep absolute since relative would use ..
         assert result["args"] == ["--project-dir", str(parent)]
 
-    def test_make_paths_absolute_relative_path(self, tmp_path):
+    def test_make_paths_absolute_relative_path(self, tmp_path: Path) -> None:
         """Test making relative paths absolute."""
         original_cwd = Path.cwd()
         try:
@@ -166,7 +166,7 @@ class TestPathNormalization:
             # Restore original directory
             os.chdir(original_cwd)
 
-    def test_make_paths_absolute_already_absolute(self):
+    def test_make_paths_absolute_already_absolute(self) -> None:
         """Test that absolute paths are preserved."""
         import os
 
@@ -182,7 +182,7 @@ class TestPathNormalization:
 
         assert result["args"] == ["--project-dir", abs_path]
 
-    def test_path_normalization_multiple_path_args(self, tmp_path):
+    def test_path_normalization_multiple_path_args(self, tmp_path: Path) -> None:
         """Test normalizing multiple path arguments."""
         config = {
             "args": [
@@ -214,7 +214,7 @@ class TestPathNormalization:
 class TestInstallationDetection:
     """Test MCP installation detection."""
 
-    def test_detect_mcp_installation_package(self, tmp_path):
+    def test_detect_mcp_installation_package(self, tmp_path: Path) -> None:
         """Test detecting package installation."""
         with patch("importlib.util.find_spec") as mock_find_spec:
             mock_spec = MagicMock()
@@ -231,7 +231,7 @@ class TestInstallationDetection:
             assert info["module_name"] == "mcp_code_checker"
             assert info["version"] == "1.0.0"
 
-    def test_detect_mcp_installation_source(self, tmp_path):
+    def test_detect_mcp_installation_source(self, tmp_path: Path) -> None:
         """Test detecting source installation."""
         # Create a fake source structure
         src_dir = tmp_path / "src"
@@ -240,16 +240,16 @@ class TestInstallationDetection:
         main_py.write_text("# MCP Code Checker\nimport mcp\ncode_analysis()")
 
         with patch("importlib.util.find_spec", return_value=None):
-            info = detect_mcp_installation(tmp_path)
+            info: dict[str, Any] = detect_mcp_installation(tmp_path)
 
         assert info["installed_as_package"] is False
         assert info["source_path"] == str(main_py)
         assert info.get("likely_mcp_code_checker") is True
 
-    def test_detect_mcp_installation_neither(self, tmp_path):
+    def test_detect_mcp_installation_neither(self, tmp_path: Path) -> None:
         """Test when neither package nor source is found."""
         with patch("importlib.util.find_spec", return_value=None):
-            info = detect_mcp_installation(tmp_path)
+            info: dict[str, Any] = detect_mcp_installation(tmp_path)
 
         assert info["installed_as_package"] is False
         assert info["source_path"] is None
@@ -259,33 +259,33 @@ class TestInstallationDetection:
 class TestCommandRecommendation:
     """Test command format recommendations."""
 
-    def test_recommend_vscode_with_package(self):
+    def test_recommend_vscode_with_package(self) -> None:
         """Test VSCode recommendation with package installed."""
-        info = {"installed_as_package": True}
+        info: dict[str, bool] = {"installed_as_package": True}
 
         result = recommend_command_format("vscode", "mcp-code-checker", info)
 
         assert "python -m mcp_code_checker" in result
 
-    def test_recommend_vscode_without_package(self):
+    def test_recommend_vscode_without_package(self) -> None:
         """Test VSCode recommendation without package."""
-        info = {"installed_as_package": False}
+        info: dict[str, bool] = {"installed_as_package": False}
 
         result = recommend_command_format("vscode-workspace", "mcp-code-checker", info)
 
         assert "python src/main.py" in result
 
-    def test_recommend_claude_desktop(self):
+    def test_recommend_claude_desktop(self) -> None:
         """Test Claude Desktop recommendation."""
-        info = {"installed_as_package": True}
+        info: dict[str, bool] = {"installed_as_package": True}
 
         result = recommend_command_format("claude-desktop", "mcp-code-checker", info)
 
         assert "Direct script execution" in result
 
-    def test_recommend_unknown_client(self):
+    def test_recommend_unknown_client(self) -> None:
         """Test recommendation for unknown client."""
-        info = {}
+        info: dict[str, Any] = {}
 
         result = recommend_command_format("unknown", "server", info)
 
@@ -295,7 +295,7 @@ class TestCommandRecommendation:
 class TestIntegrationWithVSCodeHandler:
     """Test integration with VSCodeHandler."""
 
-    def test_generate_client_config_for_vscode(self, tmp_path):
+    def test_generate_client_config_for_vscode(self, tmp_path: Path) -> None:
         """Test generating config specifically for VSCode."""
         from src.config.integration import generate_client_config
         from src.config.servers import ParameterDef, ServerConfig
@@ -332,7 +332,7 @@ class TestIntegrationWithVSCodeHandler:
         assert config["args"][:2] == ["-m", "mcp_code_checker"]
         assert config["command"] == sys.executable
 
-    def test_setup_mcp_server_with_vscode(self, tmp_path):
+    def test_setup_mcp_server_with_vscode(self, tmp_path: Path) -> None:
         """Test full setup flow with VSCode handler."""
         from src.config.integration import setup_mcp_server
         from src.config.servers import ParameterDef, ServerConfig

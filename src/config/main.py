@@ -5,19 +5,19 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from src.config import initialize_all_servers
-from src.config.cli_utils import create_full_parser, validate_setup_args
-from src.config.clients import get_client_handler
-from src.config.detection import detect_python_environment
-from src.config.integration import (
+from . import initialize_all_servers
+from .cli_utils import create_full_parser, validate_setup_args
+from .clients import get_client_handler
+from .detection import detect_python_environment
+from .integration import (
     build_server_config,
     remove_mcp_server,
     setup_mcp_server,
 )
-from src.config.output import OutputFormatter
-from src.config.servers import registry
-from src.config.utils import validate_required_parameters
-from src.config.validation import (
+from .output import OutputFormatter
+from .servers import registry
+from .utils import validate_required_parameters
+from .validation import (
     validate_client_installation,
     validate_parameter_combination,
     validate_server_configuration,
@@ -453,7 +453,7 @@ def handle_help_command(args: argparse.Namespace) -> int:
         Exit code (0 for success, 1 for error)
     """
     try:
-        from src.config.help_system import (
+        from .help_system import (
             print_command_help,
             print_parameter_help,
             print_quick_reference,
