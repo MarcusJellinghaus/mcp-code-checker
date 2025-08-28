@@ -148,7 +148,9 @@ def collect_environment_info(command: List[str]) -> EnvironmentContext:
     loaded_plugins = []
     try:
         # Add timeout to prevent hanging
-        print("Getting pytest plugins info...")
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug("Getting pytest plugins info...")
         pytest_plugins_result = execute_command(
             command=[sys.executable, "-m", "pytest", "--trace-config"],
             cwd=None,
@@ -156,10 +158,10 @@ def collect_environment_info(command: List[str]) -> EnvironmentContext:
         )
 
         if pytest_plugins_result.timed_out:
-            print("Timed out while trying to get pytest plugins")
+            logger.debug("Timed out while trying to get pytest plugins")
             loaded_plugins = ["Plugin detection timed out"]
         else:
-            print(
+            logger.debug(
                 f"Plugins info command completed with return code: {pytest_plugins_result.return_code}"
             )
 
@@ -171,7 +173,9 @@ def collect_environment_info(command: List[str]) -> EnvironmentContext:
                         plugin_name = parts[1].strip()
                         loaded_plugins.append(plugin_name)
     except Exception as e:
-        print(f"Error getting pytest plugins: {e}")
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug(f"Error getting pytest plugins: {e}")
         # Silently fail if plugin discovery fails
 
     # CPU information (if available)

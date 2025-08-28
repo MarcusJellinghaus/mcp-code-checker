@@ -82,7 +82,9 @@ def main() -> None:
     # Validate project directory first
     project_dir = Path(args.project_dir)
     if not project_dir.exists() or not project_dir.is_dir():
-        print(
+        # Use basic logging since logging isn't set up yet
+        logging.basicConfig(level=logging.ERROR)
+        logging.error(
             f"Error: Project directory does not exist or is not a directory: {project_dir}"
         )
         sys.exit(1)

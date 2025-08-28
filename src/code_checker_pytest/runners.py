@@ -208,8 +208,8 @@ def run_tests(
         environment_context = collect_environment_info(command)
 
         try:
-            # Print command for debugging
-            print(f"Running command: {' '.join(command)}")
+            # Log command for debugging
+            logger.debug(f"Running command: {' '.join(command)}")
 
             # Execute the subprocess using subprocess_runner
             subprocess_result = execute_command(
@@ -219,7 +219,7 @@ def run_tests(
                 env=env,
             )
 
-            print(
+            logger.debug(
                 f"Command completed with return code: {subprocess_result.return_code}"
             )
 
@@ -228,7 +228,7 @@ def run_tests(
                 raise RuntimeError(subprocess_result.execution_error)
 
             if subprocess_result.timed_out:
-                print(
+                logger.error(
                     f"Command timed out after {timeout_seconds} seconds: {' '.join(command)}"
                 )
                 raise TimeoutError(f"Subprocess timed out: {' '.join(command)}")
@@ -249,7 +249,7 @@ def run_tests(
                 "no plugin named 'json-report'" in combined_output.lower()
                 or "no module named 'pytest_json_report'" in combined_output.lower()
             ):
-                print(
+                logger.info(
                     "pytest-json-report plugin not found, attempting to install it..."
                 )
                 try:
@@ -270,14 +270,14 @@ def run_tests(
                         install_result.return_code != 0
                         or install_result.execution_error
                     ):
-                        print(
+                        logger.error(
                             f"Failed to install pytest-json-report: {install_result.stderr}"
                         )
                         raise RuntimeError(
                             "Failed to install the required pytest-json-report plugin"
                         )
 
-                    print("Installed pytest-json-report, retrying...")
+                    logger.info("Installed pytest-json-report, retrying...")
 
                     # Retry the command
                     retry_result = execute_command(
@@ -288,7 +288,7 @@ def run_tests(
                     )
 
                     if retry_result.timed_out:
-                        print("Retry timed out")
+                        logger.error("Retry timed out")
                         raise TimeoutError(
                             "Timed out while retrying the test after installing pytest-json-report"
                         )
@@ -303,12 +303,12 @@ def run_tests(
                     error_output = process.stderr
                     combined_output = f"{output}\n{error_output}"
                 except Exception as install_error:
-                    print(f"Error during installation or retry: {install_error}")
+                    logger.error(f"Error during installation or retry: {install_error}")
                     raise
 
             # Check specifically for 'no tests found' case
             if "collected 0 items" in combined_output or process.returncode == 5:
-                print("No tests found, raising specific exception")
+                logger.warning("No tests found, raising specific exception")
                 raise ValueError(
                     "No Tests Found: Pytest did not find any tests to run."
                 )
@@ -334,13 +334,13 @@ def run_tests(
 
             # Handle other error cases
             elif process.returncode == 3:
-                print(combined_output)
+                logger.error(combined_output)
                 raise RuntimeError(
                     f"Internal Error: {error_context.exit_code_meaning if error_context else 'Pytest encountered an internal error'}. "
                     f"Suggestion: {error_context.suggestion if error_context else 'Check pytest version compatibility'}"
                 )
             elif process.returncode == 4:
-                print(combined_output)
+                logger.error(combined_output)
                 raise ValueError(
                     f"Usage Error: {error_context.exit_code_meaning if error_context else 'Pytest was used incorrectly'}. "
                     f"Suggestion: {error_context.suggestion if error_context else 'Verify command-line arguments'}"
@@ -352,7 +352,7 @@ def run_tests(
                 )
             elif process.returncode > 5:
                 # Handle plugin-specific exit codes
-                print(combined_output)
+                logger.error(combined_output)
                 raise RuntimeError(
                     f"Plugin Error: {error_context.exit_code_meaning if error_context else f'Pytest plugin returned exit code {process.returncode}'}. "
                     f"Suggestion: {error_context.suggestion if error_context else 'Check plugin documentation'}"
@@ -360,7 +360,7 @@ def run_tests(
 
             # Final check to ensure we have a report file
             if not report_exists:
-                print(combined_output)
+                logger.error(combined_output)
                 if "collected 0 items" in combined_output:
                     raise ValueError(
                         "No Tests Found: Pytest did not find any tests to run."
@@ -398,7 +398,7 @@ def run_tests(
                 project_dir=project_dir,
                 command=command_line,
             )
-            print(
+            logger.error(
                 f"""Error during pytest execution:
 - folder {project_dir}
 - {command_line}"""
