@@ -2,13 +2,13 @@
 name = "mcp-code-checker"
 version = "0.1.0"
 authors = [
-    {name = "Your Name"},
+    {name = "Marcus Jellinghaus"},
 ]
-description = "An MCP server for running code checks (pylint and pytest)"
+description = "An MCP server for running python code checks (pylint, pytest and mypy)"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
-keywords = ["mcp", "server", "code-checker", "pylint", "pytest", "claude", "ai", "assistant"]
+keywords = ["mcp", "code-checker", "pylint", "pytest", "mypy", "claude", "ai"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -35,18 +35,11 @@ dependencies = [
 dev = [
     "black>=24.10.0",
     "isort>=5.13.2",
-    "psutil>=5.9.0",  # For process monitoring and cleanup utilities
     ]
 
 [project.scripts]
-mcp-config = "config.main:main"
 mcp-code-checker = "src.main:main"
-
-[tool.setuptools]
-package-dir = {"" = "src"}
-
-[tool.setuptools.packages.find]
-where = ["src"]
+mcp-config = "src.config.main:main"
 
 [project.urls]
 "Homepage" = "https://github.com/yourusername/mcp-code-checker"
