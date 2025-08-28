@@ -39,8 +39,8 @@ dev = [
     ]
 
 [project.scripts]
-mcp-config = "src.config.main:main"
-mcp-code-checker = "src.main:main"
+mcp-config = "config.main:main"
+mcp-code-checker = "main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
