@@ -9,8 +9,8 @@ from typing import List, Optional, Set
 
 import structlog
 
-from ..log_utils import log_function_call
-from ..utils.subprocess_runner import execute_command
+from log_utils import log_function_call
+from utils.subprocess_runner import execute_command
 
 from .models import DEFAULT_CATEGORIES, PylintMessageType, PylintResult
 from .parsers import parse_pylint_json_output

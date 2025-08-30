@@ -8,7 +8,7 @@ import platform
 import sys
 from typing import List, Tuple
 
-from src.utils.subprocess_runner import execute_command
+from utils.subprocess_runner import execute_command
 
 from .models import EnvironmentContext, ErrorContext
 

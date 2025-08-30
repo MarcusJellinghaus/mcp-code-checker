@@ -8,7 +8,7 @@ from typing import Optional, Set
 
 import structlog
 
-from src.log_utils import log_function_call
+from log_utils import log_function_call
 
 from .models import DEFAULT_CATEGORIES, PylintMessageType, PylintResult
 from .runners import get_pylint_results

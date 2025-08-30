@@ -38,7 +38,7 @@ dev = [
     ]
 
 [project.scripts]
-mcp-code-checker = "src.main:main"
+mcp-code-checker = "main:main"
 
 [project.urls]
 "Homepage" = "https://github.com/yourusername/mcp-code-checker"
@@ -84,6 +84,12 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = ["mcp.server.fastmcp"]
 ignore_missing_imports = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
 
 [build-system]
 requires = ["setuptools>=61.0"]
