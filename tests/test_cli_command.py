@@ -13,7 +13,7 @@ class TestCLICommand:
     def test_cli_command_exists(self) -> None:
         """Test that mcp-code-checker command is available."""
         import shutil
-        
+
         # This test will pass if installed with pip install -e .
         # It's OK if it fails in CI without installation
         command_path = shutil.which("mcp-code-checker")
@@ -26,17 +26,14 @@ class TestCLICommand:
     def test_cli_command_help(self) -> None:
         """Test that CLI command shows help."""
         import shutil
-        
+
         if not shutil.which("mcp-code-checker"):
             pytest.skip("CLI command not installed")
-        
+
         result = subprocess.run(
-            ["mcp-code-checker", "--help"],
-            capture_output=True,
-            text=True,
-            timeout=10
+            ["mcp-code-checker", "--help"], capture_output=True, text=True, timeout=10
         )
-        
+
         assert result.returncode == 0
         assert "--project-dir" in result.stdout
         assert "--log-level" in result.stdout
@@ -48,9 +45,9 @@ class TestCLICommand:
             capture_output=True,
             text=True,
             timeout=10,
-            cwd=Path(__file__).parent.parent  # Project root
+            cwd=Path(__file__).parent.parent,  # Project root
         )
-        
+
         # Should work in development
         if result.returncode == 0:
             assert "--project-dir" in result.stdout
@@ -68,17 +65,17 @@ class TestCLICommand:
                 import tomli as tomllib  # type: ignore[import-not-found,no-redef]
             except ImportError:
                 pytest.skip("No TOML library available")
-        
+
         pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
         assert pyproject_path.exists(), "pyproject.toml not found"
-        
+
         with open(pyproject_path, "rb") as f:
             data = tomllib.load(f)
-        
+
         # Check that CLI entry point exists
         scripts = data.get("project", {}).get("scripts", {})
         assert "mcp-code-checker" in scripts
         assert scripts["mcp-code-checker"] == "main:main"
-        
+
         # Verify mcp-config is no longer in scripts
         assert "mcp-config" not in scripts

@@ -7,10 +7,11 @@ from pathlib import Path
 
 import structlog
 
-from .models import MypyResult
-from .parsers import parse_mypy_json_output
 from log_utils import log_function_call
 from utils.subprocess_runner import execute_command
+
+from .models import MypyResult
+from .parsers import parse_mypy_json_output
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)

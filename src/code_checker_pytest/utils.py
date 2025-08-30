@@ -149,6 +149,7 @@ def collect_environment_info(command: List[str]) -> EnvironmentContext:
     try:
         # Add timeout to prevent hanging
         import logging
+
         logger = logging.getLogger(__name__)
         logger.debug("Getting pytest plugins info...")
         pytest_plugins_result = execute_command(
@@ -174,6 +175,7 @@ def collect_environment_info(command: List[str]) -> EnvironmentContext:
                         loaded_plugins.append(plugin_name)
     except Exception as e:
         import logging
+
         logger = logging.getLogger(__name__)
         logger.debug(f"Error getting pytest plugins: {e}")
         # Silently fail if plugin discovery fails
