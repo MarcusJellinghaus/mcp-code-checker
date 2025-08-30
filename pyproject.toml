@@ -39,7 +39,6 @@ dev = [
 
 [project.scripts]
 mcp-code-checker = "src.main:main"
-mcp-config = "src.config.main:main"
 
 [project.urls]
 "Homepage" = "https://github.com/yourusername/mcp-code-checker"

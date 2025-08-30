@@ -84,16 +84,6 @@ python -m mcp_code_checker --help
 python -c "import mcp_code_checker; print('✓ Package imported successfully')"
 ```
 
-### 3. Verify MCP Config Tool
-
-```bash
-# Check config tool is available
-mcp-config --help
-
-# Validate installation for configuration
-mcp-config validate
-```
-
 ## Installation in Virtual Environments
 
 ### Creating a Project-Specific Installation
@@ -111,9 +101,6 @@ source .venv/bin/activate  # Unix/macOS
 
 # Install MCP Code Checker
 pip install mcp-code-checker
-
-# Configure for your project
-mcp-config setup mcp-code-checker "my-project" --project-dir .
 ```
 
 ### Using with Poetry
@@ -222,6 +209,89 @@ mcp-code-checker --help
    pip install --user mcp-code-checker
    ```
 
+## Configuration
+
+After installation, you need to configure MCP Code Checker for your preferred client.
+
+### Claude Desktop Configuration
+
+1. Locate your Claude Desktop configuration file:
+   - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+   - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Linux**: `~/.config/claude/claude_desktop_config.json`
+
+2. Add the MCP Code Checker configuration:
+
+   ```json
+   {
+     "mcpServers": {
+       "code_checker": {
+         "command": "mcp-code-checker",
+         "args": [
+           "--project-dir",
+           "/path/to/your/project",
+           "--log-level",
+           "INFO"
+         ]
+       }
+     }
+   }
+   ```
+
+   **For development mode:**
+   ```json
+   {
+     "mcpServers": {
+       "code_checker": {
+         "command": "python",
+         "args": [
+           "-m",
+           "src.main",
+           "--project-dir",
+           "/path/to/your/project"
+         ],
+         "env": {
+           "PYTHONPATH": "/path/to/mcp-code-checker/"
+         }
+       }
+     }
+   }
+   ```
+
+3. Restart Claude Desktop to apply the changes.
+
+### VSCode Configuration
+
+VSCode 1.102+ supports MCP servers natively. Create or edit the configuration file:
+
+**For workspace configuration (.vscode/mcp.json in your project):**
+```json
+{
+  "servers": {
+    "code-checker": {
+      "command": "mcp-code-checker",
+      "args": ["--project-dir", "."]
+    }
+  }
+}
+```
+
+**For user profile configuration:**
+- **Windows**: `%APPDATA%\Code\User\mcp.json`
+- **macOS**: `~/Library/Application Support/Code/User/mcp.json`
+- **Linux**: `~/.config/Code/User/mcp.json`
+
+```json
+{
+  "servers": {
+    "code-checker": {
+      "command": "mcp-code-checker",
+      "args": ["--project-dir", "/path/to/your/projects"]
+    }
+  }
+}
+```
+
 ## Troubleshooting Installation
 
 ### Command Not Found
@@ -277,6 +347,24 @@ cd /path/to/mcp-code-checker
 pip install -e .
 ```
 
+## Testing the Installation
+
+You can test the MCP server using the MCP Inspector:
+
+### For Installed Package
+```bash
+npx @modelcontextprotocol/inspector mcp-code-checker --project-dir /path/to/project
+```
+
+### For Development Mode
+```bash
+npx @modelcontextprotocol/inspector \
+  python \
+  -m \
+  src.main \
+  --project-dir /path/to/project
+```
+
 ## Uninstallation
 
 To remove MCP Code Checker:
@@ -285,41 +373,19 @@ To remove MCP Code Checker:
 # Uninstall the package
 pip uninstall mcp-code-checker
 
-# Remove configuration (optional)
-mcp-config remove "your-server-name"
+# Remove configuration files manually if needed
+# Claude Desktop: Edit claude_desktop_config.json
+# VSCode: Delete .vscode/mcp.json or edit user mcp.json
 
 # Clean up cache (optional)
 pip cache purge
 ```
 
-## Next Steps
-
-After installation:
-
-1. **Configure for Claude Desktop:**
-   ```bash
-   mcp-config setup mcp-code-checker "my-project" --project-dir /path/to/project
-   ```
-
-2. **Configure for VSCode:**
-   ```bash
-   mcp-config setup mcp-code-checker "my-project" --client vscode --project-dir .
-   ```
-
-3. **Test the server:**
-   ```bash
-   mcp-code-checker --project-dir . --dry-run
-   ```
-
-4. **Read the documentation:**
-   - [User Guide](docs/config/USER_GUIDE.md)
-   - [Troubleshooting](docs/config/TROUBLESHOOTING.md)
-
 ## Getting Help
 
 If you encounter issues:
 
-1. Check the [Troubleshooting Guide](docs/config/TROUBLESHOOTING.md)
-2. Run validation: `mcp-config validate`
-3. Check GitHub Issues: https://github.com/MarcusJellinghaus/mcp-code-checker/issues
+1. Check the project's GitHub Issues: https://github.com/MarcusJellinghaus/mcp-code-checker/issues
+2. Run the command with `--help` to see all available options
+3. Use `--log-level DEBUG` for more detailed logging
 4. Ask for help with detailed error messages and system information

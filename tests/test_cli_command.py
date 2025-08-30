@@ -3,7 +3,6 @@
 import subprocess
 import sys
 from pathlib import Path
-from unittest.mock import Mock, patch
 
 import pytest
 
@@ -59,19 +58,6 @@ class TestCLICommand:
             # Might not work in all environments
             pytest.skip("Python module not available in this environment")
 
-    @patch("shutil.which")
-    def test_command_detection(self, mock_which: Mock) -> None:
-        """Test command detection logic."""
-        from src.config.integration import is_command_available
-        
-        # Test when command exists
-        mock_which.return_value = "/usr/bin/mcp-code-checker"
-        assert is_command_available("mcp-code-checker") is True
-        
-        # Test when command doesn't exist
-        mock_which.return_value = None
-        assert is_command_available("mcp-code-checker") is False
-
     def test_entry_point_configuration(self) -> None:
         """Test that entry point is correctly configured in pyproject.toml."""
         try:
@@ -94,6 +80,5 @@ class TestCLICommand:
         assert "mcp-code-checker" in scripts
         assert scripts["mcp-code-checker"] == "src.main:main"
         
-        # Also check mcp-config exists
-        assert "mcp-config" in scripts
-        assert scripts["mcp-config"] == "src.config.main:main"
+        # Verify mcp-config is no longer in scripts
+        assert "mcp-config" not in scripts

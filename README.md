@@ -8,6 +8,7 @@ This MCP server enables AI assistants like Claude (via Claude Desktop), VSCode w
 
 - Run pylint checks to identify code quality issues
 - Execute pytest to identify failing tests
+- Run mypy for type checking
 - Generate smart prompts for LLMs to explain issues and suggest fixes
 - Combine multiple checks for comprehensive code quality analysis
 
@@ -24,7 +25,8 @@ By connecting your AI assistant to your code checking tools, you can transform y
 
 - `run_pylint_check`: Run pylint on the project code and generate smart prompts for LLMs
 - `run_pytest_check`: Run pytest on the project code and generate smart prompts for LLMs
-- `run_all_checks`: Run all code checks (pylint and pytest) and generate combined results
+- `run_mypy_check`: Run mypy type checking on the project code
+- `run_all_checks`: Run all code checks (pylint, pytest, and mypy) and generate combined results
 
 ### Pylint Parameters
 
@@ -32,6 +34,7 @@ The pylint tools expose the following parameters for customization:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
+| `categories` | list | ['error', 'fatal'] | List of pylint message categories to include |
 | `disable_codes` | list | None | List of pylint error codes to disable during analysis |
 | `target_directories` | list | ["src", "tests"] | List of directories to analyze relative to project_dir |
 
@@ -42,27 +45,27 @@ The pylint tools expose the following parameters for customization:
 - `["lib", "scripts", "tests"]` - For complex multi-directory projects
 - `["."]` - Analyze entire project directory (may be slow for large projects)
 
-Additionally, `run_all_checks` exposes:
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `categories` | set | ERROR, FATAL | Set of pylint message categories to include (convention, refactor, warning, error, fatal) |
-
 ### Pytest Parameters
 
 Both `run_pytest_check` and `run_all_checks` expose the following parameters for customization:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `test_folder` | string | "tests" | Path to the test folder relative to project directory |
 | `markers` | list | None | Optional list of pytest markers to filter tests |
 | `verbosity` | integer | 2 | Pytest verbosity level (0-3) |
 | `extra_args` | list | None | Optional list of additional pytest arguments |
 | `env_vars` | dictionary | None | Optional environment variables for the subprocess |
-| `keep_temp_files` | boolean | False | Whether to keep temporary files after execution |
-| `continue_on_collection_errors` | boolean | True | Whether to continue on collection errors |
-| `python_executable` | string | None | Path to Python interpreter to use for running tests |
-| `venv_path` | string | None | Path to virtual environment to activate for running tests |
+
+### Mypy Parameters
+
+The mypy tools expose the following parameters for customization:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `strict` | boolean | True | Use strict mode settings |
+| `disable_error_codes` | list | None | List of mypy error codes to ignore |
+| `target_directories` | list | ["src", "tests"] | List of directories to check relative to project_dir |
+| `follow_imports` | string | 'normal' | How to handle imports during type checking |
 
 ## Installation
 
@@ -221,23 +224,20 @@ Use `--console-only` to disable file logging for simple development scenarios.
 
 To enable Claude to use this code checking server:
 
-1. Install MCP Code Checker:
+1. **Install MCP Code Checker:**
    ```bash
-   pip install mcp-code-checker
+   pip install git+https://github.com/MarcusJellinghaus/mcp-code-checker.git
    # Or from source: pip install -e .
    ```
 
-2. Configure using the helper tool (recommended):
-   ```bash
-   mcp-config setup mcp-code-checker "my-project" --project-dir /path/to/project
-   ```
+2. **Configure Claude Desktop manually:**
+   
+   Edit the configuration file for your platform:
+   - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+   - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Linux**: `~/.config/claude/claude_desktop_config.json`
 
-3. Or manually edit the configuration file:
-   - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-   - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-   - Linux: `~/.config/claude/claude_desktop_config.json`
-
-   Example configuration (when installed as package):
+   **Example configuration (when installed as package):**
    ```json
    {
        "mcpServers": {
@@ -254,7 +254,7 @@ To enable Claude to use this code checking server:
    }
    ```
 
-   Example configuration (development mode):
+   **Example configuration (development mode):**
    ```json
    {
        "mcpServers": {
@@ -274,26 +274,13 @@ To enable Claude to use this code checking server:
    }
    ```
 
-4. Restart Claude Desktop to apply changes
+3. **Restart Claude Desktop** to apply changes
 
 ## Using with VSCode
 
-VSCode 1.102+ supports MCP servers natively. Configure using the helper tool or manually:
+VSCode 1.102+ supports MCP servers natively. Configure manually:
 
-### Quick Setup (Recommended)
-
-```bash
-# Install MCP Code Checker
-pip install mcp-code-checker
-
-# Configure for current workspace
-mcp-config setup mcp-code-checker "my-project" --client vscode --project-dir .
-
-# Or configure globally
-mcp-config setup mcp-code-checker "global" --client vscode-user --project-dir ~/projects
-```
-
-### Manual Configuration
+### Workspace Configuration (Recommended for Teams)
 
 Create or edit `.vscode/mcp.json` in your workspace:
 
@@ -308,7 +295,7 @@ Create or edit `.vscode/mcp.json` in your workspace:
 }
 ```
 
-For development mode:
+**For development mode:**
 ```json
 {
   "servers": {
@@ -318,6 +305,24 @@ For development mode:
       "env": {
         "PYTHONPATH": "/path/to/mcp-code-checker"
       }
+    }
+  }
+}
+```
+
+### User Profile Configuration (Personal Setup)
+
+Create or edit the user configuration file:
+- **Windows**: `%APPDATA%\Code\User\mcp.json`
+- **macOS**: `~/Library/Application Support/Code/User/mcp.json`  
+- **Linux**: `~/.config/Code/User/mcp.json`
+
+```json
+{
+  "servers": {
+    "code-checker-global": {
+      "command": "mcp-code-checker",
+      "args": ["--project-dir", "/path/to/your/projects"]
     }
   }
 }
@@ -358,11 +363,17 @@ The server exposes the following MCP tools:
 - Identifies failing tests and provides detailed information about test failures
 - Customizable with parameters for test selection, environment, and verbosity
 
+### Run Mypy Check
+- Runs mypy type checking on the project code
+- Returns: A string containing mypy results or a prompt for an LLM to interpret
+- Identifies type errors and provides suggestions for better type safety
+- Customizable with parameters for strict mode, error code filtering, and target directories
+
 ### Run All Checks
-- Runs all code checks (pylint and pytest) and generates combined results
+- Runs all code checks (pylint, pytest, and mypy) and generates combined results
 - Returns: A string containing results from all checks and/or LLM prompts
 - Provides a comprehensive analysis of code quality in a single operation
-- Supports customization parameters for both pylint and pytest, including target directories
+- Supports customization parameters for all three tools, including target directories
 
 ## Security Features
 
