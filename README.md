@@ -1,6 +1,6 @@
 # MCP Code Checker
 
-A Model Context Protocol (MCP) server providing code quality checking operations. This server offers a API for performing code quality checks within a specified project directory, following the MCP protocol design.
+A Model Context Protocol (MCP) server providing code quality checking operations with easy client configuration. This server offers an API for performing code quality checks within a specified project directory, following the MCP protocol design.
 
 ## Overview
 
@@ -130,6 +130,18 @@ pip install -e ".[dev]"
 mcp-code-checker --help
 ```
 
+## MCP Client Configuration
+
+This server can be easily configured using the [mcp-config](https://github.com/MarcusJellinghaus/mcp-config) Python tool. The mcp-config tool provides:
+
+- **Interactive setup**: Works with Claude Desktop and VSCode
+- **Configuration management**: Add, remove, and view server configurations
+- **Server repository**: Access to curated MCP server collection
+
+**Prerequisites:** Install Python and the mcp-config tool.
+
+**Note:** While other MCP clients like Windsurf and Cursor support MCP servers, they may require manual configuration.
+
 ## Using as a Dependency
 
 ### In requirements.txt
@@ -240,130 +252,95 @@ Example structured log entries:
 
 Use `--console-only` to disable file logging for simple development scenarios.
 
-## Using with Claude Desktop App
+## Quick MCP Client Setup
 
-To enable Claude to use this code checking server:
+### Automated Setup (Recommended)
 
-1. **Install MCP Code Checker:**
+1. **First install the server:**
    ```bash
    pip install git+https://github.com/MarcusJellinghaus/mcp-code-checker.git
-   # Or from source: pip install -e .
    ```
 
-2. **Configure Claude Desktop manually:**
-   
-   Edit the configuration file for your platform:
-   - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-   - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-   - **Linux**: `~/.config/claude/claude_desktop_config.json`
-
-   **Example configuration (when installed as package):**
-   ```json
-   {
-       "mcpServers": {
-           "code_checker": {
-               "command": "mcp-code-checker",
-               "args": [
-                   "--project-dir",
-                   "/path/to/your/project",
-                   "--log-level",
-                   "INFO"
-               ]
-           }
-       }
-   }
+2. **Configure with mcp-config:**
+   ```bash
+   mcp-config
+   ```
+   Then select "Add New" and search for this server, or run directly:
+   ```bash
+   mcp-config mcp-code-checker
    ```
 
-   **Example configuration (development mode):**
-   ```json
-   {
-       "mcpServers": {
-           "code_checker": {
-               "command": "python",
-               "args": [                
-                   "-m",
-                   "src.main",
-                   "--project-dir",
-                   "/path/to/your/project"
-               ],
-               "env": {
-                   "PYTHONPATH": "/path/to/mcp-code-checker/"
-               }
-           }
-       }
-   }
-   ```
+This will prompt you for your project directory and automatically configure your MCP client.
 
-3. **Restart Claude Desktop** to apply changes
+### Manual Setup
 
-## Using with VSCode
+If you prefer manual configuration, edit your MCP configuration file:
 
-VSCode 1.102+ supports MCP servers natively. Configure manually:
-
-### Workspace Configuration (Recommended for Teams)
-
-Create or edit `.vscode/mcp.json` in your workspace:
-
+**Claude Desktop** (`%APPDATA%\Claude\claude_desktop_config.json` on Windows):
 ```json
 {
-  "servers": {
-    "code-checker": {
-      "command": "mcp-code-checker",
-      "args": ["--project-dir", "."]
+    "mcpServers": {
+        "code_checker": {
+            "command": "mcp-code-checker",
+            "args": ["--project-dir", "/path/to/your/project"]
+        }
     }
-  }
 }
 ```
 
 **For development mode:**
 ```json
 {
-  "servers": {
-    "code-checker": {
-      "command": "python",
-      "args": ["-m", "src.main", "--project-dir", "."],
-      "env": {
-        "PYTHONPATH": "/path/to/mcp-code-checker"
-      }
+    "mcpServers": {
+        "code_checker": {
+            "command": "python",
+            "args": [
+                "-m",
+                "src.main",
+                "--project-dir",
+                "/path/to/your/project"
+            ],
+            "env": {
+                "PYTHONPATH": "/path/to/mcp-code-checker"
+            }
+        }
     }
-  }
 }
 ```
 
-### User Profile Configuration (Personal Setup)
-
-Create or edit the user configuration file:
-- **Windows**: `%APPDATA%\Code\User\mcp.json`
-- **macOS**: `~/Library/Application Support/Code/User/mcp.json`  
-- **Linux**: `~/.config/Code/User/mcp.json`
-
+**VSCode** (`.vscode/mcp.json`):
 ```json
 {
-  "servers": {
-    "code-checker-global": {
-      "command": "mcp-code-checker",
-      "args": ["--project-dir", "/path/to/your/projects"]
+    "servers": {
+        "code-checker": {
+            "command": "mcp-code-checker",
+            "args": ["--project-dir", "."]
+        }
     }
-  }
 }
 ```
 
-## Using MCP Inspector
-
-MCP Inspector allows you to debug and test your MCP server:
-
-### For Installed Package
-```bash
-npx @modelcontextprotocol/inspector mcp-code-checker --project-dir /path/to/project
+**VSCode development mode:**
+```json
+{
+    "servers": {
+        "code-checker": {
+            "command": "python",
+            "args": ["-m", "src.main", "--project-dir", "."],
+            "env": {
+                "PYTHONPATH": "/path/to/mcp-code-checker"
+            }
+        }
+    }
+}
 ```
 
-### For Development Mode
+
+
+## Testing with MCP Inspector
+
 ```bash
-npx @modelcontextprotocol/inspector \
-  python \
-  -m \
-  src.main \
-  --project-dir /path/to/project
+npx @modelcontextprotocol/inspector mcp-code-checker --project-dir /path/to/project
 ```
 
 ## Available Tools

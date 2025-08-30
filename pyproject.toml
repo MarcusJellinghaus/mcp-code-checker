@@ -29,6 +29,7 @@ dependencies = [
     "mypy>=1.9.0",
     "structlog>=24.5.0",
     "python-json-logger>=3.2.1",
+    "mcp-config @ git+https://github.com/MarcusJellinghaus/mcp-config.git@first_setup",
 ]
 
 [project.optional-dependencies]
