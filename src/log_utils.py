@@ -6,12 +6,13 @@ import os
 import time
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Optional, TypeVar, cast
+from typing import Any, Callable, Optional, TypeVar, cast, ParamSpec
 
 import structlog
 from pythonjsonlogger import jsonlogger  # type: ignore[import-untyped]
 
-# Type variable for function return types
+# Type variables for function signatures
+P = ParamSpec("P")
 T = TypeVar("T")
 
 # Create standard logger
@@ -80,11 +81,11 @@ def setup_logging(log_level: str, log_file: Optional[str] = None) -> None:
         stdlogger.info(f"Logging initialized: console={log_level}")
 
 
-def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
+def log_function_call(func: Callable[P, T]) -> Callable[P, T]:
     """Decorator to log function calls with parameters, timing, and results."""
 
     @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> T:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
         func_name = func.__name__
         module_name = func.__module__
         line_no = func.__code__.co_firstlineno
@@ -158,7 +159,7 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
                 result_for_log = f"<Large result of type {type(result).__name__}, length: {len(str(result))}>"
 
             # Attempt to make result JSON serializable for structured logging
-            serializable_result: Optional[Any] = None
+            serializable_result: Any = None
             try:
                 if result is not None:
                     json.dumps(result)  # Test if result is JSON serializable
@@ -205,4 +206,4 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
             )
             raise
 
-    return cast(Callable[..., T], wrapper)
+    return cast(Callable[P, T], wrapper)

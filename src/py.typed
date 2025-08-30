@@ -1,0 +1,6 @@
+# PEP 561 marker file - indicates this package supports type checking
+# This file tells mypy and other type checkers that:
+# 1. This package provides type annotations
+# 2. External projects can rely on our type information
+# 3. IDEs should provide full typing support when this package is imported
+# Keep this file to ensure proper typing support for package users!
