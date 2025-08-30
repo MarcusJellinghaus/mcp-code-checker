@@ -16,11 +16,6 @@ All operations are securely contained within your specified project directory, g
 
 By connecting your AI assistant to your code checking tools, you can transform your debugging workflow - describe what you need in natural language and let the AI identify and fix issues directly in your project files.
 
-## Documentation
-
-- [**User Guide**](docs/config/USER_GUIDE.md) - Complete command reference and setup instructions
-- [**Troubleshooting**](docs/config/TROUBLESHOOTING.md) - Common issues and solutions
-
 ## Features
 
 - `run_pylint_check`: Run pylint on the project code and generate smart prompts for LLMs
@@ -66,6 +61,48 @@ The mypy tools expose the following parameters for customization:
 | `disable_error_codes` | list | None | List of mypy error codes to ignore |
 | `target_directories` | list | ["src", "tests"] | List of directories to check relative to project_dir |
 | `follow_imports` | string | 'normal' | How to handle imports during type checking |
+
+## Command Line Interface (CLI)
+
+### Basic Usage
+
+```bash
+mcp-code-checker --project-dir /path/to/project [options]
+```
+
+### Required Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `--project-dir` | string | **Required**. Base directory for code checking operations |
+
+### Optional Parameters
+
+#### Python Configuration
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `--python-executable` | string | sys.executable | Path to Python interpreter to use for running tests |
+| `--venv-path` | string | None | Path to virtual environment to activate. When specified, this venv's Python will be used instead of `--python-executable` |
+
+#### Test Configuration
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `--test-folder` | string | "tests" | Path to the test folder (relative to project-dir) |
+| `--keep-temp-files` | flag | False | Keep temporary files after test execution. Useful for debugging when tests fail |
+
+#### Logging Configuration
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `--log-level` | string | "INFO" | Set logging level. Choices: DEBUG, INFO, WARNING, ERROR, CRITICAL |
+| `--log-file` | string | None | Path for structured JSON logs. If not specified, logs only to console |
+| `--console-only` | flag | False | Log only to console, ignore `--log-file` parameter |
+
+### Notes
+
+- When `--venv-path` is specified, it takes precedence over `--python-executable`
+- The `--console-only` flag is useful during development to avoid creating log files
+- Log files are created in JSON format for structured analysis
+- Temporary files are automatically cleaned up unless `--keep-temp-files` is specified
 
 ## Installation
 
@@ -154,24 +191,7 @@ python -m mcp_code_checker --project-dir /path/to/project [options]
 python -m src.main --project-dir /path/to/project [options]
 ```
 
-### Available Options
-
-- `--project-dir`: **Required**. Path to the project directory to analyze
-- `--python-executable`: Optional. Path to Python interpreter for running tests
-- `--venv-path`: Optional. Path to virtual environment to activate
-- `--test-folder`: Optional. Test folder path relative to project (default: "tests")
-- `--log-level`: Optional. Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-- `--log-file`: Optional. Path for structured JSON logs
-- `--console-only`: Optional. Log only to console
-- `--keep-temp-files`: Optional. Keep temporary files after execution
-
-Example with options:
-```bash
-mcp-code-checker \
-  --project-dir /path/to/project \
-  --venv-path /path/to/project/.venv \
-  --log-level DEBUG
-```
+For detailed information about all available command-line options, see the [CLI section](#command-line-interface-cli).
 
 ## Project Structure Support
 
