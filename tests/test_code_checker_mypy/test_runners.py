@@ -10,7 +10,10 @@ def test_run_mypy_check_on_project() -> None:
     result = run_mypy_check(project_dir=".", strict=True, target_directories=["src"])
 
     # 0=no errors, 1=errors found, 2=config error (should be fixed now)
-    assert result.return_code in [0, 1], f"Unexpected return code {result.return_code}. Error: {result.error}, Raw output: {result.raw_output}"
+    assert result.return_code in [
+        0,
+        1,
+    ], f"Unexpected return code {result.return_code}. Error: {result.error}, Raw output: {result.raw_output}"
     assert isinstance(result.messages, list)
 
 
@@ -29,7 +32,10 @@ def test_run_mypy_check_with_disabled_codes() -> None:
         target_directories=["src"],
     )
 
-    assert result.return_code in [0, 1], f"Unexpected return code {result.return_code}. Error: {result.error}, Raw output: {result.raw_output}"
+    assert result.return_code in [
+        0,
+        1,
+    ], f"Unexpected return code {result.return_code}. Error: {result.error}, Raw output: {result.raw_output}"
     # Verify that disabled codes are not in the results
     for msg in result.messages:
         if msg.code:

@@ -2,7 +2,11 @@
 
 import pytest
 
-from mcp_code_checker.code_checker_mypy.models import MypyMessage, MypyResult, MypySeverity
+from mcp_code_checker.code_checker_mypy.models import (
+    MypyMessage,
+    MypyResult,
+    MypySeverity,
+)
 
 
 def test_mypy_severity_enum() -> None:

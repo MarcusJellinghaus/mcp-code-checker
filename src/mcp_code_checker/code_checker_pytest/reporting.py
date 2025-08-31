@@ -7,9 +7,8 @@ from typing import Optional
 
 import structlog
 
-from mcp_code_checker.log_utils import log_function_call
-
 from mcp_code_checker.code_checker_pytest.models import PytestReport
+from mcp_code_checker.log_utils import log_function_call
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)

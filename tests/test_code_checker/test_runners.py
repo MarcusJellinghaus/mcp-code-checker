@@ -8,7 +8,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mcp_code_checker.code_checker_pytest import PytestReport, check_code_with_pytest, run_tests
+from mcp_code_checker.code_checker_pytest import (
+    PytestReport,
+    check_code_with_pytest,
+    run_tests,
+)
 from tests.test_code_checker.test_code_checker_pytest_common import (
     _cleanup_test_project,
     _create_test_project,

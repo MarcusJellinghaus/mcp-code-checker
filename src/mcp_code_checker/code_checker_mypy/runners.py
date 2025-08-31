@@ -84,7 +84,7 @@ def run_mypy_check(
 
     # Set target directories
     mypy_targets = valid_directories
-    
+
     if not mypy_targets:
         return MypyResult(
             return_code=1, messages=[], error="No valid target directories found"
@@ -141,7 +141,9 @@ def run_mypy_check(
     env["MYPYPATH"] = os.path.join(project_dir, "src")
 
     # Execute mypy
-    result = execute_command(command=command, cwd=project_dir, timeout_seconds=120, env=env)
+    result = execute_command(
+        command=command, cwd=project_dir, timeout_seconds=120, env=env
+    )
 
     # Handle execution errors
     if result.execution_error:
@@ -159,7 +161,9 @@ def run_mypy_check(
     # Combine stdout and stderr for raw output when there are issues
     raw_output = result.stdout
     if result.stderr.strip():
-        raw_output = raw_output + "\n" + result.stderr if raw_output.strip() else result.stderr
+        raw_output = (
+            raw_output + "\n" + result.stderr if raw_output.strip() else result.stderr
+        )
 
     # Parse output first to ensure messages variable is defined
     # For mypy config errors, check both stdout and stderr
@@ -167,7 +171,7 @@ def run_mypy_check(
     if result.return_code == 2 and not result.stdout.strip() and result.stderr.strip():
         # Mypy config errors often go to stderr
         output_to_parse = result.stderr
-    
+
     messages, parse_error = parse_mypy_json_output(output_to_parse)
 
     # Log raw output for debugging when return code is 2

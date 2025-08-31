@@ -6,7 +6,7 @@ import os
 import time
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Optional, TypeVar, cast, ParamSpec
+from typing import Any, Callable, Optional, ParamSpec, TypeVar, cast
 
 import structlog
 from pythonjsonlogger import jsonlogger
