@@ -76,6 +76,11 @@ namespace_packages = true
 explicit_package_bases = true
 
 [[tool.mypy.overrides]]
+module = ["mcp_code_checker.utils.subprocess_runner"]
+# Disable unused ignore warnings for platform-specific Unix attributes
+warn_unused_ignores = false
+
+[[tool.mypy.overrides]]
 module = ["pytest.*"]
 ignore_missing_imports = true
 
