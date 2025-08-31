@@ -9,11 +9,14 @@ from typing import List, Optional, Set
 
 import structlog
 
-from src.log_utils import log_function_call
-from src.utils.subprocess_runner import execute_command
-
-from .models import DEFAULT_CATEGORIES, PylintMessageType, PylintResult
-from .parsers import parse_pylint_json_output
+from mcp_code_checker.code_checker_pylint.models import (
+    DEFAULT_CATEGORIES,
+    PylintMessageType,
+    PylintResult,
+)
+from mcp_code_checker.code_checker_pylint.parsers import parse_pylint_json_output
+from mcp_code_checker.log_utils import log_function_call
+from mcp_code_checker.utils.subprocess_runner import execute_command
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
@@ -248,11 +251,12 @@ def run_pylint_check(
             msg for msg in result.messages if msg.type in category_values
         ]
         # Return a new result with filtered messages
-        return PylintResult(
+        filtered_result: PylintResult = PylintResult(
             return_code=result.return_code,
             messages=filtered_messages,
             error=result.error,
             raw_output=result.raw_output,
         )
+        return filtered_result
 
     return result

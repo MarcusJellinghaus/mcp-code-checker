@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.utils.subprocess_runner import (
+from mcp_code_checker.utils.subprocess_runner import (
     CommandOptions,
     CommandResult,
     execute_command,
@@ -269,7 +269,7 @@ class TestExecuteSubprocess:
     def test_none_command_error(self) -> None:
         """Test that None command raises TypeError."""
         with pytest.raises(TypeError):
-            execute_subprocess(None)  # type: ignore
+            execute_subprocess(None)  # type: ignore[arg-type]
 
 
 class TestConvenienceFunctions:

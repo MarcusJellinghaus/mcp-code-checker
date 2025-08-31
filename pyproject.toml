@@ -2,13 +2,13 @@
 name = "mcp-code-checker"
 version = "0.1.0"
 authors = [
-    {name = "Your Name"},
+    {name = "Marcus Jellinghaus"},
 ]
-description = "An MCP server for running code checks (pylint and pytest)"
+description = "An MCP server for running python code checks (pylint, pytest and mypy)"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 license = {text = "MIT"}
-keywords = ["mcp", "server", "code-checker", "pylint", "pytest", "claude", "ai", "assistant"]
+keywords = ["mcp", "code-checker", "pylint", "pytest", "mypy", "claude", "ai"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -29,14 +29,17 @@ dependencies = [
     "mypy>=1.9.0",
     "structlog>=24.5.0",
     "python-json-logger>=3.2.1",
+    "mcp-config @ git+https://github.com/MarcusJellinghaus/mcp-config.git",
 ]
 
 [project.optional-dependencies]
 dev = [
     "black>=24.10.0",
     "isort>=5.13.2",
-    "psutil>=5.9.0",  # For process monitoring and cleanup utilities
     ]
+
+[project.scripts]
+mcp-code-checker = "mcp_code_checker.main:main"
 
 [project.urls]
 "Homepage" = "https://github.com/yourusername/mcp-code-checker"
@@ -51,7 +54,7 @@ pythonpath = ["."]
 
 [tool.black]
 line-length = 88
-target-version = ["py313"]
+target-version = ["py311"]
 
 [tool.isort]
 profile = "black"
@@ -68,8 +71,14 @@ check_untyped_defs = true
 # disallow_untyped_decorators = false  # can create issues with pytest fixtures
 no_implicit_optional = true
 strict_optional = true
-mypy_path = "stubs"
-disable_error_code = ["unused-ignore"]
+mypy_path = "src"
+namespace_packages = true
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = ["mcp_code_checker.utils.subprocess_runner"]
+# Disable unused ignore warnings for platform-specific Unix attributes
+warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
 module = ["pytest.*"]
@@ -78,6 +87,12 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = ["mcp.server.fastmcp"]
 ignore_missing_imports = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
 
 [build-system]
 requires = ["setuptools>=61.0"]

@@ -18,7 +18,7 @@ from typing import Any, Callable
 
 import structlog
 
-from src.log_utils import log_function_call
+from mcp_code_checker.log_utils import log_function_call
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
@@ -113,7 +113,7 @@ def _safe_preexec_fn() -> None:
     """
     try:
         if hasattr(os, "setsid"):
-            os.setsid()  # type: ignore[attr-defined]
+            os.setsid()
     except (OSError, PermissionError, AttributeError):
         # Ignore errors - may already be session leader or restricted env
         pass
@@ -245,10 +245,10 @@ def _run_subprocess(
                                         and hasattr(signal, "SIGTERM")
                                         and hasattr(signal, "SIGKILL")
                                     ):
-                                        os.killpg(os.getpgid(popen_proc.pid), signal.SIGTERM)  # type: ignore[attr-defined]
+                                        os.killpg(os.getpgid(popen_proc.pid), signal.SIGTERM)  # type: ignore[attr-defined]  # needed for Windows
                                         time.sleep(0.5)
                                         if popen_proc.poll() is None:
-                                            os.killpg(os.getpgid(popen_proc.pid), signal.SIGKILL)  # type: ignore[attr-defined]
+                                            os.killpg(os.getpgid(popen_proc.pid), signal.SIGKILL)  # type: ignore[attr-defined]  # needed for Windows
                                     else:
                                         # Fallback for systems without killpg/getpgid
                                         popen_proc.terminate()
@@ -418,11 +418,11 @@ def _run_subprocess(
                                     and hasattr(signal, "SIGKILL")
                                 ):
                                     # Try graceful termination first (consistent with first timeout block)
-                                    os.killpg(os.getpgid(popen_proc.pid), signal.SIGTERM)  # type: ignore[attr-defined]
+                                    os.killpg(os.getpgid(popen_proc.pid), signal.SIGTERM)  # type: ignore[attr-defined]  # needed for Windows
                                     time.sleep(0.5)
                                     if popen_proc.poll() is None:
                                         # Force kill if still running
-                                        os.killpg(os.getpgid(popen_proc.pid), signal.SIGKILL)  # type: ignore[attr-defined]
+                                        os.killpg(os.getpgid(popen_proc.pid), signal.SIGKILL)  # type: ignore[attr-defined]  # needed for Windows
                                 else:
                                     popen_proc.kill()
                             except (OSError, ProcessLookupError, AttributeError) as e:

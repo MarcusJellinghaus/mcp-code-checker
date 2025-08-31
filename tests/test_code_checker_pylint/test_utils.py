@@ -3,8 +3,8 @@
 import os
 from typing import Set
 
-from src.code_checker_pylint.models import PylintMessageType
-from src.code_checker_pylint.utils import (
+from mcp_code_checker.code_checker_pylint.models import PylintMessageType
+from mcp_code_checker.code_checker_pylint.utils import (
     filter_pylint_codes_by_category,
     normalize_path,
 )

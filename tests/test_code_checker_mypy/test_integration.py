@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from src.code_checker_mypy import run_mypy_check
-from src.server import CodeCheckerServer
+from mcp_code_checker.code_checker_mypy import run_mypy_check
+from mcp_code_checker.server import CodeCheckerServer
 
 
 def test_mypy_tool_registration() -> None:
@@ -26,7 +26,7 @@ def test_mypy_in_all_checks() -> None:
     """Test that mypy is included in run_all_checks."""
     # Rather than testing through the server directly, we test the functionality
     # by importing and calling the functions that would be called
-    from src.code_checker_mypy import get_mypy_prompt
+    from mcp_code_checker.code_checker_mypy import get_mypy_prompt
 
     # Test that mypy functionality works
     result = get_mypy_prompt(

@@ -6,12 +6,13 @@ import os
 import time
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Optional, TypeVar, cast
+from typing import Any, Callable, Optional, ParamSpec, TypeVar, cast
 
 import structlog
-from pythonjsonlogger import jsonlogger  # type: ignore[import-untyped]
+from pythonjsonlogger import jsonlogger
 
-# Type variable for function return types
+# Type variables for function signatures
+P = ParamSpec("P")
 T = TypeVar("T")
 
 # Create standard logger
@@ -80,11 +81,11 @@ def setup_logging(log_level: str, log_file: Optional[str] = None) -> None:
         stdlogger.info(f"Logging initialized: console={log_level}")
 
 
-def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
+def log_function_call(func: Callable[P, T]) -> Callable[P, T]:
     """Decorator to log function calls with parameters, timing, and results."""
 
     @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> T:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
         func_name = func.__name__
         module_name = func.__module__
         line_no = func.__code__.co_firstlineno
@@ -113,7 +114,7 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
         log_params.update(kwargs)
 
         # Convert Path objects to strings and handle other non-serializable types
-        serializable_params = {}
+        serializable_params: dict[str, Any] = {}
         for k, v in log_params.items():
             if isinstance(v, Path):
                 serializable_params[k] = str(v)
@@ -164,7 +165,7 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
                     json.dumps(result)  # Test if result is JSON serializable
                     serializable_result = result
             except (TypeError, OverflowError):
-                serializable_result = str(result)
+                serializable_result = str(result) if result is not None else None
 
             # Log completion
             if has_structured:
@@ -205,4 +206,4 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
             )
             raise
 
-    return cast(Callable[..., T], wrapper)
+    return cast(Callable[P, T], wrapper)

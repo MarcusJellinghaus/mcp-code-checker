@@ -3,14 +3,13 @@
 import logging
 import os
 import sys
-from pathlib import Path
 
 import structlog
 
-from src.code_checker_mypy.models import MypyResult
-from src.code_checker_mypy.parsers import parse_mypy_json_output
-from src.log_utils import log_function_call
-from src.utils.subprocess_runner import execute_command
+from mcp_code_checker.code_checker_mypy.models import MypyResult
+from mcp_code_checker.code_checker_mypy.parsers import parse_mypy_json_output
+from mcp_code_checker.log_utils import log_function_call
+from mcp_code_checker.utils.subprocess_runner import execute_command
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
@@ -83,7 +82,10 @@ def run_mypy_check(
         else:
             structured_logger.warning("Target directory not found", directory=directory)
 
-    if not valid_directories:
+    # Set target directories
+    mypy_targets = valid_directories
+
+    if not mypy_targets:
         return MypyResult(
             return_code=1, messages=[], error="No valid target directories found"
         )
@@ -99,6 +101,8 @@ def run_mypy_check(
         "--no-color-output",
         "--show-column-numbers",
         "--show-error-codes",
+        "--namespace-packages",  # Handle src layout properly
+        "--explicit-package-bases",  # Fix duplicate module names issue
     ]
 
     # Add strict flags if requested
@@ -122,18 +126,24 @@ def run_mypy_check(
             command.extend(["--disable-error-code", code])
 
     # Add target directories
-    command.extend(valid_directories)
+    command.extend(mypy_targets)
 
     structured_logger.info(
         "Starting mypy check",
         project_dir=project_dir,
         strict=strict,
-        targets=valid_directories,
+        targets=mypy_targets,
         command=" ".join(command),
     )
 
+    # Set MYPYPATH to src directory to handle module resolution correctly
+    env = os.environ.copy()
+    env["MYPYPATH"] = os.path.join(project_dir, "src")
+
     # Execute mypy
-    result = execute_command(command=command, cwd=project_dir, timeout_seconds=120)
+    result = execute_command(
+        command=command, cwd=project_dir, timeout_seconds=120, env=env
+    )
 
     # Handle execution errors
     if result.execution_error:
@@ -148,15 +158,46 @@ def run_mypy_check(
             error="Mypy execution timed out after 120 seconds",
         )
 
-    # Parse output
-    messages, parse_error = parse_mypy_json_output(result.stdout)
+    # Combine stdout and stderr for raw output when there are issues
+    raw_output = result.stdout
+    if result.stderr.strip():
+        raw_output = (
+            raw_output + "\n" + result.stderr if raw_output.strip() else result.stderr
+        )
+
+    # Parse output first to ensure messages variable is defined
+    # For mypy config errors, check both stdout and stderr
+    output_to_parse = result.stdout
+    if result.return_code == 2 and not result.stdout.strip() and result.stderr.strip():
+        # Mypy config errors often go to stderr
+        output_to_parse = result.stderr
+
+    messages, parse_error = parse_mypy_json_output(output_to_parse)
+
+    # Log raw output for debugging when return code is 2
+    if result.return_code == 2:
+        structured_logger.warning(
+            "Mypy returned configuration error",
+            return_code=result.return_code,
+            stdout_length=len(result.stdout),
+            stderr_length=len(result.stderr),
+            command=" ".join(command),
+        )
+        # For configuration errors, include stderr in the error message
+        if result.stderr.strip() and not messages:
+            return MypyResult(
+                return_code=result.return_code,
+                messages=[],
+                error=f"Mypy configuration error: {result.stderr.strip()}",
+                raw_output=raw_output,
+            )
 
     if parse_error:
         return MypyResult(
             return_code=result.return_code,
             messages=[],
             error=parse_error,
-            raw_output=result.stdout,
+            raw_output=raw_output,
         )
 
     # Count statistics
@@ -165,7 +206,7 @@ def run_mypy_check(
     mypy_result = MypyResult(
         return_code=result.return_code,
         messages=messages,
-        raw_output=result.stdout,
+        raw_output=raw_output,
         errors_found=errors_found,
     )
 

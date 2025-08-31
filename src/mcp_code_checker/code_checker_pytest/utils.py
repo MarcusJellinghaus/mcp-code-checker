@@ -8,9 +8,8 @@ import platform
 import sys
 from typing import List, Tuple
 
-from src.utils.subprocess_runner import execute_command
-
-from .models import EnvironmentContext, ErrorContext
+from mcp_code_checker.code_checker_pytest.models import EnvironmentContext, ErrorContext
+from mcp_code_checker.utils.subprocess_runner import execute_command
 
 
 def read_file(file_path: str) -> str:

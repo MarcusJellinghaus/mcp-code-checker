@@ -1,13 +1,14 @@
 # MCP Code Checker
 
-A Model Context Protocol (MCP) server providing code quality checking operations. This server offers a API for performing code quality checks within a specified project directory, following the MCP protocol design.
+A Model Context Protocol (MCP) server providing code quality checking operations with easy client configuration. This server offers an API for performing code quality checks within a specified project directory, following the MCP protocol design.
 
 ## Overview
 
-This MCP server enables AI assistants like Claude (via Claude Desktop) or other MCP-compatible systems to perform quality checks on your code. With these capabilities, AI assistants can:
+This MCP server enables AI assistants like Claude (via Claude Desktop), VSCode with GitHub Copilot, or other MCP-compatible systems to perform quality checks on your code. With these capabilities, AI assistants can:
 
 - Run pylint checks to identify code quality issues
 - Execute pytest to identify failing tests
+- Run mypy for type checking
 - Generate smart prompts for LLMs to explain issues and suggest fixes
 - Combine multiple checks for comprehensive code quality analysis
 
@@ -19,7 +20,8 @@ By connecting your AI assistant to your code checking tools, you can transform y
 
 - `run_pylint_check`: Run pylint on the project code and generate smart prompts for LLMs
 - `run_pytest_check`: Run pytest on the project code and generate smart prompts for LLMs
-- `run_all_checks`: Run all code checks (pylint and pytest) and generate combined results
+- `run_mypy_check`: Run mypy type checking on the project code
+- `run_all_checks`: Run all code checks (pylint, pytest, and mypy) and generate combined results
 
 ### Pylint Parameters
 
@@ -27,6 +29,7 @@ The pylint tools expose the following parameters for customization:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
+| `categories` | list | ['error', 'fatal'] | List of pylint message categories to include |
 | `disable_codes` | list | None | List of pylint error codes to disable during analysis |
 | `target_directories` | list | ["src", "tests"] | List of directories to analyze relative to project_dir |
 
@@ -37,58 +40,107 @@ The pylint tools expose the following parameters for customization:
 - `["lib", "scripts", "tests"]` - For complex multi-directory projects
 - `["."]` - Analyze entire project directory (may be slow for large projects)
 
-Additionally, `run_all_checks` exposes:
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `categories` | set | ERROR, FATAL | Set of pylint message categories to include (convention, refactor, warning, error, fatal) |
-
 ### Pytest Parameters
 
 Both `run_pytest_check` and `run_all_checks` expose the following parameters for customization:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `test_folder` | string | "tests" | Path to the test folder relative to project directory |
 | `markers` | list | None | Optional list of pytest markers to filter tests |
 | `verbosity` | integer | 2 | Pytest verbosity level (0-3) |
 | `extra_args` | list | None | Optional list of additional pytest arguments |
 | `env_vars` | dictionary | None | Optional environment variables for the subprocess |
-| `keep_temp_files` | boolean | False | Whether to keep temporary files after execution |
-| `continue_on_collection_errors` | boolean | True | Whether to continue on collection errors |
-| `python_executable` | string | None | Path to Python interpreter to use for running tests |
-| `venv_path` | string | None | Path to virtual environment to activate for running tests |
+
+### Mypy Parameters
+
+The mypy tools expose the following parameters for customization:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `strict` | boolean | True | Use strict mode settings |
+| `disable_error_codes` | list | None | List of mypy error codes to ignore |
+| `target_directories` | list | ["src", "tests"] | List of directories to check relative to project_dir |
+| `follow_imports` | string | 'normal' | How to handle imports during type checking |
+
+## Command Line Interface (CLI)
+
+### Basic Usage
+
+```bash
+mcp-code-checker --project-dir /path/to/project [options]
+```
+
+### Required Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `--project-dir` | string | **Required**. Base directory for code checking operations |
+
+### Optional Parameters
+
+#### Python Configuration
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `--python-executable` | string | sys.executable | Path to Python interpreter to use for running tests |
+| `--venv-path` | string | None | Path to virtual environment to activate. When specified, this venv's Python will be used instead of `--python-executable` |
+
+#### Test Configuration
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `--test-folder` | string | "tests" | Path to the test folder (relative to project-dir) |
+| `--keep-temp-files` | flag | False | Keep temporary files after test execution. Useful for debugging when tests fail |
+
+#### Logging Configuration
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `--log-level` | string | "INFO" | Set logging level. Choices: DEBUG, INFO, WARNING, ERROR, CRITICAL |
+| `--log-file` | string | None | Path for structured JSON logs. If not specified, logs only to console |
+| `--console-only` | flag | False | Log only to console, ignore `--log-file` parameter |
+
+### Notes
+
+- When `--venv-path` is specified, it takes precedence over `--python-executable`
+- The `--console-only` flag is useful during development to avoid creating log files
+- Log files are created in JSON format for structured analysis
+- Temporary files are automatically cleaned up unless `--keep-temp-files` is specified
 
 ## Installation
 
-### Option 1: Direct Installation from GitHub (Recommended)
+See [INSTALL.md](INSTALL.md) for detailed installation instructions.
+
+**Quick install:**
 
 ```bash
-# Install directly from GitHub
+# Install from GitHub (recommended)
 pip install git+https://github.com/MarcusJellinghaus/mcp-code-checker.git
 
-# Or in a virtual environment (recommended)
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install git+https://github.com/MarcusJellinghaus/mcp-code-checker.git
+# Verify installation
+mcp-code-checker --help
 ```
 
-### Option 2: Clone and Install for Development
+**Development install:**
 
 ```bash
-# Clone the repository
+# Clone and install for development
 git clone https://github.com/MarcusJellinghaus/mcp-code-checker.git
 cd mcp-code-checker
-
-# Create and activate a virtual environment (recommended)
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install in editable mode
-pip install -e .
-# Or with development dependencies
 pip install -e ".[dev]"
+mcp-code-checker --help
 ```
+
+## MCP Client Configuration
+
+This server can be easily configured using the [mcp-config](https://github.com/MarcusJellinghaus/mcp-config) Python tool. The mcp-config tool provides:
+
+- **Interactive setup**: Works with Claude Desktop and VSCode
+- **Configuration management**: Add, remove, and view server configurations
+- **Server repository**: Access to curated MCP server collection
+
+**Prerequisites:** Install Python and the mcp-config tool.
+
+**Note:** While other MCP clients like Windsurf and Cursor support MCP servers, they may require manual configuration.
 
 ## Using as a Dependency
 
@@ -134,19 +186,24 @@ pip install ".[dev]"
 
 ## Running the Server
 
+### Using the CLI Command (Recommended)
+After installation, you can run the server using the `mcp-code-checker` command:
+
 ```bash
-python -m src.main --project-dir /path/to/project [--python-executable /path/to/python] [--venv-path /path/to/venv] [--log-level LEVEL] [--log-file PATH]
+mcp-code-checker --project-dir /path/to/project [options]
 ```
 
-The server uses FastMCP for operation. The project directory parameter (`--project-dir`) is **required** for security reasons. All code checking operations will be restricted to this directory.
+### Using Python Module (Alternative)
+You can also run the server as a Python module:
 
-Additional parameters:
+```bash
+python -m mcp_code_checker --project-dir /path/to/project [options]
 
-- `--python-executable`: Optional path to Python interpreter to use for running tests
-- `--venv-path`: Optional path to virtual environment to activate for running tests
-- `--log-level`: Optional logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). Defaults to INFO
-- `--log-file`: Optional path for structured JSON logs. If not specified, logs to mcp_code_checker_{timestamp}.log in project_dir/logs/
-- `--console-only`: Optional flag to log only to console, ignoring --log-file parameter
+# Or for development (from source directory)
+python -m src.main --project-dir /path/to/project [options]
+```
+
+For detailed information about all available command-line options, see the [CLI section](#command-line-interface-cli).
 
 ## Project Structure Support
 
@@ -195,77 +252,96 @@ Example structured log entries:
 
 Use `--console-only` to disable file logging for simple development scenarios.
 
-## Using with Claude Desktop App
+## Quick MCP Client Setup
 
-To enable Claude to use this code checking server for analyzing files in your local environment:
+### Automated Setup (Recommended)
 
-1. Create or modify the Claude configuration file:
-   - Location: `%APPDATA%\Claude\claude_desktop_config.json` (on Windows)
-   - On macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+1. **First install the server:**
+   ```bash
+   pip install git+https://github.com/MarcusJellinghaus/mcp-code-checker.git
+   ```
 
-2. Add the MCP server configuration to the file:
+2. **Configure with mcp-config:**
+   ```bash
+   mcp-config
+   ```
+   Then select "Add New" and search for this server, or run directly:
+   ```bash
+   mcp-config mcp-code-checker
+   ```
 
+This will prompt you for your project directory and automatically configure your MCP client.
+
+### Manual Setup
+
+If you prefer manual configuration, edit your MCP configuration file:
+
+**Claude Desktop** (`%APPDATA%\Claude\claude_desktop_config.json` on Windows):
 ```json
 {
     "mcpServers": {
         "code_checker": {
-            "command": "C:\\path\\to\\mcp_code_checker\\.venv\\Scripts\\python.exe",
-            "args": [                
-                "C:\\path\\to\\mcp_code_checker\\src\\main.py",
-                "--project-dir",
-                "C:\\path\\to\\your\\project",
-            "--python-executable",
-            "C:\\path\\to\\python.exe",
-            "--venv-path",
-            "C:\\path\\to\\venv",
-            "--log-level",
-            "INFO"
-                ],
-            "env": {
-        "PYTHONPATH": "C:\\path\\to\\mcp_code_checker\\"
+            "command": "mcp-code-checker",
+            "args": ["--project-dir", "/path/to/your/project"]
+        }
     }
 }
-}
+```
+
+**For development mode:**
+```json
+{
+    "mcpServers": {
+        "code_checker": {
+            "command": "python",
+            "args": [
+                "-m",
+                "src.main",
+                "--project-dir",
+                "/path/to/your/project"
+            ],
+            "env": {
+                "PYTHONPATH": "/path/to/mcp-code-checker"
+            }
+        }
+    }
 }
 ```
 
-3. Replace all `C:\\path\\to\\` instances with your actual paths:
-   - Point to your Python virtual environment 
-   - Set the project directory to the folder you want Claude to check
-   - Make sure the PYTHONPATH points to the mcp_code_checker root folder
+**VSCode** (`.vscode/mcp.json`):
+```json
+{
+    "servers": {
+        "code-checker": {
+            "command": "mcp-code-checker",
+            "args": ["--project-dir", "."]
+        }
+    }
+}
+```
 
-4. Restart the Claude desktop app to apply changes
+**VSCode development mode:**
+```json
+{
+    "servers": {
+        "code-checker": {
+            "command": "python",
+            "args": ["-m", "src.main", "--project-dir", "."],
+            "env": {
+                "PYTHONPATH": "/path/to/mcp-code-checker"
+            }
+        }
+    }
+}
+```
 
-Claude will now be able to analyze code in your specified project directory.
 
-5. Log files location:
-   - Windows: `%APPDATA%\Claude\logs`
-   - These logs can be helpful for troubleshooting issues with the MCP server connection
 
-For more information on logging and troubleshooting, see the [MCP Documentation](https://modelcontextprotocol.io/quickstart/user#getting-logs-from-claude-for-desktop).
-
-## Using MCP Inspector
-
-MCP Inspector allows you to debug and test your MCP server:
-
-1. Start MCP Inspector by running:
+## Testing with MCP Inspector
 
 ```bash
-npx @modelcontextprotocol/inspector \
-  uv \
-  --directory C:\path\to\mcp_code_checker \
-  run \
-  src\main.py
+npx @modelcontextprotocol/inspector mcp-code-checker --project-dir /path/to/project
 ```
-
-2. In the MCP Inspector web UI, configure with the following:
-   - Python interpreter: `C:\path\to\mcp_code_checker\.venv\Scripts\python.exe`
-   - Arguments: `C:\path\to\mcp_code_checker\src\main.py --project-dir C:\path\to\your\project --log-level DEBUG`
-   - Environment variables:
-     - Name: `PYTHONPATH`
-     - Value: `C:\path\to\mcp_code_checker\`
-
-3. This will launch the server and provide a debug interface for testing the available tools.
 
 ## Available Tools
 
@@ -284,11 +360,17 @@ The server exposes the following MCP tools:
 - Identifies failing tests and provides detailed information about test failures
 - Customizable with parameters for test selection, environment, and verbosity
 
+### Run Mypy Check
+- Runs mypy type checking on the project code
+- Returns: A string containing mypy results or a prompt for an LLM to interpret
+- Identifies type errors and provides suggestions for better type safety
+- Customizable with parameters for strict mode, error code filtering, and target directories
+
 ### Run All Checks
-- Runs all code checks (pylint and pytest) and generates combined results
+- Runs all code checks (pylint, pytest, and mypy) and generates combined results
 - Returns: A string containing results from all checks and/or LLM prompts
 - Provides a comprehensive analysis of code quality in a single operation
-- Supports customization parameters for both pylint and pytest, including target directories
+- Supports customization parameters for all three tools, including target directories
 
 ## Security Features
 

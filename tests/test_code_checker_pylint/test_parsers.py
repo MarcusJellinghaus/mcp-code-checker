@@ -2,7 +2,7 @@
 
 import json
 
-from src.code_checker_pylint.parsers import parse_pylint_json_output
+from mcp_code_checker.code_checker_pylint.parsers import parse_pylint_json_output
 
 
 class TestParsePylintJsonOutput:

@@ -6,7 +6,7 @@ from typing import Generator, Set
 
 import pytest
 
-from src.code_checker_pylint import (
+from mcp_code_checker.code_checker_pylint import (
     DEFAULT_CATEGORIES,
     PylintCategory,
     filter_pylint_codes_by_category,
@@ -41,7 +41,7 @@ def create_default_project(
         write_file(os.path.join(project_dir, "src", "config.py"), "DEBUG = True\n")
 
 
-@pytest.fixture  # type: ignore[misc]  # confusion with fixture
+@pytest.fixture  # confusion with fixture
 def temp_project_dir() -> Generator[Path, None, None]:
     """Creates a temporary project directory for testing, cleaning it up after the test."""
     temp_dir = Path(tempfile.mkdtemp())

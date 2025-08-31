@@ -8,11 +8,17 @@ from typing import Optional, Set
 
 import structlog
 
-from src.log_utils import log_function_call
-
-from .models import DEFAULT_CATEGORIES, PylintMessageType, PylintResult
-from .runners import get_pylint_results
-from .utils import filter_pylint_codes_by_category, normalize_path
+from mcp_code_checker.code_checker_pylint.models import (
+    DEFAULT_CATEGORIES,
+    PylintMessageType,
+    PylintResult,
+)
+from mcp_code_checker.code_checker_pylint.runners import get_pylint_results
+from mcp_code_checker.code_checker_pylint.utils import (
+    filter_pylint_codes_by_category,
+    normalize_path,
+)
+from mcp_code_checker.log_utils import log_function_call
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
