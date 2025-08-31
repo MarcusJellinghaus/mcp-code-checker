@@ -20,7 +20,6 @@ venv/
 
 # default log folder used by mcp servers
 /logs/
-/PR_Info/
 
 # Cache files
 .pytest_cache/
