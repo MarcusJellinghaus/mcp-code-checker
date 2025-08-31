@@ -13,16 +13,34 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python 3.13
+    - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
-        python-version: 3.13
+        python-version: 3.11
         
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         python -m pip install .
         python -m pip install .[dev]
+        
+    - name: Show tool versions
+      run: |
+        echo "=== Tool Versions ==="
+        python --version
+        python -m pip --version
+        echo "Python executable: $(which python)"
+        echo "MyPy version:"
+        python -m mypy --version
+        echo "Pylint version:"
+        python -m pylint --version
+        echo "Pytest version:"
+        python -m pytest --version
+        echo "Black version:"
+        python -m black --version
+        echo "isort version:"
+        python -m isort --version
+        echo "================="
         
     - name: Check formatting with black
       id: black
