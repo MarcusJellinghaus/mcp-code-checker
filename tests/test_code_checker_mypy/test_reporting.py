@@ -106,15 +106,9 @@ def test_create_mypy_prompt_execution_error() -> None:
     """Test prompt creation when there's an execution error."""
     from src.code_checker_mypy.reporting import get_mypy_prompt
 
-    # Mock the run_mypy_check to return an error
-    class MockResult:
-        return_code: int = 1
-        messages: list[MypyMessage] = []
-        error: str = "Mypy not found in PATH"
-
-    # We can't easily mock here, but we test the logic path
-    result = MockResult()  # type: ignore
-    prompt = create_mypy_prompt(result)  # type: ignore
+    # Test with an empty result (no messages)
+    result = MypyResult(return_code=1, messages=[])
+    prompt = create_mypy_prompt(result)
     assert prompt is None  # No messages means no prompt
 
 

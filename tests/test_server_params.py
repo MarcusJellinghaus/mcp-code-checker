@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 
-@pytest.fixture  # type: ignore[misc]
+@pytest.fixture
 def mock_project_dir() -> Path:
     """Return a mock project directory path."""
     return Path("/fake/project/dir")

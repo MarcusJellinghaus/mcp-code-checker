@@ -113,7 +113,7 @@ def _safe_preexec_fn() -> None:
     """
     try:
         if hasattr(os, "setsid"):
-            os.setsid()  # type: ignore[attr-defined]
+            os.setsid()
     except (OSError, PermissionError, AttributeError):
         # Ignore errors - may already be session leader or restricted env
         pass

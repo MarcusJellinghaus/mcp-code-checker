@@ -49,7 +49,7 @@ mcp-code-checker = "mcp_code_checker:main:main"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
-pythonpath = ["src"]
+pythonpath = ["."]
 
 
 [tool.black]
@@ -71,11 +71,6 @@ check_untyped_defs = true
 # disallow_untyped_decorators = false  # can create issues with pytest fixtures
 no_implicit_optional = true
 strict_optional = true
-
-explicit_package_bases = true
-namespace_packages = true
-exclude = ["build", "dist"]
-disable_error_code = ["unused-ignore"]
 
 [[tool.mypy.overrides]]
 module = ["pytest.*"]

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional, TypeVar, cast
 
 import structlog
-from pythonjsonlogger import jsonlogger  # type: ignore[import-untyped]
+from pythonjsonlogger import jsonlogger
 
 # Type variable for function return types
 T = TypeVar("T")
