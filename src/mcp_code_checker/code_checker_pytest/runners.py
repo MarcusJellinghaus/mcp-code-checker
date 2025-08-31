@@ -11,13 +11,13 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
-from src.log_utils import log_function_call
-from src.utils.subprocess_runner import execute_command
+from mcp_code_checker.log_utils import log_function_call
+from mcp_code_checker.utils.subprocess_runner import execute_command
 
-from .models import PytestReport
-from .parsers import parse_pytest_report
-from .reporting import create_prompt_for_failed_tests, get_test_summary
-from .utils import collect_environment_info, create_error_context, read_file
+from mcp_code_checker.code_checker_pytest.models import PytestReport
+from mcp_code_checker.code_checker_pytest.parsers import parse_pytest_report
+from mcp_code_checker.code_checker_pytest.reporting import create_prompt_for_failed_tests, get_test_summary
+from mcp_code_checker.code_checker_pytest.utils import collect_environment_info, create_error_context, read_file
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)

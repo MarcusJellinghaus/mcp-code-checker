@@ -9,8 +9,8 @@ from pathlib import Path
 import structlog
 
 # Import logging utilities
-from src.log_utils import setup_logging
-from src.server import create_server
+from mcp_code_checker.log_utils import setup_logging
+from mcp_code_checker.server import create_server
 
 # Create loggers
 stdlogger = logging.getLogger(__name__)

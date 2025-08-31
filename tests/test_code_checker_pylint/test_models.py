@@ -1,6 +1,6 @@
 """Unit tests for pylint models module."""
 
-from src.code_checker_pylint.models import (
+from mcp_code_checker.code_checker_pylint.models import (
     DEFAULT_CATEGORIES,
     PylintMessage,
     PylintMessageType,

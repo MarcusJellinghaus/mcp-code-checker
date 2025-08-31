@@ -6,7 +6,7 @@ and process the test results.
 """
 
 # Re-export public models individually
-from .models import (
+from mcp_code_checker.code_checker_pytest.models import (
     Collector,
     CollectorResult,
     Crash,
@@ -19,12 +19,12 @@ from .models import (
     TracebackEntry,
     Warning,
 )
-from .parsers import parse_pytest_report
-from .reporting import create_prompt_for_failed_tests, get_test_summary
+from mcp_code_checker.code_checker_pytest.parsers import parse_pytest_report
+from mcp_code_checker.code_checker_pytest.reporting import create_prompt_for_failed_tests, get_test_summary
 
 # Re-export runner functionality
 # Re-export main functionality that should be part of the public API
-from .runners import check_code_with_pytest, run_tests
+from mcp_code_checker.code_checker_pytest.runners import check_code_with_pytest, run_tests
 
 # Define the public API explicitly
 __all__ = [

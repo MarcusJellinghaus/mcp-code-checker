@@ -5,7 +5,7 @@ import logging
 
 import structlog
 
-from src.code_checker_mypy.models import MypyMessage
+from mcp_code_checker.code_checker_mypy.models import MypyMessage
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)

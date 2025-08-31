@@ -1,1 +1,1 @@
-# This file is intentionally left empty to mark the directory as a Python package.
+# This file marks the src directory as a Python package.

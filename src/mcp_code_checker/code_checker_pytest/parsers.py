@@ -5,7 +5,7 @@ Functions for parsing pytest test results and output.
 import json
 from typing import Any, Dict
 
-from .models import (
+from mcp_code_checker.code_checker_pytest.models import (
     Collector,
     CollectorResult,
     Crash,

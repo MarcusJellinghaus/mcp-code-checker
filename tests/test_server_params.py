@@ -19,7 +19,7 @@ async def test_run_pytest_check_parameters(mock_project_dir: Path) -> None:
     """Test that run_pytest_check properly uses server parameters and passes parameters correctly."""
     with (
         patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
-        patch("src.server.check_code_with_pytest") as mock_check_pytest,
+        patch("mcp_code_checker.server.check_code_with_pytest") as mock_check_pytest,
     ):
         # Setup mocks
         mock_tool = MagicMock()
@@ -33,7 +33,7 @@ async def test_run_pytest_check_parameters(mock_project_dir: Path) -> None:
         }
 
         # Import after patching to ensure mocks are in place
-        from src.server import CodeCheckerServer
+        from mcp_code_checker.server import CodeCheckerServer
 
         # Create server with the static parameters
         server = CodeCheckerServer(
@@ -78,9 +78,9 @@ async def test_run_all_checks_parameters(mock_project_dir: Path) -> None:
     """Test that run_all_checks properly uses server parameters and passes parameters correctly."""
     with (
         patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
-        patch("src.server.get_pylint_prompt") as mock_pylint,
-        patch("src.server.check_code_with_pytest") as mock_check_pytest,
-        patch("src.server.get_mypy_prompt") as mock_mypy,
+        patch("mcp_code_checker.server.get_pylint_prompt") as mock_pylint,
+        patch("mcp_code_checker.server.check_code_with_pytest") as mock_check_pytest,
+        patch("mcp_code_checker.server.get_mypy_prompt") as mock_mypy,
     ):
         # Setup mocks
         mock_tool = MagicMock()
@@ -96,7 +96,7 @@ async def test_run_all_checks_parameters(mock_project_dir: Path) -> None:
         mock_mypy.return_value = None
 
         # Import after patching to ensure mocks are in place
-        from src.server import CodeCheckerServer
+        from mcp_code_checker.server import CodeCheckerServer
 
         # Create server with the static parameters
         server = CodeCheckerServer(

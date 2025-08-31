@@ -6,7 +6,7 @@ from typing import Generator, Set
 
 import pytest
 
-from src.code_checker_pylint import (
+from mcp_code_checker.code_checker_pylint import (
     DEFAULT_CATEGORIES,
     PylintCategory,
     filter_pylint_codes_by_category,

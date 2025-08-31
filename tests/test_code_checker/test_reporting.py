@@ -2,7 +2,7 @@
 Tests for the code_checker_pytest reporting functionality.
 """
 
-from src.code_checker_pytest import (
+from mcp_code_checker.code_checker_pytest import (
     create_prompt_for_failed_tests,
     get_test_summary,
     parse_pytest_report,

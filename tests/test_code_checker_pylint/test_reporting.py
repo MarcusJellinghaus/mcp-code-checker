@@ -1,7 +1,7 @@
 """Unit tests for pylint reporting module."""
 
-from src.code_checker_pylint.models import PylintMessage, PylintResult
-from src.code_checker_pylint.reporting import (
+from mcp_code_checker.code_checker_pylint.models import PylintMessage, PylintResult
+from mcp_code_checker.code_checker_pylint.reporting import (
     get_direct_instruction_for_pylint_code,
     get_prompt_for_known_pylint_code,
     get_prompt_for_unknown_pylint_code,

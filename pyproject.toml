@@ -39,7 +39,7 @@ dev = [
     ]
 
 [project.scripts]
-mcp-code-checker = "mcp_code_checker:main:main"
+mcp-code-checker = "mcp_code_checker.main:main"
 
 [project.urls]
 "Homepage" = "https://github.com/yourusername/mcp-code-checker"
@@ -71,6 +71,9 @@ check_untyped_defs = true
 # disallow_untyped_decorators = false  # can create issues with pytest fixtures
 no_implicit_optional = true
 strict_optional = true
+mypy_path = "src"
+namespace_packages = true
+explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 module = ["pytest.*"]
@@ -83,8 +86,8 @@ ignore_missing_imports = true
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.setuptools.package-dir]
-"" = "src"
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
 
 [build-system]
 requires = ["setuptools>=61.0"]
