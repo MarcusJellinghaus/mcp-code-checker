@@ -245,10 +245,10 @@ def _run_subprocess(
                                         and hasattr(signal, "SIGTERM")
                                         and hasattr(signal, "SIGKILL")
                                     ):
-                                        os.killpg(os.getpgid(popen_proc.pid), signal.SIGTERM)  # type: ignore[attr-defined]
+                                        os.killpg(os.getpgid(popen_proc.pid), signal.SIGTERM)  # type: ignore[attr-defined]  # type: ignore[attr-defined]
                                         time.sleep(0.5)
                                         if popen_proc.poll() is None:
-                                            os.killpg(os.getpgid(popen_proc.pid), signal.SIGKILL)  # type: ignore[attr-defined]
+                                            os.killpg(os.getpgid(popen_proc.pid), signal.SIGKILL)  # type: ignore[attr-defined]  # type: ignore[attr-defined]
                                     else:
                                         # Fallback for systems without killpg/getpgid
                                         popen_proc.terminate()
@@ -418,11 +418,11 @@ def _run_subprocess(
                                     and hasattr(signal, "SIGKILL")
                                 ):
                                     # Try graceful termination first (consistent with first timeout block)
-                                    os.killpg(os.getpgid(popen_proc.pid), signal.SIGTERM)  # type: ignore[attr-defined]
+                                    os.killpg(os.getpgid(popen_proc.pid), signal.SIGTERM)
                                     time.sleep(0.5)
                                     if popen_proc.poll() is None:
                                         # Force kill if still running
-                                        os.killpg(os.getpgid(popen_proc.pid), signal.SIGKILL)  # type: ignore[attr-defined]
+                                        os.killpg(os.getpgid(popen_proc.pid), signal.SIGKILL)
                                 else:
                                     popen_proc.kill()
                             except (OSError, ProcessLookupError, AttributeError) as e:
