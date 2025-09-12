@@ -12,13 +12,22 @@ REM Create temporary file for output with unique name
 set TEMP_FILE=%TEMP%\commit_summary_%RANDOM%_%TIME:~6,2%%TIME:~9,2%.txt
 
 REM Generate git diff including untracked files by adding them with --intent-to-add
-echo Please review the following code changes and create a concise commit message. > %TEMP_FILE%
-echo The commit message should follow conventional commit format: >> %TEMP_FILE%
-echo - First line: type/scope: brief description - max 50 chars >> %TEMP_FILE%
-echo - Optional body: detailed explanation if needed >> %TEMP_FILE%
-echo - Focus on WHAT changed and WHY, not HOW >> %TEMP_FILE%
+echo Please review the code changes and provide a SHORT, CONCISE commit summary. > %TEMP_FILE%
 echo. >> %TEMP_FILE%
-echo Example format: feat/auth: add user login validation >> %TEMP_FILE%
+echo REQUIREMENTS: >> %TEMP_FILE%
+echo 1. Keep it BRIEF - aim for minimal text >> %TEMP_FILE%
+echo 2. Format as inline markdown for easy copy/paste: >> %TEMP_FILE%
+echo    - Commit heading: `type/scope: description` (max 50 chars) >> %TEMP_FILE%
+echo    - Body (only if essential): Plain text, 1-2 sentences max >> %TEMP_FILE%
+echo 3. Focus on WHAT changed, avoid implementation details >> %TEMP_FILE%
+echo. >> %TEMP_FILE%
+echo OUTPUT FORMAT: >> %TEMP_FILE%
+echo Provide the commit in this markdown format: >> %TEMP_FILE%
+echo `feat/auth: add user validation` >> %TEMP_FILE%
+echo. >> %TEMP_FILE%
+echo Optional body text here (if needed) >> %TEMP_FILE%
+echo. >> %TEMP_FILE%
+echo This makes it easy to copy the heading directly as inline code.
 echo. >> %TEMP_FILE%
 echo === GIT STATUS === >> %TEMP_FILE%
 echo. >> %TEMP_FILE%
