@@ -29,10 +29,19 @@ def find_data_file(
     2. Installed package: Look in the package installation directory
     3. Alternative package location: Using package __file__ attribute
     
+    IMPORTANT: For installed packages to work (methods 2 and 3), data files must be
+    explicitly declared in pyproject.toml under [tool.setuptools.package-data]:
+    
+        [tool.setuptools.package-data]
+        "*" = ["py.typed"]
+        "your_package" = ["*.py", "*.txt", "data/*"]
+    
+    Without this configuration, data files will only be found in development mode.
+    
     Args:
-        package_name: Name of the Python package (e.g., "mcp_code_checker")
+        package_name: Name of the Python package (e.g., "resources")
         relative_path: Path to the file relative to the package/development root
-                      (e.g., "tools/sleep_script.py")
+                      (e.g., "sleep_script.py")
         development_base_dir: Base directory for development environment.
                              If None, development lookup is skipped.
     
@@ -40,15 +49,21 @@ def find_data_file(
         Path to the data file
         
     Raises:
-        FileNotFoundError: If the file cannot be found in any expected location
+        FileNotFoundError: If the file cannot be found in any expected location.
+                          For installed packages, this often means the file is not
+                          declared in pyproject.toml package-data configuration.
         
     Example:
         >>> # Find sleep_script.py in development or installed environment
         >>> script_path = find_data_file(
-        ...     "mcp_code_checker",
-        ...     "tools/sleep_script.py",
+        ...     "resources",
+        ...     "sleep_script.py",
         ...     development_base_dir=Path("/project/root")
         ... )
+        
+        # Requires this in pyproject.toml:
+        # [tool.setuptools.package-data]
+        # "resources" = ["*.py"]
     """
     # Start with comprehensive logging of the search parameters
     structured_logger.info(
@@ -289,7 +304,9 @@ def find_data_file(
     raise FileNotFoundError(
         f"Data file '{relative_path}' not found for package '{package_name}'. "
         f"Searched locations: {search_locations}. "
-        f"Make sure the package is properly installed or you're running in development mode."
+        f"Make sure the package is properly installed or you're running in development mode. "
+        f"For installed packages, ensure the file is declared in pyproject.toml under "
+        f"[tool.setuptools.package-data] with '{package_name}' = ['{relative_path}'] or ['{relative_path.split('/')[-1]}']."
     )
 
 
