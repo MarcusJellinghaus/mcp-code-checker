@@ -1,6 +1,5 @@
 """MCP server implementation for code checking functionality."""
 
-import importlib.util
 import logging
 import os
 from pathlib import Path
@@ -16,6 +15,7 @@ from mcp_code_checker.code_checker_pytest.reporting import (
 )
 from mcp_code_checker.code_checker_pytest.runners import check_code_with_pytest
 from mcp_code_checker.log_utils import log_function_call
+from mcp_code_checker.utils.data_files import find_data_file
 from mcp_code_checker.utils.subprocess_runner import execute_command
 
 # Type definitions for FastMCP
@@ -135,44 +135,10 @@ class CodeCheckerServer:
         Raises:
             FileNotFoundError: If the script cannot be found in any expected location
         """
-        # Option 1: Development environment - look in project_dir/tools
-        dev_script = self.project_dir / "tools" / "sleep_script.py"
-        if dev_script.exists():
-            structured_logger.debug("Using development sleep script", path=str(dev_script))
-            return dev_script
-            
-        # Option 2: Installed package - look in site-packages
-        try:
-            # Find the package installation directory
-            spec = importlib.util.find_spec("mcp_code_checker")
-            if spec and spec.origin:
-                package_dir = Path(spec.origin).parent
-                installed_script = package_dir / "tools" / "sleep_script.py"
-                if installed_script.exists():
-                    structured_logger.debug("Using installed sleep script", path=str(installed_script))
-                    return installed_script
-        except Exception as e:
-            structured_logger.debug("Error finding installed sleep script", error=str(e))
-            
-        # Option 3: Alternative installed location (using __file__)
-        try:
-            import mcp_code_checker
-            package_dir = Path(mcp_code_checker.__file__).parent
-            alt_script = package_dir / "tools" / "sleep_script.py"
-            if alt_script.exists():
-                structured_logger.debug("Using alternative installed sleep script", path=str(alt_script))
-                return alt_script
-        except Exception as e:
-            structured_logger.debug("Error finding alternative sleep script", error=str(e))
-            
-        # If we get here, the script wasn't found anywhere
-        searched_locations = [
-            str(dev_script),
-            "<site-packages>/mcp_code_checker/tools/sleep_script.py",
-        ]
-        raise FileNotFoundError(
-            f"Sleep script not found in any of these locations: {searched_locations}. "
-            f"Make sure the package is properly installed or you're running in development mode."
+        return find_data_file(
+            package_name="mcp_code_checker",
+            relative_path="tools/sleep_script.py",
+            development_base_dir=self.project_dir,
         )
 
     def _register_tools(self) -> None:

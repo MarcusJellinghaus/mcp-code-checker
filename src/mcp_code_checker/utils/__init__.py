@@ -4,7 +4,15 @@ Utils package for shared utilities.
 This package provides common utilities used across the codebase:
 - subprocess_runner: Command execution with MCP STDIO isolation
 - file_utils: File operation utilities
+- data_files: Finding data files in development and installed environments
 """
+
+# Import from data_files module
+from .data_files import (
+    find_data_file,
+    find_package_data_files,
+    get_package_directory,
+)
 
 # Import from file_utils module
 from .file_utils import (
@@ -22,6 +30,10 @@ from .subprocess_runner import (
 )
 
 __all__ = [
+    # Data file utilities
+    "find_data_file",
+    "find_package_data_files",
+    "get_package_directory",
     # Core subprocess functionality
     "CommandOptions",
     "CommandResult",
