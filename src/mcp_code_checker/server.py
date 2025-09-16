@@ -506,8 +506,24 @@ class CodeCheckerServer:
             if not 0 <= sleep_seconds <= 300:
                 raise ValueError("Sleep seconds must be between 0 and 300")
 
-            # Find sleep script (supports both development and installed environments)
-            sleep_script = self._find_sleep_script()
+            try:
+                # Find sleep script (supports both development and installed environments)
+                sleep_script = self._find_sleep_script()
+                
+                structured_logger.info(
+                    "Sleep script found successfully",
+                    sleep_script=str(sleep_script),
+                    exists=sleep_script.exists(),
+                )
+            except FileNotFoundError as e:
+                structured_logger.error(
+                    "Sleep script not found - detailed search failure",
+                    error=str(e),
+                    package_name="resources",
+                    relative_path="sleep_script.py",
+                    project_dir=str(self.project_dir),
+                )
+                raise FileNotFoundError(f"Sleep script not found: {str(e)}") from e
 
             # Build command
             python_exe = self.python_executable or "python"
