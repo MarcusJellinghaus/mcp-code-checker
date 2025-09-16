@@ -107,9 +107,7 @@ class TestFindDataFile:
 
     def test_pyproject_toml_consistency(self):
         """Test that the package configuration in pyproject.toml matches actual usage."""
-        import configparser
         import tomllib
-        from pathlib import Path
 
         # Read pyproject.toml
         pyproject_path = Path(__file__).parent.parent / "pyproject.toml"

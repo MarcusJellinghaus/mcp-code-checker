@@ -36,7 +36,7 @@ async def test_run_pytest_check_parameters(mock_project_dir: Path) -> None:
         from mcp_code_checker.server import CodeCheckerServer
 
         # Create server with the static parameters
-        server = CodeCheckerServer(
+        _ = CodeCheckerServer(
             mock_project_dir, test_folder="custom_tests", keep_temp_files=True
         )
 
@@ -99,7 +99,7 @@ async def test_run_all_checks_parameters(mock_project_dir: Path) -> None:
         from mcp_code_checker.server import CodeCheckerServer
 
         # Create server with the static parameters
-        server = CodeCheckerServer(
+        _ = CodeCheckerServer(
             mock_project_dir, test_folder="custom_tests", keep_temp_files=True
         )
 
