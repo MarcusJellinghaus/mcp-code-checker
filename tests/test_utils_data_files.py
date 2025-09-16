@@ -17,31 +17,32 @@ from mcp_code_checker.utils.data_files import (
 class TestFindDataFile:
     """Test the find_data_file function."""
     
-    def test_find_development_file(self):
-        """Test finding a file in development environment."""
-        # Create a temporary directory structure
+    def test_find_development_file_new_structure(self):
+        """Test finding a file in development environment with new src/ structure."""
+        # Create a temporary directory structure matching the new layout
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
-            test_file = temp_path / "tools" / "test_script.py"
+            test_file = temp_path / "src" / "resources" / "test_script.py"
             test_file.parent.mkdir(parents=True)
             test_file.write_text("# test script")
             
-            # Should find the development file
+            # Should find the development file in new structure
             result = find_data_file(
-                package_name="test_package",
-                relative_path="tools/test_script.py",
+                package_name="resources",
+                relative_path="test_script.py",
                 development_base_dir=temp_path,
             )
             
             assert result == test_file
             assert result.exists()
+
     
     def test_find_installed_file_via_importlib(self):
         """Test finding a file in installed package via importlib."""
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             package_dir = temp_path / "test_package"
-            test_file = package_dir / "tools" / "test_script.py"
+            test_file = package_dir / "data" / "test_script.py"
             test_file.parent.mkdir(parents=True, exist_ok=True)
             test_file.write_text("# test script")
             
@@ -52,7 +53,7 @@ class TestFindDataFile:
             with patch("mcp_code_checker.utils.data_files.importlib.util.find_spec", return_value=mock_spec):
                 result = find_data_file(
                     package_name="test_package",
-                    relative_path="tools/test_script.py",
+                    relative_path="data/test_script.py",
                     development_base_dir=None,  # Skip development lookup
                 )
                 
@@ -63,7 +64,7 @@ class TestFindDataFile:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             package_dir = temp_path / "test_package"
-            test_file = package_dir / "tools" / "test_script.py"
+            test_file = package_dir / "data" / "test_script.py"
             test_file.parent.mkdir(parents=True, exist_ok=True)
             test_file.write_text("# test script")
             
@@ -75,7 +76,7 @@ class TestFindDataFile:
                 with patch("mcp_code_checker.utils.data_files.importlib.import_module", return_value=mock_module):
                     result = find_data_file(
                         package_name="test_package",
-                        relative_path="tools/test_script.py",
+                        relative_path="data/test_script.py",
                         development_base_dir=None,
                     )
                     
@@ -86,12 +87,12 @@ class TestFindDataFile:
         with pytest.raises(FileNotFoundError) as exc_info:
             find_data_file(
                 package_name="nonexistent_package",
-                relative_path="tools/missing_script.py",
+                relative_path="data/missing_script.py",
                 development_base_dir=Path("/nonexistent/path"),
             )
         
         assert "not found" in str(exc_info.value).lower()
-        assert "tools/missing_script.py" in str(exc_info.value)
+        assert "data/missing_script.py" in str(exc_info.value)
 
 
 class TestFindPackageDataFiles:
@@ -102,10 +103,10 @@ class TestFindPackageDataFiles:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             
-            # Create multiple test files
+            # Create multiple test files in the new src structure
             files = [
-                temp_path / "tools" / "script1.py",
-                temp_path / "config" / "defaults.json",
+                temp_path / "src" / "test_package" / "tools" / "script1.py",
+                temp_path / "src" / "test_package" / "config" / "defaults.json",
             ]
             
             for file_path in files:

@@ -136,8 +136,8 @@ class CodeCheckerServer:
             FileNotFoundError: If the script cannot be found in any expected location
         """
         return find_data_file(
-            package_name="mcp_code_checker",
-            relative_path="tools/sleep_script.py",
+            package_name="resources",
+            relative_path="sleep_script.py",
             development_base_dir=self.project_dir,
         )
 

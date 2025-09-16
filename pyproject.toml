@@ -103,9 +103,7 @@ where = ["src"]
 [tool.setuptools.package-dir]
 "" = "src"
 
-# Include tools directory as data files
-[tool.setuptools.data-files]
-"mcp_code_checker/tools" = ["tools/sleep_script.py"]
+# Data files are now included via the resources package in src/
 
 [build-system]
 requires = ["setuptools>=61.0"]

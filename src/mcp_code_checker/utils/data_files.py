@@ -54,11 +54,12 @@ def find_data_file(
     
     # Option 1: Development environment
     if development_base_dir is not None:
-        dev_file = development_base_dir / relative_path
+        # Try new structure: src/{package_name}/{relative_path}
+        dev_file = development_base_dir / "src" / package_name / relative_path
         search_locations.append(str(dev_file))
         if dev_file.exists():
             structured_logger.debug(
-                "Found data file in development environment",
+                "Found data file in development environment (src structure)",
                 path=str(dev_file),
                 relative_path=relative_path,
             )
