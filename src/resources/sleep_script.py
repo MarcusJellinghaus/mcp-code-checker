@@ -17,8 +17,8 @@ def main():
     sleep_seconds = float(sys.argv[1]) if len(sys.argv) > 1 else 5.0
     
     # Basic validation
-    if not 0 <= sleep_seconds <= 300:
-        print(f"Error: Sleep duration must be between 0-300 seconds", flush=True)
+    if not 0 <= sleep_seconds <= 3000:
+        print(f"Error: Sleep duration must be between 0-3000 seconds", flush=True)
         sys.exit(1)
     
     # Sleep with timing measurement
