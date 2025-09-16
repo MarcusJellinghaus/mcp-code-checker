@@ -5,10 +5,27 @@ echo MCP-Code-Checker Package Reinstallation
 echo =============================================
 echo.
 
-echo [1/3] Uninstalling existing packages...
+echo [0/4] Checking Python environment...
+REM Check if we're in a virtual environment
+if "%VIRTUAL_ENV%"=="" (
+    echo ✗ Error: No Python virtual environment detected!
+    echo.
+    echo This script must be run from within an activated Python virtual environment.
+    echo Please activate your virtual environment first:
+    echo   - For venv: .venv\Scripts\activate
+    echo   - For conda: conda activate your-env-name
+    echo.
+    pause
+    exit /b 1
+)
+
+echo ✓ Python environment check passed (Virtual env: %VIRTUAL_ENV%)
+echo.
+
+echo [1/4] Uninstalling existing packages...
 REM Note: mcp-config is uninstalled here but will be automatically reinstalled 
 REM as a dependency when mcp-code-checker is installed (see pyproject.toml)
-pip uninstall mcp-code-checker mcp-config -y
+pip uninstall mcp-code-checker mcp-config mcp-server-filesystem -y
 echo ✓ Packages uninstalled
 
 echo.
