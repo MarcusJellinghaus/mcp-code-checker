@@ -136,7 +136,7 @@ class CodeCheckerServer:
             FileNotFoundError: If the script cannot be found in any expected location
         """
         return find_data_file(
-            package_name="resources",
+            package_name="mcp_code_checker.resources",
             relative_path="sleep_script.py",
             development_base_dir=self.project_dir,
         )
@@ -519,7 +519,7 @@ class CodeCheckerServer:
                 structured_logger.error(
                     "Sleep script not found - detailed search failure",
                     error=str(e),
-                    package_name="resources",
+                    package_name="mcp_code_checker.resources",
                     relative_path="sleep_script.py",
                     project_dir=str(self.project_dir),
                 )

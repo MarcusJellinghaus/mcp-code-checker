@@ -34,12 +34,12 @@ def find_data_file(
     
         [tool.setuptools.package-data]
         "*" = ["py.typed"]
-        "your_package" = ["*.py", "*.txt", "data/*"]
+        "your_package.resources" = ["script.py", "config.json", "templates/*"]
     
     Without this configuration, data files will only be found in development mode.
     
     Args:
-        package_name: Name of the Python package (e.g., "resources")
+        package_name: Name of the Python package (e.g., "mcp_code_checker.resources")
         relative_path: Path to the file relative to the package/development root
                       (e.g., "sleep_script.py")
         development_base_dir: Base directory for development environment.
@@ -56,14 +56,14 @@ def find_data_file(
     Example:
         >>> # Find sleep_script.py in development or installed environment
         >>> script_path = find_data_file(
-        ...     "resources",
+        ...     "mcp_code_checker.resources",
         ...     "sleep_script.py",
         ...     development_base_dir=Path("/project/root")
         ... )
         
         # Requires this in pyproject.toml:
         # [tool.setuptools.package-data]
-        # "resources" = ["*.py"]
+        # "mcp_code_checker.resources" = ["sleep_script.py"]
     """
     # Start with comprehensive logging of the search parameters
     structured_logger.info(
@@ -88,7 +88,9 @@ def find_data_file(
         )
         
         # Try new structure: src/{package_name}/{relative_path}
-        dev_file = development_base_dir / "src" / package_name / relative_path
+        # Handle dotted package names (e.g., "mcp_code_checker.data")
+        package_path = package_name.replace(".", "/")
+        dev_file = development_base_dir / "src" / package_path / relative_path
         method_1_path = str(dev_file)
         search_locations.append(str(dev_file))
         

@@ -22,13 +22,13 @@ class TestFindDataFile:
         # Create a temporary directory structure matching the new layout
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
-            test_file = temp_path / "src" / "resources" / "test_script.py"
+            test_file = temp_path / "src" / "mcp_code_checker" / "resources" / "test_script.py"
             test_file.parent.mkdir(parents=True)
             test_file.write_text("# test script")
             
             # Should find the development file in new structure
             result = find_data_file(
-                package_name="resources",
+                package_name="mcp_code_checker.resources",
                 relative_path="test_script.py",
                 development_base_dir=temp_path,
             )
@@ -93,6 +93,37 @@ class TestFindDataFile:
         
         assert "not found" in str(exc_info.value).lower()
         assert "data/missing_script.py" in str(exc_info.value)
+    
+    def test_pyproject_toml_consistency(self):
+        """Test that the package configuration in pyproject.toml matches actual usage."""
+        import configparser
+        import tomllib
+        from pathlib import Path
+        
+        # Read pyproject.toml
+        pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+        with open(pyproject_path, "rb") as f:
+            pyproject_data = tomllib.load(f)
+        
+        # Get package data configuration
+        package_data = pyproject_data.get("tool", {}).get("setuptools", {}).get("package-data", {})
+        
+        # Check that mcp_code_checker.resources is configured
+        resources_config = package_data.get("mcp_code_checker.resources", [])
+        assert "sleep_script.py" in resources_config, f"sleep_script.py not found in pyproject.toml package-data. Found: {resources_config}"
+        
+        # Verify the actual file exists in the expected location
+        project_root = Path(__file__).parent.parent
+        actual_file = project_root / "src" / "mcp_code_checker" / "resources" / "sleep_script.py"
+        assert actual_file.exists(), f"sleep_script.py not found at {actual_file}"
+        
+        # Test that find_data_file can actually find it
+        result = find_data_file(
+            package_name="mcp_code_checker.resources",
+            relative_path="sleep_script.py",
+            development_base_dir=project_root,
+        )
+        assert result == actual_file
 
 
 class TestFindPackageDataFiles:
@@ -105,8 +136,8 @@ class TestFindPackageDataFiles:
             
             # Create multiple test files in the new src structure
             files = [
-                temp_path / "src" / "test_package" / "tools" / "script1.py",
-                temp_path / "src" / "test_package" / "config" / "defaults.json",
+                temp_path / "src" / "mcp_code_checker" / "resources" / "script1.py",
+                temp_path / "src" / "mcp_code_checker" / "resources" / "defaults.json",
             ]
             
             for file_path in files:
@@ -114,8 +145,8 @@ class TestFindPackageDataFiles:
                 file_path.write_text("# test content")
             
             result = find_package_data_files(
-                package_name="test_package",
-                relative_paths=["tools/script1.py", "config/defaults.json"],
+                package_name="mcp_code_checker.resources",
+                relative_paths=["script1.py", "defaults.json"],
                 development_base_dir=temp_path,
             )
             

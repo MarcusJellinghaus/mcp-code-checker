@@ -98,8 +98,8 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "*" = ["py.typed"]
-# Include sleep_script.py from the src/resources/ folder (resources is a separate package)
-"resources" = ["sleep_script.py"]
+# Include sleep_script.py from the src/mcp_code_checker/resources/ folder  
+"mcp_code_checker.resources" = ["sleep_script.py"]
 
 # Include additional data files
 [tool.setuptools.package-dir]
