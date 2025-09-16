@@ -128,10 +128,10 @@ class CodeCheckerServer:
     def _find_sleep_script(self) -> Path:
         """
         Find the sleep script location, supporting both development and installed environments.
-        
+
         Returns:
             Path to the sleep_script.py file
-            
+
         Raises:
             FileNotFoundError: If the script cannot be found in any expected location
         """
@@ -509,7 +509,7 @@ class CodeCheckerServer:
             try:
                 # Find sleep script (supports both development and installed environments)
                 sleep_script = self._find_sleep_script()
-                
+
                 structured_logger.info(
                     "Sleep script found successfully",
                     sleep_script=str(sleep_script),
