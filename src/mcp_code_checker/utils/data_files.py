@@ -50,59 +50,182 @@ def find_data_file(
         ...     development_base_dir=Path("/project/root")
         ... )
     """
+    # Start with comprehensive logging of the search parameters
+    structured_logger.info(
+        "Starting data file search",
+        package_name=package_name,
+        relative_path=relative_path,
+        development_base_dir=str(development_base_dir) if development_base_dir else None,
+    )
+    
     search_locations = []
     
     # Option 1: Development environment
     if development_base_dir is not None:
+        structured_logger.info(
+            "Searching development environment",
+            method="development",
+            base_dir=str(development_base_dir),
+        )
+        
         # Try new structure: src/{package_name}/{relative_path}
         dev_file = development_base_dir / "src" / package_name / relative_path
         search_locations.append(str(dev_file))
+        
+        structured_logger.info(
+            "Development path constructed",
+            method="development",
+            path=str(dev_file),
+            exists=dev_file.exists(),
+        )
+        
         if dev_file.exists():
-            structured_logger.debug(
+            structured_logger.info(
                 "Found data file in development environment (src structure)",
+                method="development",
                 path=str(dev_file),
                 relative_path=relative_path,
             )
             return dev_file
+        else:
+            structured_logger.info(
+                "Development path not found",
+                method="development",
+                path=str(dev_file),
+            )
+    else:
+        structured_logger.info(
+            "Skipping development search - no base directory provided",
+            method="development",
+        )
     
     # Option 2: Installed package - using importlib.util.find_spec
+    structured_logger.info(
+        "Searching installed package via importlib",
+        method="importlib_spec",
+    )
     try:
+        structured_logger.debug(
+            "Attempting to find spec for package",
+            method="importlib_spec",
+            package_name=package_name,
+        )
         spec = importlib.util.find_spec(package_name)
-        if spec and spec.origin:
-            package_dir = Path(spec.origin).parent
-            installed_file = package_dir / relative_path
-            search_locations.append(str(installed_file))
-            if installed_file.exists():
-                structured_logger.debug(
-                    "Found data file in installed package (via importlib)",
+        
+        if spec:
+            structured_logger.info(
+                "Package spec found",
+                method="importlib_spec",
+                origin=spec.origin,
+                name=spec.name,
+            )
+            if spec.origin:
+                package_dir = Path(spec.origin).parent
+                installed_file = package_dir / relative_path
+                search_locations.append(str(installed_file))
+                
+                structured_logger.info(
+                    "Installed package path constructed",
+                    method="importlib_spec",
+                    package_dir=str(package_dir),
                     path=str(installed_file),
-                    relative_path=relative_path,
+                    exists=installed_file.exists(),
                 )
-                return installed_file
+                
+                if installed_file.exists():
+                    structured_logger.info(
+                        "Found data file in installed package (via importlib)",
+                        method="importlib_spec",
+                        path=str(installed_file),
+                        relative_path=relative_path,
+                    )
+                    return installed_file
+                else:
+                    structured_logger.info(
+                        "Installed package path not found",
+                        method="importlib_spec",
+                        path=str(installed_file),
+                    )
+            else:
+                structured_logger.info(
+                    "Spec found but origin is None - cannot determine package location",
+                    method="importlib_spec",
+                )
+        else:
+            structured_logger.info(
+                "No spec found for package",
+                method="importlib_spec",
+                package_name=package_name,
+            )
     except Exception as e:
         structured_logger.debug(
             "Error finding data file via importlib.util.find_spec",
+            method="importlib_spec",
             error=str(e),
             package_name=package_name,
         )
     
     # Option 3: Alternative installed location - using __file__ attribute
+    structured_logger.info(
+        "Searching alternative installed location via __file__",
+        method="module_file",
+    )
     try:
+        structured_logger.debug(
+            "Attempting to import module",
+            method="module_file",
+            package_name=package_name,
+        )
         package_module = importlib.import_module(package_name)
+        
+        structured_logger.debug(
+            "Module imported successfully",
+            method="module_file",
+            module=str(package_module),
+            has_file=hasattr(package_module, "__file__"),
+        )
+        
         if hasattr(package_module, "__file__") and package_module.__file__:
+            structured_logger.info(
+                "Module __file__ found",
+                method="module_file",
+                module_file=package_module.__file__,
+            )
             package_dir = Path(package_module.__file__).parent
             alt_file = package_dir / relative_path
             search_locations.append(str(alt_file))
+            
+            structured_logger.info(
+                "Alternative package path constructed",
+                method="module_file",
+                package_dir=str(package_dir),
+                path=str(alt_file),
+                exists=alt_file.exists(),
+            )
+            
             if alt_file.exists():
-                structured_logger.debug(
+                structured_logger.info(
                     "Found data file in installed package (via __file__)",
+                    method="module_file",
                     path=str(alt_file),
                     relative_path=relative_path,
                 )
                 return alt_file
+            else:
+                structured_logger.info(
+                    "Alternative package path not found",
+                    method="module_file",
+                    path=str(alt_file),
+                )
+        else:
+            structured_logger.info(
+                "Module does not have __file__ attribute or it's None",
+                method="module_file",
+            )
     except Exception as e:
         structured_logger.debug(
             "Error finding data file via __file__ attribute",
+            method="module_file",
             error=str(e),
             package_name=package_name,
         )
@@ -113,6 +236,7 @@ def find_data_file(
         package_name=package_name,
         relative_path=relative_path,
         search_locations=search_locations,
+        development_base_dir=str(development_base_dir) if development_base_dir else None,
     )
     
     raise FileNotFoundError(
