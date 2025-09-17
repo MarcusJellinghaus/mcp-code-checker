@@ -15,6 +15,7 @@ from mcp_code_checker.code_checker_pytest.reporting import (
 )
 from mcp_code_checker.code_checker_pytest.runners import check_code_with_pytest
 from mcp_code_checker.log_utils import log_function_call
+from mcp_code_checker.utils.data_files import find_data_file
 from mcp_code_checker.utils.subprocess_runner import execute_command
 
 # Type definitions for FastMCP
@@ -123,6 +124,22 @@ class CodeCheckerServer:
                 logger.warning(f"Unknown pylint category: {category}")
 
         return pylint_categories if pylint_categories else None
+
+    def _find_sleep_script(self) -> Path:
+        """
+        Find the sleep script location, supporting both development and installed environments.
+
+        Returns:
+            Path to the sleep_script.py file
+
+        Raises:
+            FileNotFoundError: If the script cannot be found in any expected location
+        """
+        return find_data_file(
+            package_name="mcp_code_checker.resources",
+            relative_path="sleep_script.py",
+            development_base_dir=self.project_dir,
+        )
 
     def _register_tools(self) -> None:
         """Register all tools with the MCP server."""
@@ -489,10 +506,24 @@ class CodeCheckerServer:
             if not 0 <= sleep_seconds <= 300:
                 raise ValueError("Sleep seconds must be between 0 and 300")
 
-            # Check if sleep script exists
-            sleep_script = self.project_dir / "tools" / "sleep_script.py"
-            if not sleep_script.exists():
-                raise FileNotFoundError(f"Sleep script not found: {sleep_script}")
+            try:
+                # Find sleep script (supports both development and installed environments)
+                sleep_script = self._find_sleep_script()
+
+                structured_logger.info(
+                    "Sleep script found successfully",
+                    sleep_script=str(sleep_script),
+                    exists=sleep_script.exists(),
+                )
+            except FileNotFoundError as e:
+                structured_logger.error(
+                    "Sleep script not found - detailed search failure",
+                    error=str(e),
+                    package_name="mcp_code_checker.resources",
+                    relative_path="sleep_script.py",
+                    project_dir=str(self.project_dir),
+                )
+                raise FileNotFoundError(f"Sleep script not found: {str(e)}") from e
 
             # Build command
             python_exe = self.python_executable or "python"
@@ -509,13 +540,30 @@ class CodeCheckerServer:
                 env=env,
             )
 
+            # Always show the actual stdout to help with debugging
             if result.return_code == 0:
-                return (
-                    result.stdout.strip()
-                    or f"Successfully slept for {sleep_seconds} seconds"
+                stdout_content = result.stdout.strip()
+                structured_logger.info(
+                    "Sleep operation completed successfully",
+                    sleep_seconds=sleep_seconds,
+                    return_code=result.return_code,
+                    stdout_length=len(result.stdout),
+                    stderr_length=len(result.stderr),
+                    timed_out=result.timed_out,
+                    execution_error=result.execution_error,
                 )
+                return f"Sleep operation stdout: {stdout_content}"
             else:
-                return f"Sleep failed (code {result.return_code}): {result.stderr}"
+                structured_logger.error(
+                    "Sleep operation failed",
+                    sleep_seconds=sleep_seconds,
+                    return_code=result.return_code,
+                    stdout_length=len(result.stdout),
+                    stderr_length=len(result.stderr),
+                    timed_out=result.timed_out,
+                    execution_error=result.execution_error,
+                )
+                return f"Sleep failed (code {result.return_code}): stdout='{result.stdout}', stderr='{result.stderr}'"
 
     @log_function_call
     def run(self) -> None:

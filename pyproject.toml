@@ -1,6 +1,6 @@
 [project]
 name = "mcp-code-checker"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
     {name = "Marcus Jellinghaus"},
 ]
@@ -89,11 +89,19 @@ ignore_missing_imports = true
 module = ["mcp.server.fastmcp"]
 ignore_missing_imports = true
 
+# Include tools directory in the distribution
+[tool.setuptools]
+include-package-data = true
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
 "*" = ["py.typed"]
+# Include sleep_script.py from the src/mcp_code_checker/resources/ folder
+"mcp_code_checker.resources" = ["sleep_script.py"]
+
+
 
 [build-system]
 requires = ["setuptools>=61.0"]
