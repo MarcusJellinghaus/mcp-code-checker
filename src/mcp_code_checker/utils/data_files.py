@@ -162,19 +162,24 @@ def find_data_file(
                 "METHOD 2/3: Package spec found",
                 method="importlib_spec",
                 origin=spec.origin,
+                origin_absolute=str(Path(spec.origin).resolve()) if spec.origin else None,
                 name=spec.name,
             )
             if spec.origin:
                 package_dir = Path(spec.origin).parent
+                package_dir_absolute = package_dir.resolve()
                 installed_file = package_dir / relative_path
-                method_2_path = str(installed_file)
-                search_locations.append(str(installed_file))
+                installed_file_absolute = installed_file.resolve()
+                method_2_path = str(installed_file_absolute)
+                search_locations.append(str(installed_file_absolute))
 
                 structured_logger.info(
                     "METHOD 2/3: Installed package path constructed",
                     method="importlib_spec",
                     package_dir=str(package_dir),
+                    package_dir_absolute=str(package_dir_absolute),
                     path=str(installed_file),
+                    path_absolute=str(installed_file_absolute),
                     exists=installed_file.exists(),
                 )
 
@@ -184,6 +189,7 @@ def find_data_file(
                         "METHOD 2/3: SUCCESS - Found data file in installed package (via importlib)",
                         method="importlib_spec",
                         path=str(installed_file),
+                        path_absolute=str(installed_file_absolute),
                         result=method_2_result,
                     )
                     search_results.append(
@@ -200,6 +206,7 @@ def find_data_file(
                         "METHOD 2/3: FAILED - Installed package path not found",
                         method="importlib_spec",
                         path=str(installed_file),
+                        path_absolute=str(installed_file_absolute),
                         result=method_2_result,
                     )
             else:
@@ -255,24 +262,31 @@ def find_data_file(
             method="module_file",
             module=str(package_module),
             has_file=hasattr(package_module, "__file__"),
+            module_file=package_module.__file__ if hasattr(package_module, "__file__") else None,
         )
 
         if hasattr(package_module, "__file__") and package_module.__file__:
+            module_file_absolute = str(Path(package_module.__file__).resolve())
             structured_logger.info(
                 "METHOD 3/3: Module __file__ found",
                 method="module_file",
                 module_file=package_module.__file__,
+                module_file_absolute=module_file_absolute,
             )
             package_dir = Path(package_module.__file__).parent
+            package_dir_absolute = package_dir.resolve()
             alt_file = package_dir / relative_path
-            method_3_path = str(alt_file)
-            search_locations.append(str(alt_file))
+            alt_file_absolute = alt_file.resolve()
+            method_3_path = str(alt_file_absolute)
+            search_locations.append(str(alt_file_absolute))
 
             structured_logger.info(
                 "METHOD 3/3: Alternative package path constructed",
                 method="module_file",
                 package_dir=str(package_dir),
+                package_dir_absolute=str(package_dir_absolute),
                 path=str(alt_file),
+                path_absolute=str(alt_file_absolute),
                 exists=alt_file.exists(),
             )
 
@@ -282,6 +296,7 @@ def find_data_file(
                     "METHOD 3/3: SUCCESS - Found data file in installed package (via __file__)",
                     method="module_file",
                     path=str(alt_file),
+                    path_absolute=str(alt_file_absolute),
                     result=method_3_result,
                 )
                 search_results.append(
@@ -298,6 +313,7 @@ def find_data_file(
                     "METHOD 3/3: FAILED - Alternative package path not found",
                     method="module_file",
                     path=str(alt_file),
+                    path_absolute=str(alt_file_absolute),
                     result=method_3_result,
                 )
         else:
