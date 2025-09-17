@@ -7,6 +7,7 @@ but kept outside the main package structure (e.g., scripts, configuration files)
 
 import importlib.util
 import logging
+import os
 import site
 import sys
 from pathlib import Path
@@ -31,6 +32,7 @@ def find_data_file(
     2. Installed package: Look in the package installation directory
     3. Alternative package location: Using package __file__ attribute
     4. Site-packages search: Search current Python environment's site-packages directories
+    5. Virtual environment search: Search current virtual environment's site-packages directory
 
     IMPORTANT: For installed packages to work (methods 2 and 3), data files must be
     explicitly declared in pyproject.toml under [tool.setuptools.package-data]:
@@ -70,13 +72,13 @@ def find_data_file(
     """
     # Start with comprehensive logging of the search parameters
     structured_logger.info(
-        "SEARCH STARTED: Looking for data file using 4 methods",
+        "SEARCH STARTED: Looking for data file using 5 methods",
         package_name=package_name,
         relative_path=relative_path,
         development_base_dir=(
             str(development_base_dir) if development_base_dir else None
         ),
-        methods="1=Development, 2=ImportLib, 3=Module __file__, 4=Site-packages",
+        methods="1=Development, 2=ImportLib, 3=Module __file__, 4=Site-packages, 5=Virtual Env",
     )
 
     search_locations = []
@@ -87,7 +89,7 @@ def find_data_file(
     method_1_path = None
     if development_base_dir is not None:
         structured_logger.info(
-            "METHOD 1/4: Searching development environment",
+            "METHOD 1/5: Searching development environment",
             method="development",
             base_dir=str(development_base_dir),
         )
@@ -139,7 +141,7 @@ def find_data_file(
 
     search_results.append(
         {
-            "method": "1/4 Development",
+            "method": "1/5 Development",
             "result": method_1_result,
             "path": method_1_path or "",
         }
@@ -456,9 +458,140 @@ def find_data_file(
 
     search_results.append(
         {
-            "method": "4/4 Site-packages",
+            "method": "4/5 Site-packages",
             "result": method_4_result,
             "path": method_4_path or "",
+        }
+    )
+
+    # Option 5: Virtual Environment specific search
+    method_5_result = "FAILED"
+    method_5_path = None
+    structured_logger.info(
+        "METHOD 5/5: Searching current virtual environment site-packages",
+        method="virtual_env",
+    )
+    try:
+        # Detect if we're in a virtual environment and get its path
+        venv_path = None
+        venv_site_packages = None
+        
+        # Method 1: Check VIRTUAL_ENV environment variable
+        if "VIRTUAL_ENV" in os.environ:
+            venv_path = Path(os.environ["VIRTUAL_ENV"])
+            structured_logger.info(
+                "METHOD 5/5: Found VIRTUAL_ENV environment variable",
+                method="virtual_env",
+                venv_path=str(venv_path),
+            )
+        
+        # Method 2: Check if sys.prefix != sys.base_prefix (indicates virtual env)
+        elif hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+            venv_path = Path(sys.prefix)
+            structured_logger.info(
+                "METHOD 5/5: Detected virtual environment via sys.prefix",
+                method="virtual_env",
+                sys_prefix=sys.prefix,
+                sys_base_prefix=getattr(sys, 'base_prefix', None),
+                venv_path=str(venv_path),
+            )
+        
+        if venv_path and venv_path.exists():
+            # Construct the site-packages path for this virtual environment
+            if os.name == "nt":  # Windows
+                venv_site_packages = venv_path / "Lib" / "site-packages"
+            else:  # Unix-like systems
+                # Find the correct Python version directory
+                lib_dir = venv_path / "lib"
+                if lib_dir.exists():
+                    python_dirs = [d for d in lib_dir.iterdir() if d.is_dir() and d.name.startswith('python')]
+                    if python_dirs:
+                        # Use the first (and usually only) python directory
+                        venv_site_packages = python_dirs[0] / "site-packages"
+                    else:
+                        venv_site_packages = lib_dir / "python" / "site-packages"
+            
+            structured_logger.info(
+                "METHOD 5/5: Virtual environment site-packages path constructed",
+                method="virtual_env",
+                venv_path=str(venv_path),
+                venv_site_packages=str(venv_site_packages) if venv_site_packages else None,
+                exists=venv_site_packages.exists() if venv_site_packages else False,
+            )
+            
+            if venv_site_packages and venv_site_packages.exists():
+                # Convert package name to directory path
+                package_path = package_name.replace(".", "/")
+                venv_file = venv_site_packages / package_path / relative_path
+                venv_file_absolute = venv_file.resolve()
+                method_5_path = str(venv_file_absolute)
+                search_locations.append(str(venv_file_absolute))
+                
+                structured_logger.info(
+                    "METHOD 5/5: Virtual environment target file path constructed",
+                    method="virtual_env",
+                    package_path=package_path,
+                    venv_file=str(venv_file_absolute),
+                    exists=venv_file.exists(),
+                )
+                
+                if venv_file.exists():
+                    method_5_result = "SUCCESS"
+                    structured_logger.info(
+                        "METHOD 5/5: SUCCESS - Found data file in virtual environment",
+                        method="virtual_env",
+                        venv_path=str(venv_path),
+                        venv_site_packages=str(venv_site_packages),
+                        path=str(venv_file_absolute),
+                        result=method_5_result,
+                    )
+                    
+                    search_results.append(
+                        {
+                            "method": "5/5 Virtual Environment",
+                            "result": method_5_result,
+                            "path": method_5_path,
+                        }
+                    )
+                    return venv_file
+                else:
+                    method_5_result = "FAILED"
+                    structured_logger.info(
+                        "METHOD 5/5: FAILED - File not found in virtual environment",
+                        method="virtual_env",
+                        venv_file=str(venv_file_absolute),
+                        result=method_5_result,
+                    )
+            else:
+                method_5_result = "FAILED"
+                structured_logger.info(
+                    "METHOD 5/5: FAILED - Virtual environment site-packages directory not found",
+                    method="virtual_env",
+                    venv_site_packages=str(venv_site_packages) if venv_site_packages else None,
+                    result=method_5_result,
+                )
+        else:
+            method_5_result = "SKIPPED"
+            structured_logger.info(
+                "METHOD 5/5: SKIPPED - No virtual environment detected",
+                method="virtual_env",
+                result=method_5_result,
+            )
+            
+    except Exception as e:
+        method_5_result = "ERROR"
+        structured_logger.info(
+            "METHOD 5/5: ERROR - Exception in virtual environment search",
+            method="virtual_env",
+            error=str(e),
+            result=method_5_result,
+        )
+
+    search_results.append(
+        {
+            "method": "5/5 Virtual Environment",
+            "result": method_5_result,
+            "path": method_5_path or "",
         }
     )
 
