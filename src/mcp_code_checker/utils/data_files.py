@@ -178,7 +178,7 @@ def find_data_file(
                     method="importlib_spec",
                     package_dir=str(package_dir),
                     package_dir_absolute=str(package_dir_absolute),
-                    path=str(installed_file),
+                    path=str(installed_file_absolute),
                     path_absolute=str(installed_file_absolute),
                     exists=installed_file.exists(),
                 )
@@ -188,7 +188,7 @@ def find_data_file(
                     structured_logger.info(
                         "METHOD 2/3: SUCCESS - Found data file in installed package (via importlib)",
                         method="importlib_spec",
-                        path=str(installed_file),
+                        path=str(installed_file_absolute),
                         path_absolute=str(installed_file_absolute),
                         result=method_2_result,
                     )
@@ -205,7 +205,7 @@ def find_data_file(
                     structured_logger.info(
                         "METHOD 2/3: FAILED - Installed package path not found",
                         method="importlib_spec",
-                        path=str(installed_file),
+                        path=str(installed_file_absolute),
                         path_absolute=str(installed_file_absolute),
                         result=method_2_result,
                     )
@@ -285,7 +285,7 @@ def find_data_file(
                 method="module_file",
                 package_dir=str(package_dir),
                 package_dir_absolute=str(package_dir_absolute),
-                path=str(alt_file),
+                path=str(alt_file_absolute),
                 path_absolute=str(alt_file_absolute),
                 exists=alt_file.exists(),
             )
@@ -295,7 +295,7 @@ def find_data_file(
                 structured_logger.info(
                     "METHOD 3/3: SUCCESS - Found data file in installed package (via __file__)",
                     method="module_file",
-                    path=str(alt_file),
+                    path=str(alt_file_absolute),
                     path_absolute=str(alt_file_absolute),
                     result=method_3_result,
                 )
@@ -312,7 +312,7 @@ def find_data_file(
                 structured_logger.info(
                     "METHOD 3/3: FAILED - Alternative package path not found",
                     method="module_file",
-                    path=str(alt_file),
+                    path=str(alt_file_absolute),
                     path_absolute=str(alt_file_absolute),
                     result=method_3_result,
                 )
