@@ -540,13 +540,30 @@ class CodeCheckerServer:
                 env=env,
             )
 
+            # Always show the actual stdout to help with debugging
             if result.return_code == 0:
-                return (
-                    result.stdout.strip()
-                    or f"Successfully slept for {sleep_seconds} seconds"
+                stdout_content = result.stdout.strip()
+                structured_logger.info(
+                    "Sleep operation completed successfully",
+                    sleep_seconds=sleep_seconds,
+                    return_code=result.return_code,
+                    stdout_length=len(result.stdout),
+                    stderr_length=len(result.stderr),
+                    timed_out=result.timed_out,
+                    execution_error=result.execution_error,
                 )
+                return f"Sleep operation stdout: {stdout_content}"
             else:
-                return f"Sleep failed (code {result.return_code}): {result.stderr}"
+                structured_logger.error(
+                    "Sleep operation failed",
+                    sleep_seconds=sleep_seconds,
+                    return_code=result.return_code,
+                    stdout_length=len(result.stdout),
+                    stderr_length=len(result.stderr),
+                    timed_out=result.timed_out,
+                    execution_error=result.execution_error,
+                )
+                return f"Sleep failed (code {result.return_code}): stdout='{result.stdout}', stderr='{result.stderr}'"
 
     @log_function_call
     def run(self) -> None:
