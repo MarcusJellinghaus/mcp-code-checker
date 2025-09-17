@@ -169,7 +169,7 @@ def find_data_file(
                 package_dir = Path(spec.origin).parent
                 package_dir_absolute = package_dir.resolve()
                 installed_file = package_dir / relative_path
-                installed_file_absolute = installed_file.resolve()
+                installed_file_absolute = package_dir_absolute / relative_path
                 method_2_path = str(installed_file_absolute)
                 search_locations.append(str(installed_file_absolute))
 
@@ -276,7 +276,7 @@ def find_data_file(
             package_dir = Path(package_module.__file__).parent
             package_dir_absolute = package_dir.resolve()
             alt_file = package_dir / relative_path
-            alt_file_absolute = alt_file.resolve()
+            alt_file_absolute = package_dir_absolute / relative_path
             method_3_path = str(alt_file_absolute)
             search_locations.append(str(alt_file_absolute))
 
