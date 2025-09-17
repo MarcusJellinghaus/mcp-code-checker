@@ -10,7 +10,7 @@ import sys
 import time
 
 
-def main():
+def main() -> None:
     """Sleep for specified seconds with immediate output."""
 
     # Get sleep duration from command line

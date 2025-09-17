@@ -18,7 +18,7 @@ from mcp_code_checker.utils.data_files import (
 class TestFindDataFile:
     """Test the find_data_file function."""
 
-    def test_find_development_file_new_structure(self):
+    def test_find_development_file_new_structure(self) -> None:
         """Test finding a file in development environment with new src/ structure."""
         # Create a temporary directory structure matching the new layout
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -39,7 +39,7 @@ class TestFindDataFile:
             assert result == test_file
             assert result.exists()
 
-    def test_find_installed_file_via_importlib(self):
+    def test_find_installed_file_via_importlib(self) -> None:
         """Test finding a file in installed package via importlib."""
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -64,7 +64,7 @@ class TestFindDataFile:
 
                 assert result == test_file
 
-    def test_find_installed_file_via_module_file(self):
+    def test_find_installed_file_via_module_file(self) -> None:
         """Test finding a file in installed package via module __file__."""
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -93,7 +93,7 @@ class TestFindDataFile:
 
                     assert result == test_file
 
-    def test_file_not_found_raises_exception(self):
+    def test_file_not_found_raises_exception(self) -> None:
         """Test that FileNotFoundError is raised when file is not found."""
         with pytest.raises(FileNotFoundError) as exc_info:
             find_data_file(
@@ -105,7 +105,7 @@ class TestFindDataFile:
         assert "not found" in str(exc_info.value).lower()
         assert "data/missing_script.py" in str(exc_info.value)
 
-    def test_pyproject_toml_consistency(self):
+    def test_pyproject_toml_consistency(self) -> None:
         """Test that the package configuration in pyproject.toml matches actual usage."""
         import tomllib
 
@@ -144,7 +144,7 @@ class TestFindDataFile:
 class TestFindPackageDataFiles:
     """Test the find_package_data_files function."""
 
-    def test_find_multiple_files(self):
+    def test_find_multiple_files(self) -> None:
         """Test finding multiple data files."""
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -173,7 +173,7 @@ class TestFindPackageDataFiles:
 class TestGetPackageDirectory:
     """Test the get_package_directory function."""
 
-    def test_get_directory_via_importlib(self):
+    def test_get_directory_via_importlib(self) -> None:
         """Test getting package directory via importlib."""
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -190,7 +190,7 @@ class TestGetPackageDirectory:
                 result = get_package_directory("test_package")
                 assert result == package_dir
 
-    def test_get_directory_via_module_file(self):
+    def test_get_directory_via_module_file(self) -> None:
         """Test getting package directory via module __file__."""
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -211,7 +211,7 @@ class TestGetPackageDirectory:
                     result = get_package_directory("test_package")
                     assert result == package_dir
 
-    def test_package_not_found_raises_exception(self):
+    def test_package_not_found_raises_exception(self) -> None:
         """Test that ImportError is raised when package is not found."""
         with patch(
             "mcp_code_checker.utils.data_files.importlib.util.find_spec",

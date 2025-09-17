@@ -115,7 +115,7 @@ def find_data_file(
                 {
                     "method": "1/3 Development",
                     "result": method_1_result,
-                    "path": method_1_path,
+                    "path": method_1_path or "",
                 }
             )
             return dev_file
@@ -135,7 +135,11 @@ def find_data_file(
         )
 
     search_results.append(
-        {"method": "1/3 Development", "result": method_1_result, "path": method_1_path}
+        {
+            "method": "1/3 Development",
+            "result": method_1_result,
+            "path": method_1_path or "",
+        }
     )
 
     # Option 2: Installed package - using importlib.util.find_spec
@@ -186,7 +190,7 @@ def find_data_file(
                         {
                             "method": "2/3 ImportLib",
                             "result": method_2_result,
-                            "path": method_2_path,
+                            "path": method_2_path or "",
                         }
                     )
                     return installed_file
@@ -224,7 +228,11 @@ def find_data_file(
         )
 
     search_results.append(
-        {"method": "2/3 ImportLib", "result": method_2_result, "path": method_2_path}
+        {
+            "method": "2/3 ImportLib",
+            "result": method_2_result,
+            "path": method_2_path or "",
+        }
     )
 
     # Option 3: Alternative installed location - using __file__ attribute
@@ -280,7 +288,7 @@ def find_data_file(
                     {
                         "method": "3/3 Module __file__",
                         "result": method_3_result,
-                        "path": method_3_path,
+                        "path": method_3_path or "",
                     }
                 )
                 return alt_file
@@ -313,7 +321,7 @@ def find_data_file(
         {
             "method": "3/3 Module __file__",
             "result": method_3_result,
-            "path": method_3_path,
+            "path": method_3_path or "",
         }
     )
 
