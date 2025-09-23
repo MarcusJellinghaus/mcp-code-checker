@@ -70,8 +70,9 @@ def mock_pytest_report_with_prints():
 ### Expected Return Values:
 - `should_show_details()` returns `bool`
 - Enhanced `create_prompt_for_failed_tests()` returns `Optional[str]` with controlled content
-- Output length verification via `len(result.split('\n'))` assertions
+- Output length verification: maximum 300 lines total with truncation indicator
 - Print statement inclusion/exclusion verification via string content checks
+- Collection errors always shown regardless of `show_details` setting
 
 ### Test Coverage Requirements:
 - ✅ Few tests (≤3) → always show details when requested

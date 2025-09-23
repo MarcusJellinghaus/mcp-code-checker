@@ -91,11 +91,15 @@ def _format_pytest_result_with_details(self, test_results: dict, show_details: b
             test_results["test_results"],
             max_number_of_tests_reported=10,  # Increased limit
             include_print_output=True,
-            max_failures=10
+            max_failures=10,
+            max_output_lines=300  # Overall output limit
         )
     elif failures_exist and not should_show:
-        # Minimal output with helpful hint
-        return f"Pytest completed with failures. Use show_details=True to see details."
+        # Check if we should suggest show_details=True
+        summary = test_results.get("summary", {})
+        collected = summary.get("collected", 0)
+        hint = " Try show_details=True for more information." if collected <= 3 else ""
+        return f"Pytest completed with failures.{hint}"
     else:
         # Success case - unchanged
         return existing_success_message
@@ -103,10 +107,12 @@ def _format_pytest_result_with_details(self, test_results: dict, show_details: b
 
 ### Integration Flow:
 1. **Parameter Acceptance**: Server receives `show_details` from LLM
-2. **Test Execution**: Calls existing `check_code_with_pytest` (no changes needed)
-3. **Result Processing**: Uses `_format_pytest_result_with_details` instead of `_format_pytest_result`
-4. **Decision Logic**: Calls `should_show_details()` from reporting module
-5. **Enhanced Output**: Passes control parameters to `create_prompt_for_failed_tests`
+2. **Automatic `-s` Addition**: When `show_details=True`, automatically add `-s` to extra_args for print statements
+3. **Test Execution**: Calls existing `check_code_with_pytest` (no changes needed)
+4. **Result Processing**: Uses `_format_pytest_result_with_details` instead of `_format_pytest_result`
+5. **Decision Logic**: Calls `should_show_details()` from reporting module
+6. **Enhanced Output**: Passes control parameters to `create_prompt_for_failed_tests`
+7. **Smart Hints**: Suggest `show_details=True` when appropriate for small test runs
 
 ### Backward Compatibility Guarantee:
 - Default `show_details=False` produces identical output to current behavior

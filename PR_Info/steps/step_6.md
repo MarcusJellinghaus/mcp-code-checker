@@ -37,9 +37,12 @@ def run_pytest_check(
                    See "Flexible Test Selection" section below for common patterns.
         env_vars: Optional dictionary of environment variables for the subprocess. 
         show_details: Show detailed output including print statements from tests (default: False).
-                     - False: Only show summary for large test runs, failed test details for small runs
+                     - False: Only show summary for large test runs, helpful hints for small runs
                      - True: Show detailed output for up to 10 failing tests, or all details if ≤3 tests total
-                     Smart behavior: automatically shows details for focused testing sessions.
+                     - Automatically adds `-s` flag to enable print statement visibility
+                     - Collection errors always shown regardless of setting
+                     - Output limited to 300 lines total with truncation indicator
+                     Smart behavior: provides hints when show_details=True would be beneficial.
     
     Returns:
         A string containing either pytest results or a prompt for an LLM to interpret
@@ -72,8 +75,8 @@ def run_pytest_check(
         # Integration test run with summary only
         run_pytest_check(markers=["integration"], show_details=False)
         
-        # Get print statements from passing tests too
-        run_pytest_check(extra_args=["-s"], show_details=True)
+        # Get print statements with automatic -s flag
+        run_pytest_check(show_details=True)  # Automatically includes -s
     """
 ```
 
@@ -101,8 +104,8 @@ run_pytest_check(show_details=False)  # Default behavior
 ### 3. Run Specific Tests with Print Statements
 ```python
 run_pytest_check(
-    extra_args=["tests/test_debug.py", "-s"],
-    show_details=True
+    extra_args=["tests/test_debug.py"],
+    show_details=True  # Automatically adds -s for print statements
 )
 ```
 

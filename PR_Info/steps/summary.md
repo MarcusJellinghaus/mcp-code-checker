@@ -18,11 +18,14 @@ Add a `show_details: bool = False` parameter that intelligently controls LLM-vis
 - Show detailed output for up to 10 failing tests
 - Show details even for passing tests if ≤3 total tests were run
 - Include print statements, tracebacks, and diagnostic information
+- **Automatically adds `-s` flag to enable print statement visibility**
+- **Overall output limited to 300 lines with truncation indicator**
 
 **When `show_details=False` (default):**
 - Maintain current behavior (backward compatible)
 - Only show summary information for large test runs
-- Provide helpful hints about using `show_details=True`
+- **Provide helpful hints about using `show_details=True` when ≤3 tests detected**
+- **Collection errors always shown regardless of this setting**
 
 ## Key Benefits
 1. **No Parameter Confusion**: Uses `show_details` instead of competing with pytest's `-v`
@@ -66,7 +69,7 @@ def should_show_details(test_results: dict, show_details: bool) -> bool:
 
 #### 3. **Controlled Output Pattern**
 - **Input Validation**: Parameter type checking and bounds validation
-- **Output Limiting**: Maximum failures (10), maximum lines per test (50)
+- **Output Limiting**: Maximum failures (10), maximum 300 lines total output
 - **Content Filtering**: Include/exclude print statements based on context
 
 ### Component Changes
