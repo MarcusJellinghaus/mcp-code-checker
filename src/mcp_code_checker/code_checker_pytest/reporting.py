@@ -3,7 +3,7 @@ Functions for formatting and reporting pytest test results.
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any
 
 import structlog
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
 
 
-def should_show_details(test_results: dict, show_details: bool) -> bool:
+def should_show_details(test_results: Dict[str, Any], show_details: bool) -> bool:
     """
     Determine if detailed output should be shown based on test results and user preference.
     
