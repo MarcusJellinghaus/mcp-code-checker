@@ -1,6 +1,6 @@
-# Test data directory for show_details integration tests
+# Test data directory for pytest reporting integration tests
 
-This directory contains sample test files used by the integration tests to verify the complete end-to-end flow of the show_details parameter functionality.
+This directory contains sample test files used by the integration tests to verify the complete end-to-end flow of the pytest reporting functionality, specifically the show_details parameter.
 
 ## Directory Structure
 
