@@ -292,8 +292,10 @@ async def test_run_pytest_check_show_details_default_value() -> None:
         assert "extra_args" in signature.parameters
         assert "env_vars" in signature.parameters
         
-        # Note: show_details parameter will be added in Step 4
-        # This test documents the current state and will be updated
+        # Verify show_details parameter was added in Step 4
+        assert "show_details" in signature.parameters
+        assert signature.parameters["show_details"].default == False
+        assert signature.parameters["show_details"].annotation == bool
 
 
 @pytest.mark.asyncio
@@ -337,12 +339,19 @@ async def test_show_details_with_focused_test_run(mock_server: Tuple[Any, MagicM
         # Get the run_pytest_check function
         run_pytest_check = mock_tool.call_args_list[1][0][0]
         
-        # Call function
+        # Call function WITHOUT show_details=True (default behavior)
         result = run_pytest_check(markers=["unit"])
         
-        # Verify that create_prompt_for_failed_tests was called for failed tests
+        # For default behavior (show_details=False), should show hint message
+        mock_create_prompt.assert_not_called()
+        assert "Try show_details=True for more information" in result
+        
+        # Now test WITH show_details=True
+        result_with_details = run_pytest_check(markers=["unit"], show_details=True)
+        
+        # With show_details=True and few tests, should show detailed output
         mock_create_prompt.assert_called_once()
-        assert "Detailed failure information..." in result
+        assert "Detailed failure information..." in result_with_details
 
 
 @pytest.mark.asyncio
@@ -360,12 +369,20 @@ async def test_show_details_with_many_failures(mock_server: Tuple[Any, MagicMock
         # Get the run_pytest_check function
         run_pytest_check = mock_tool.call_args_list[1][0][0]
         
-        # Call function
+        # Call function WITHOUT show_details=True (default behavior)
         result = run_pytest_check(verbosity=3)
         
-        # For many failures, should still call create_prompt_for_failed_tests
+        # For many failures without show_details=True, should show short message (no hint for >3 tests)
+        mock_create_prompt.assert_not_called()
+        assert "Pytest completed with failures" in result
+        assert "Try show_details=True for more information" not in result  # No hint for many tests
+        
+        # Now test WITH show_details=True
+        result_with_details = run_pytest_check(verbosity=3, show_details=True)
+        
+        # With show_details=True and many failures (but ≤10), should show detailed output
         mock_create_prompt.assert_called_once()
-        assert "Many failures detected..." in result
+        assert "Many failures detected..." in result_with_details
 
 
 @pytest.mark.asyncio
@@ -391,8 +408,8 @@ async def test_show_details_output_length_limits(mock_server: Tuple[Any, MagicMo
         # Get the run_pytest_check function
         run_pytest_check = mock_tool.call_args_list[1][0][0]
         
-        # Call function
-        result = run_pytest_check()
+        # Call function with show_details=True to get detailed output
+        result = run_pytest_check(show_details=True)
         
         # Verify create_prompt_for_failed_tests was called
         mock_create_prompt.assert_called_once()
@@ -406,7 +423,7 @@ async def test_show_details_output_length_limits(mock_server: Tuple[Any, MagicMo
 
 @pytest.mark.asyncio
 async def test_server_method_signature_includes_show_details() -> None:
-    """Test that server method signature will include show_details parameter."""
+    """Test that server method signature includes show_details parameter."""
     with patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp:
         mock_tool = MagicMock()
         mock_fastmcp.return_value.tool.return_value = mock_tool
@@ -418,14 +435,17 @@ async def test_server_method_signature_includes_show_details() -> None:
         run_pytest_check = mock_tool.call_args_list[1][0][0]
         signature = inspect.signature(run_pytest_check)
         
-        # Document current parameters (show_details will be added in Step 4)
+        # Check that all expected parameters are present (including show_details added in Step 4)
         current_params = list(signature.parameters.keys())
-        expected_current = ["markers", "verbosity", "extra_args", "env_vars"]
+        expected_params = ["markers", "verbosity", "extra_args", "env_vars", "show_details"]
         
-        for param in expected_current:
+        for param in expected_params:
             assert param in current_params, f"Expected parameter {param} not found"
         
-        # Note: This test will be updated in Step 4 to check for show_details
+        # Verify show_details parameter properties
+        show_details_param = signature.parameters["show_details"]
+        assert show_details_param.default == False
+        assert show_details_param.annotation == bool
 
 
 @pytest.mark.asyncio
@@ -471,8 +491,12 @@ async def test_enhanced_reporting_integration_preparation(mock_server: Tuple[Any
         # Get the run_pytest_check function
         run_pytest_check = mock_tool.call_args_list[1][0][0]
         
-        # Call function
-        result = run_pytest_check()
+        # Call function with show_details=True to test enhanced integration
+        result = run_pytest_check(show_details=True)
+        
+        # With show_details=True, should use enhanced reporting
+        mock_create_prompt.assert_called_once()
+        assert "Enhanced failure details..." in result
         
         # Verify that enhanced reporting functions are available
         # The reporting module should have the enhanced functions from Steps 1-2

@@ -25,16 +25,12 @@ def should_show_details(test_results: Dict[str, Any], show_details: bool) -> boo
     Returns:
         True if conditions meet criteria for showing details, False otherwise
     """
-    if not show_details:
-        return False
+    # If show_details is explicitly True, always show details (output truncation handles length)
+    if show_details:
+        return True
     
-    summary = test_results.get("summary", {})
-    total_collected = summary.get("collected", 0) or 0
-    failed_count = summary.get("failed", 0) or 0
-    error_count = summary.get("error", 0) or 0
-    
-    # Show details if few tests OR manageable failures
-    return total_collected <= 3 or (failed_count + error_count) <= 10
+    # For default behavior (show_details=False), never show details
+    return False
 
 
 @log_function_call
