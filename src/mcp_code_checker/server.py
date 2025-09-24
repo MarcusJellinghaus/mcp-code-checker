@@ -251,22 +251,62 @@ class CodeCheckerServer:
         def run_pytest_check(
             markers: Optional[List[str]] = None,
             verbosity: int = 2,
-            extra_args: Optional[List[str]] = None,
+            extra_args: Optional[List[str]] = None, 
             env_vars: Optional[Dict[str, str]] = None,
             show_details: bool = False,
         ) -> str:
             """
             Run pytest on the project code and generate smart prompts for LLMs.
-
+            
             Args:
                 markers: Optional list of pytest markers to filter tests. Examples: ['slow', 'integration']
-                verbosity: Integer for pytest verbosity level (0-3), default 2. Higher values provide more detailed output.
-                extra_args: Optional list of additional pytest arguments. Examples: ['-xvs', '--no-header']
-                env_vars: Optional dictionary of environment variables for the subprocess. Example: {'DEBUG': '1', 'PYTHONPATH': '/custom/path'}
-                show_details: If True, automatically add -s flag and show detailed output for failed tests. Default: False.
-
+                verbosity: Integer for pytest verbosity level (0-3), default 2. 
+                          Controls pytest's native -v/-vv/-vvv flags for test execution detail.
+                extra_args: Optional list of additional pytest arguments for flexible test selection.
+                           Examples: ['tests/test_file.py::test_function']
+                           See "Flexible Test Selection" section below for common patterns.
+                env_vars: Optional dictionary of environment variables for the subprocess. 
+                show_details: Show detailed output including print statements from tests (default: False).
+                             - False: Only show summary for large test runs, helpful hints for small runs
+                             - True: Show detailed output for up to 10 failing tests, or all details if ≤3 tests total
+                             - Automatically adds `-s` flag to enable print statement visibility
+                             - Collection errors always shown regardless of setting
+                             - Output limited to 300 lines total with truncation indicator
+                             Smart behavior: provides hints when show_details=True would be beneficial.
+            
             Returns:
                 A string containing either pytest results or a prompt for an LLM to interpret
+                
+            Flexible Test Selection:
+                Use extra_args to run specific tests or control pytest behavior:
+                
+                # Specific tests
+                extra_args=["tests/test_math.py::test_addition"]
+                extra_args=["tests/test_auth.py"]  # Entire file
+                extra_args=["-k", "calculation"]  # Pattern matching
+                
+                # Output control
+                extra_args=["-s"]  # Show print statements
+                extra_args=["--tb=short"]  # Short tracebacks
+                
+                # Execution control
+                extra_args=["-x"]  # Stop on first failure
+                
+            Examples:
+                # Standard CI run - minimal output
+                run_pytest_check()
+                
+                # Debug specific test with full details
+                run_pytest_check(
+                    extra_args=["tests/test_math.py::test_calculation"], 
+                    show_details=True
+                )
+                
+                # Integration test run with summary only
+                run_pytest_check(markers=["integration"], show_details=False)
+                
+                # Get print statements with automatic -s flag
+                run_pytest_check(show_details=True)  # Automatically includes -s
             """
             try:
                 logger.info(
