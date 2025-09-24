@@ -6,12 +6,13 @@ def test_passing():
     assert result == 4
     print("Debug: test_passing completed successfully")
 
+
 def test_failing_with_prints():
     """A failing test that includes print statements for debugging."""
     print("Debug: processing value")
     data = {"key": "value"}
     print(f"Debug: data structure is {data}")
-    
+
     # This will fail
     result = len(data)
     print(f"Debug: data length is {result}")

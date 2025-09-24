@@ -17,18 +17,18 @@ structured_logger = structlog.get_logger(__name__)
 def should_show_details(test_results: Dict[str, Any], show_details: bool) -> bool:
     """
     Determine if detailed output should be shown based on test results and user preference.
-    
+
     Args:
         test_results: Dictionary containing test summary information
         show_details: User preference for showing details
-        
+
     Returns:
         True if conditions meet criteria for showing details, False otherwise
     """
     # If show_details is explicitly True, always show details (output truncation handles length)
     if show_details:
         return True
-    
+
     # For default behavior (show_details=False), never show details
     return False
 
@@ -39,7 +39,7 @@ def create_prompt_for_failed_tests(
     max_number_of_tests_reported: int = 1,
     include_print_output: bool = True,
     max_failures: int = 10,
-    max_output_lines: int = 300
+    max_output_lines: int = 300,
 ) -> Optional[str]:
     """
     Creates a prompt for an LLM based on the failed tests from a test session result.
@@ -60,13 +60,15 @@ def create_prompt_for_failed_tests(
     # Helper function to add content with line counting
     def add_content(content: str) -> bool:
         nonlocal line_count
-        lines = content.count('\n')
+        lines = content.count("\n")
         if line_count + lines > max_output_lines:
             remaining_lines = max_output_lines - line_count
             if remaining_lines > 0:
-                content_lines = content.split('\n')
-                prompt_parts.append('\n'.join(content_lines[:remaining_lines]))
-                prompt_parts.append('\n\n[Output truncated at {} lines...]\n'.format(max_output_lines))
+                content_lines = content.split("\n")
+                prompt_parts.append("\n".join(content_lines[:remaining_lines]))
+                prompt_parts.append(
+                    "\n\n[Output truncated at {} lines...]\n".format(max_output_lines)
+                )
             return False  # Signal to stop processing
         prompt_parts.append(content)
         line_count += lines
@@ -80,10 +82,14 @@ def create_prompt_for_failed_tests(
             if collector.outcome in ["failed", "error"]
         ]
     if len(failed_collectors) > 0:
-        if not add_content("The following collectors failed during the test session:\n"):
+        if not add_content(
+            "The following collectors failed during the test session:\n"
+        ):
             return "\n".join(prompt_parts)
     for failed_collector in failed_collectors:
-        if not add_content(f"Collector ID: {failed_collector.nodeid} - outcome {failed_collector.outcome}\n"):
+        if not add_content(
+            f"Collector ID: {failed_collector.nodeid} - outcome {failed_collector.outcome}\n"
+        ):
             return "\n".join(prompt_parts)
         # Collection errors are always shown (critical setup issues)
         if failed_collector.longrepr:
@@ -121,9 +127,11 @@ def create_prompt_for_failed_tests(
             if not add_content("  Traceback:\n"):
                 return "\n".join(prompt_parts)
             for entry in test.call.traceback:
-                if not add_content(f"   - {entry.path}:{entry.lineno} - {entry.message}\n"):
+                if not add_content(
+                    f"   - {entry.path}:{entry.lineno} - {entry.message}\n"
+                ):
                     return "\n".join(prompt_parts)
-        
+
         # Include output sections only if include_print_output is True
         if include_print_output:
             if test.call and test.call.stdout:
@@ -140,29 +148,43 @@ def create_prompt_for_failed_tests(
             if not add_content(f"  Test Setup Outcome: {test.setup.outcome}\n"):
                 return "\n".join(prompt_parts)
             if test.setup.crash:
-                if not add_content(f"  Test Setup Crash Error Message: {test.setup.crash.message}\n"):
+                if not add_content(
+                    f"  Test Setup Crash Error Message: {test.setup.crash.message}\n"
+                ):
                     return "\n".join(prompt_parts)
-                if not add_content(f"  Test Setup Crash Error Path: {test.setup.crash.path}\n"):
+                if not add_content(
+                    f"  Test Setup Crash Error Path: {test.setup.crash.path}\n"
+                ):
                     return "\n".join(prompt_parts)
-                if not add_content(f"  Setup Crash Error Line: {test.setup.crash.lineno}\n"):
+                if not add_content(
+                    f"  Setup Crash Error Line: {test.setup.crash.lineno}\n"
+                ):
                     return "\n".join(prompt_parts)
             if test.setup.traceback:
                 if not add_content("  Test Setup Traceback:\n"):
                     return "\n".join(prompt_parts)
                 for entry in test.setup.traceback:
-                    if not add_content(f"   - {entry.path}:{entry.lineno} - {entry.message}\n"):
+                    if not add_content(
+                        f"   - {entry.path}:{entry.lineno} - {entry.message}\n"
+                    ):
                         return "\n".join(prompt_parts)
-            
+
             # Include setup output sections only if include_print_output is True
             if include_print_output:
                 if test.setup.stdout:
-                    if not add_content(f"  Test Setup Stdout:\n```\n{test.setup.stdout}\n```\n"):
+                    if not add_content(
+                        f"  Test Setup Stdout:\n```\n{test.setup.stdout}\n```\n"
+                    ):
                         return "\n".join(prompt_parts)
                 if test.setup.stderr:
-                    if not add_content(f"  Test Setup Stderr:\n```\n{test.setup.stderr}\n```\n"):
+                    if not add_content(
+                        f"  Test Setup Stderr:\n```\n{test.setup.stderr}\n```\n"
+                    ):
                         return "\n".join(prompt_parts)
                 if test.setup.longrepr:
-                    if not add_content(f"  Test Setup Longrepr:\n```\n{test.setup.longrepr}\n```\n"):
+                    if not add_content(
+                        f"  Test Setup Longrepr:\n```\n{test.setup.longrepr}\n```\n"
+                    ):
                         return "\n".join(prompt_parts)
 
         if not add_content("\n"):
@@ -172,43 +194,49 @@ def create_prompt_for_failed_tests(
         if test_count >= max_number_of_tests_reported:
             break
 
-        if not add_content("===============================================================================\n"):
+        if not add_content(
+            "===============================================================================\n"
+        ):
             return "\n".join(prompt_parts)
         if not add_content("\n"):
             return "\n".join(prompt_parts)
 
     if len(prompt_parts) > 0:
-        if not add_content("Can you provide an explanation for why these tests failed and suggest how they could be fixed?"):
+        if not add_content(
+            "Can you provide an explanation for why these tests failed and suggest how they could be fixed?"
+        ):
             return "\n".join(prompt_parts)
         return "".join(prompt_parts)
     else:
         return None
 
 
-def get_detailed_test_summary(test_session_result: PytestReport, show_details: bool) -> str:
+def get_detailed_test_summary(
+    test_session_result: PytestReport, show_details: bool
+) -> str:
     """
     Enhanced summary that can include additional detail hints.
-    
+
     Args:
         test_session_result: The test session result to summarize
         show_details: Whether to include hints about detail availability
-        
+
     Returns:
         A string with the enhanced test summary
     """
     summary_base = get_test_summary(test_session_result)
-    
+
     if show_details:
         test_results = {
             "summary": {
                 "collected": test_session_result.summary.collected,
                 "failed": test_session_result.summary.failed,
-                "error": test_session_result.summary.error
+                "error": test_session_result.summary.error,
             }
         }
         if should_show_details(test_results, show_details):
             summary_base += " [Details available with show_details=True]"
-    
+
     return summary_base
 
 

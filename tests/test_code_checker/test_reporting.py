@@ -202,34 +202,19 @@ def test_get_test_summary_minimal() -> None:
     assert "⚠️ Error:" not in summary
 
 
-
 # ===================== Tests for Enhanced Reporting Logic =====================
 
 
 @pytest.fixture
 def minimal_test_results() -> dict[str, dict[str, int]]:
     """Mock results for ≤3 tests."""
-    return {
-        "summary": {
-            "collected": 2,
-            "passed": 1,
-            "failed": 1,
-            "total": 2
-        }
-    }
+    return {"summary": {"collected": 2, "passed": 1, "failed": 1, "total": 2}}
 
 
 @pytest.fixture
 def large_test_results() -> dict[str, dict[str, int]]:
     """Mock results for >10 failures."""
-    return {
-        "summary": {
-            "collected": 50,
-            "passed": 35,
-            "failed": 15,
-            "total": 50
-        }
-    }
+    return {"summary": {"collected": 50, "passed": 35, "failed": 15, "total": 50}}
 
 
 @pytest.fixture
@@ -307,32 +292,34 @@ def mock_pytest_report_with_prints() -> PytestReport:
     return parse_pytest_report(json_with_prints)
 
 
-def _should_show_details_helper(test_results: dict[str, Any], show_details: bool) -> bool:
+def _should_show_details_helper(
+    test_results: dict[str, Any], show_details: bool
+) -> bool:
     """
     Test helper function to simulate the decision logic that will be implemented in reporting module.
-    
+
     This is a temporary implementation for testing purposes only.
     The actual implementation will be in src/mcp_code_checker/code_checker_pytest/reporting.py
-    
+
     Args:
         test_results: Dictionary with test summary data
         show_details: Flag indicating if details were requested
-        
+
     Returns:
         bool: True if details should be shown
     """
     if not show_details:
         return False
-        
+
     summary = test_results.get("summary", {})
     if summary is None:
         summary = {}
     collected = summary.get("collected", 0)
-    
+
     # Always show details for small test runs (≤3 tests)
     if collected <= 3:
         return True
-        
+
     # For larger runs, show details only if explicitly requested
     return True
 
@@ -340,20 +327,24 @@ def _should_show_details_helper(test_results: dict[str, Any], show_details: bool
 # ===================== Test Functions for Decision Logic =====================
 
 
-def test_should_show_details_with_few_tests(minimal_test_results: dict[str, dict[str, int]]) -> None:
+def test_should_show_details_with_few_tests(
+    minimal_test_results: dict[str, dict[str, int]],
+) -> None:
     """Test decision logic for small test runs (≤3 tests)."""
     # Should show details when requested for few tests
     assert _should_show_details_helper(minimal_test_results, True) is True
-    
+
     # Should not show details when not requested
     assert _should_show_details_helper(minimal_test_results, False) is False
 
 
-def test_should_show_details_with_many_tests(large_test_results: dict[str, dict[str, int]]) -> None:
+def test_should_show_details_with_many_tests(
+    large_test_results: dict[str, dict[str, int]],
+) -> None:
     """Test decision logic for large test runs (>3 tests)."""
     # Should show details when explicitly requested for many tests
     assert _should_show_details_helper(large_test_results, True) is True
-    
+
     # Should not show details when not requested
     assert _should_show_details_helper(large_test_results, False) is False
 
@@ -361,32 +352,20 @@ def test_should_show_details_with_many_tests(large_test_results: dict[str, dict[
 def test_should_show_details_with_failures() -> None:
     """Test decision logic with various failure counts."""
     test_data_with_failures = {
-        "summary": {
-            "collected": 10,
-            "passed": 5,
-            "failed": 5,
-            "total": 10
-        }
+        "summary": {"collected": 10, "passed": 5, "failed": 5, "total": 10}
     }
-    
+
     # Should show details when requested, regardless of failure count
     assert _should_show_details_helper(test_data_with_failures, True) is True
-    
+
     # Should not show details when not requested
     assert _should_show_details_helper(test_data_with_failures, False) is False
 
 
 def test_should_show_details_false_by_default() -> None:
     """Test that show_details defaults to False behavior."""
-    test_data = {
-        "summary": {
-            "collected": 5,
-            "passed": 3,
-            "failed": 2,
-            "total": 5
-        }
-    }
-    
+    test_data = {"summary": {"collected": 5, "passed": 3, "failed": 2, "total": 5}}
+
     # Should not show details by default (show_details=False)
     assert _should_show_details_helper(test_data, False) is False
 
@@ -394,15 +373,19 @@ def test_should_show_details_false_by_default() -> None:
 # ===================== Test Functions for Enhanced Formatting =====================
 
 
-def test_create_prompt_with_print_output_enabled(mock_pytest_report_with_prints: PytestReport) -> None:
+def test_create_prompt_with_print_output_enabled(
+    mock_pytest_report_with_prints: PytestReport,
+) -> None:
     """Test enhanced formatting with print output enabled."""
     # Test the current behavior (this will be enhanced in step 2)
-    prompt = create_prompt_for_failed_tests(mock_pytest_report_with_prints, max_number_of_tests_reported=10)
-    
+    prompt = create_prompt_for_failed_tests(
+        mock_pytest_report_with_prints, max_number_of_tests_reported=10
+    )
+
     assert prompt is not None
     assert "The following tests failed during the test session:" in prompt
     assert "test_example.py::test_with_print" in prompt
-    
+
     # Check that stdout content is included (current behavior)
     assert "Stdout:" in prompt
     assert "Debug info: value=42" in prompt
@@ -445,10 +428,10 @@ def test_create_prompt_with_print_output_disabled() -> None:
         ]
     }
     """
-    
+
     report = parse_pytest_report(json_simple_failure)
     prompt = create_prompt_for_failed_tests(report, max_number_of_tests_reported=1)
-    
+
     assert prompt is not None
     assert "test_simple.py::test_fail" in prompt
     assert "AssertionError: Test failed" in prompt
@@ -473,7 +456,7 @@ def test_create_prompt_respects_max_failures_limit() -> None:
         "collectors": [],
         "tests": [
     """
-    
+
     # Add 15 failed tests
     test_entries = []
     for i in range(15):
@@ -494,29 +477,29 @@ def test_create_prompt_respects_max_failures_limit() -> None:
                 }}
             }}"""
         test_entries.append(test_entry)
-    
+
     json_many_failures += ",".join(test_entries)
     json_many_failures += """
         ],
         "warnings": []
     }
     """
-    
+
     report = parse_pytest_report(json_many_failures)
-    
+
     # Test with limit of 5
     prompt = create_prompt_for_failed_tests(report, max_number_of_tests_reported=5)
-    
+
     assert prompt is not None
-    
+
     # Count occurrences of "Test ID:" to verify limit is respected
     test_id_count = prompt.count("Test ID:")
     assert test_id_count == 5, f"Expected 5 test failures, got {test_id_count}"
-    
+
     # Verify first 5 tests are included
     assert "test_fail_0" in prompt
     assert "test_fail_4" in prompt
-    
+
     # Verify later tests are not included due to limit
     assert "test_fail_5" not in prompt
     assert "test_fail_14" not in prompt
@@ -554,10 +537,10 @@ def test_create_prompt_with_collection_errors() -> None:
         "warnings": []
     }
     """
-    
+
     report = parse_pytest_report(json_with_collection_error)
     prompt = create_prompt_for_failed_tests(report)
-    
+
     assert prompt is not None
     assert "The following collectors failed during the test session:" in prompt
     assert "test_broken.py" in prompt
@@ -567,17 +550,10 @@ def test_create_prompt_with_collection_errors() -> None:
 def test_create_prompt_edge_cases() -> None:
     """Test edge cases like empty results, None values."""
     # Test with empty summary
-    empty_summary = {
-        "summary": {
-            "collected": 0,
-            "passed": 0,
-            "failed": 0,
-            "total": 0
-        }
-    }
+    empty_summary = {"summary": {"collected": 0, "passed": 0, "failed": 0, "total": 0}}
     assert _should_show_details_helper(empty_summary, True) is True  # ≤3 tests
     assert _should_show_details_helper(empty_summary, False) is False
-    
+
     # Test with None values
     none_summary = {"summary": None}
     # _should_show_details_helper should handle gracefully
@@ -591,17 +567,14 @@ def test_create_prompt_edge_cases() -> None:
 
     # Test with missing summary key
     no_summary: dict[str, Any] = {}
-    assert _should_show_details_helper(no_summary, True) is True  # Should handle gracefully
+    assert (
+        _should_show_details_helper(no_summary, True) is True
+    )  # Should handle gracefully
     assert _should_show_details_helper(no_summary, False) is False
-    
+
     # Test with negative/invalid values
     invalid_summary = {
-        "summary": {
-            "collected": -1,
-            "passed": 0,
-            "failed": 0,
-            "total": -1
-        }
+        "summary": {"collected": -1, "passed": 0, "failed": 0, "total": -1}
     }
     # Should handle edge case gracefully (negative values treated as 0 or small)
     assert _should_show_details_helper(invalid_summary, True) is True
@@ -612,11 +585,11 @@ def test_create_prompt_output_length_limits() -> None:
     # Create a large report to test length limits
     report = parse_pytest_report(SAMPLE_JSON)
     prompt = create_prompt_for_failed_tests(report, max_number_of_tests_reported=10)
-    
+
     if prompt:
         # Count lines in the output
-        line_count = len(prompt.split('\n'))
-        
+        line_count = len(prompt.split("\n"))
+
         # This is a basic length check - the 300-line limit will be implemented in step 2
         # For now, just verify the output is reasonable in size
         assert line_count > 0
@@ -626,16 +599,15 @@ def test_create_prompt_output_length_limits() -> None:
 def test_future_parameter_compatibility() -> None:
     """Test that the current function signature can be extended for future parameters."""
     report = parse_pytest_report(SAMPLE_JSON)
-    
+
     # Test current function works with keyword arguments (important for future compatibility)
     prompt_kwargs = create_prompt_for_failed_tests(
-        test_session_result=report,
-        max_number_of_tests_reported=2
+        test_session_result=report, max_number_of_tests_reported=2
     )
-    
+
     assert prompt_kwargs is not None
     assert "The following tests failed during the test session:" in prompt_kwargs
-    
+
     # Count test failures to ensure limit is respected
     test_id_count = prompt_kwargs.count("Test ID:")
     assert test_id_count == 2, f"Expected 2 test failures, got {test_id_count}"
@@ -645,14 +617,16 @@ def test_backward_compatibility() -> None:
     """Ensure existing behavior is maintained."""
     # Test that existing function signature still works
     report = parse_pytest_report(SAMPLE_JSON)
-    
+
     # Current function signature should still work
     prompt_old = create_prompt_for_failed_tests(report)
-    prompt_with_limit = create_prompt_for_failed_tests(report, max_number_of_tests_reported=1)
-    
+    prompt_with_limit = create_prompt_for_failed_tests(
+        report, max_number_of_tests_reported=1
+    )
+
     assert prompt_old is not None
     assert prompt_with_limit is not None
-    
+
     # Both should contain basic failure information
     assert "The following tests failed during the test session:" in prompt_old
     assert "The following tests failed during the test session:" in prompt_with_limit
@@ -662,47 +636,43 @@ def test_decision_logic_boundary_conditions() -> None:
     """Test boundary conditions for the show_details decision logic."""
     # Test exactly 3 tests (boundary condition)
     exactly_three_tests = {
-        "summary": {
-            "collected": 3,
-            "passed": 2,
-            "failed": 1,
-            "total": 3
-        }
+        "summary": {"collected": 3, "passed": 2, "failed": 1, "total": 3}
     }
     assert _should_show_details_helper(exactly_three_tests, True) is True  # ≤3 tests
     assert _should_show_details_helper(exactly_three_tests, False) is False
-    
+
     # Test exactly 4 tests (boundary condition)
     exactly_four_tests = {
-        "summary": {
-            "collected": 4,
-            "passed": 3,
-            "failed": 1,
-            "total": 4
-        }
+        "summary": {"collected": 4, "passed": 3, "failed": 1, "total": 4}
     }
-    assert _should_show_details_helper(exactly_four_tests, True) is True  # >3 tests but requested
+    assert (
+        _should_show_details_helper(exactly_four_tests, True) is True
+    )  # >3 tests but requested
     assert _should_show_details_helper(exactly_four_tests, False) is False
 
 
 def test_enhanced_formatting_structure() -> None:
     """Test that enhanced formatting maintains proper structure for future enhancements."""
     report = parse_pytest_report(SAMPLE_JSON)
-    
+
     # Test current function behavior with different max_number_of_tests_reported values
-    prompt_single = create_prompt_for_failed_tests(report, max_number_of_tests_reported=1)
-    prompt_multiple = create_prompt_for_failed_tests(report, max_number_of_tests_reported=5)
-    
+    prompt_single = create_prompt_for_failed_tests(
+        report, max_number_of_tests_reported=1
+    )
+    prompt_multiple = create_prompt_for_failed_tests(
+        report, max_number_of_tests_reported=5
+    )
+
     assert prompt_single is not None
     assert prompt_multiple is not None
-    
+
     # Multiple tests should have more content than single test
     assert len(prompt_multiple) >= len(prompt_single)
-    
+
     # Both should maintain expected structure
     assert "Can you provide an explanation" in prompt_single
     assert "Can you provide an explanation" in prompt_multiple
-    
+
     # Test that the function can handle the enhanced parameters that will be added in step 2
     # This is preparation for the include_print_output parameter
     assert "Stdout:" in prompt_multiple  # Current behavior includes stdout
@@ -727,7 +697,7 @@ def test_max_failures_limit_enforcement() -> None:
         "collectors": [],
         "tests": [
     """
-    
+
     test_entries = []
     for i in range(10):
         test_entry = f"""
@@ -747,29 +717,33 @@ def test_max_failures_limit_enforcement() -> None:
                 }}
             }}"""
         test_entries.append(test_entry)
-    
+
     json_ten_failures += ",".join(test_entries)
     json_ten_failures += """
         ],
         "warnings": []
     }
     """
-    
+
     report = parse_pytest_report(json_ten_failures)
-    
+
     # Test with limit of 10 (all should be included)
     prompt = create_prompt_for_failed_tests(report, max_number_of_tests_reported=10)
     assert prompt is not None
-    
+
     test_id_count = prompt.count("Test ID:")
     assert test_id_count == 10, f"Expected 10 test failures, got {test_id_count}"
-    
+
     # Test with limit of 3 (only 3 should be included)
-    prompt_limited = create_prompt_for_failed_tests(report, max_number_of_tests_reported=3)
+    prompt_limited = create_prompt_for_failed_tests(
+        report, max_number_of_tests_reported=3
+    )
     assert prompt_limited is not None
-    
+
     test_id_count_limited = prompt_limited.count("Test ID:")
-    assert test_id_count_limited == 3, f"Expected 3 test failures, got {test_id_count_limited}"
+    assert (
+        test_id_count_limited == 3
+    ), f"Expected 3 test failures, got {test_id_count_limited}"
 
 
 def test_collection_errors_always_shown() -> None:
@@ -820,17 +794,17 @@ def test_collection_errors_always_shown() -> None:
         "warnings": []
     }
     """
-    
+
     report = parse_pytest_report(json_collection_and_test_errors)
     prompt = create_prompt_for_failed_tests(report)
-    
+
     assert prompt is not None
-    
+
     # Collection errors should always be shown
     assert "The following collectors failed during the test session:" in prompt
     assert "test_broken.py" in prompt
     assert "ImportError: No module named 'missing_dependency'" in prompt
-    
+
     # Regular test failures should also be shown
     assert "The following tests failed during the test session:" in prompt
     assert "test_broken.py::test_simple" in prompt

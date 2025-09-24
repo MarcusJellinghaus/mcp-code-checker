@@ -82,7 +82,9 @@ class CodeCheckerServer:
         # It uses the new _format_pytest_result_with_details with show_details=False
         return self._format_pytest_result_with_details(test_results, show_details=False)
 
-    def _format_pytest_result_with_details(self, test_results: dict[str, Any], show_details: bool) -> str:
+    def _format_pytest_result_with_details(
+        self, test_results: dict[str, Any], show_details: bool
+    ) -> str:
         """Enhanced formatting that respects show_details parameter."""
         if not test_results["success"]:
             return f"Error running pytest: {test_results.get('error', 'Unknown error')}"
@@ -98,11 +100,13 @@ class CodeCheckerServer:
         collected = summary.get("collected") or 0
 
         # Determine if we have failures that need attention
-        failures_exist = (failed_count > 0 or error_count > 0) and test_results.get("test_results")
-        
+        failures_exist = (failed_count > 0 or error_count > 0) and test_results.get(
+            "test_results"
+        )
+
         if failures_exist:
             should_show = should_show_details(test_results, show_details)
-            
+
             if should_show:
                 # Use enhanced create_prompt_for_failed_tests with new parameters
                 failed_tests_prompt = create_prompt_for_failed_tests(
@@ -110,21 +114,25 @@ class CodeCheckerServer:
                     max_number_of_tests_reported=10,  # Increased limit
                     include_print_output=True,
                     max_failures=10,
-                    max_output_lines=300  # Overall output limit
+                    max_output_lines=300,  # Overall output limit
                 )
-                return f"Pytest found issues that need attention:\n\n{failed_tests_prompt}"
+                return (
+                    f"Pytest found issues that need attention:\n\n{failed_tests_prompt}"
+                )
             else:
                 # Check if we should suggest show_details=True for small test runs
-                hint = " Try show_details=True for more information." if collected <= 3 else ""
+                hint = (
+                    " Try show_details=True for more information."
+                    if collected <= 3
+                    else ""
+                )
                 return f"Pytest completed with failures.{hint}"
         else:
             # Success case - use existing logic
             if test_results.get("summary_text"):
                 return f"Pytest check completed. {test_results['summary_text']}"
             else:
-                return (
-                    f"Pytest check completed. All {passed_count} tests passed successfully."
-                )
+                return f"Pytest check completed. All {passed_count} tests passed successfully."
 
     def _format_mypy_result(self, mypy_prompt: str | None) -> str:
         """Format mypy check result."""
@@ -251,21 +259,21 @@ class CodeCheckerServer:
         def run_pytest_check(
             markers: Optional[List[str]] = None,
             verbosity: int = 2,
-            extra_args: Optional[List[str]] = None, 
+            extra_args: Optional[List[str]] = None,
             env_vars: Optional[Dict[str, str]] = None,
             show_details: bool = False,
         ) -> str:
             """
             Run pytest on the project code and generate smart prompts for LLMs.
-            
+
             Args:
                 markers: Optional list of pytest markers to filter tests. Examples: ['slow', 'integration']
-                verbosity: Integer for pytest verbosity level (0-3), default 2. 
+                verbosity: Integer for pytest verbosity level (0-3), default 2.
                           Controls pytest's native -v/-vv/-vvv flags for test execution detail.
                 extra_args: Optional list of additional pytest arguments for flexible test selection.
                            Examples: ['tests/test_file.py::test_function']
                            See "Flexible Test Selection" section below for common patterns.
-                env_vars: Optional dictionary of environment variables for the subprocess. 
+                env_vars: Optional dictionary of environment variables for the subprocess.
                 show_details: Show detailed output including print statements from tests (default: False).
                              - False: Only show summary for large test runs, helpful hints for small runs
                              - True: Show detailed output for up to 10 failing tests, or all details if ≤3 tests total
@@ -273,38 +281,38 @@ class CodeCheckerServer:
                              - Collection errors always shown regardless of setting
                              - Output limited to 300 lines total with truncation indicator
                              Smart behavior: provides hints when show_details=True would be beneficial.
-            
+
             Returns:
                 A string containing either pytest results or a prompt for an LLM to interpret
-                
+
             Flexible Test Selection:
                 Use extra_args to run specific tests or control pytest behavior:
-                
+
                 # Specific tests
                 extra_args=["tests/test_math.py::test_addition"]
                 extra_args=["tests/test_auth.py"]  # Entire file
                 extra_args=["-k", "calculation"]  # Pattern matching
-                
+
                 # Output control
                 extra_args=["-s"]  # Show print statements
                 extra_args=["--tb=short"]  # Short tracebacks
-                
+
                 # Execution control
                 extra_args=["-x"]  # Stop on first failure
-                
+
             Examples:
                 # Standard CI run - minimal output
                 run_pytest_check()
-                
+
                 # Debug specific test with full details
                 run_pytest_check(
-                    extra_args=["tests/test_math.py::test_calculation"], 
+                    extra_args=["tests/test_math.py::test_calculation"],
                     show_details=True
                 )
-                
+
                 # Integration test run with summary only
                 run_pytest_check(markers=["integration"], show_details=False)
-                
+
                 # Get print statements with automatic -s flag
                 run_pytest_check(show_details=True)  # Automatically includes -s
             """
@@ -323,8 +331,8 @@ class CodeCheckerServer:
 
                 # Automatically add -s flag when show_details=True
                 final_extra_args = list(extra_args) if extra_args else []
-                if show_details and '-s' not in final_extra_args:
-                    final_extra_args.append('-s')
+                if show_details and "-s" not in final_extra_args:
+                    final_extra_args.append("-s")
 
                 # Run pytest
                 test_results = check_code_with_pytest(
@@ -339,7 +347,9 @@ class CodeCheckerServer:
                     keep_temp_files=self.keep_temp_files,
                 )
 
-                result = self._format_pytest_result_with_details(test_results, show_details)
+                result = self._format_pytest_result_with_details(
+                    test_results, show_details
+                )
 
                 if test_results.get("success"):
                     summary = test_results.get("summary", {})
