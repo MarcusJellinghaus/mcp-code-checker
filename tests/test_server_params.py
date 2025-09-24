@@ -4,6 +4,7 @@ Tests for the server functionality with updated parameter exposure.
 
 import inspect
 from pathlib import Path
+from typing import Any, Dict, Tuple
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -146,7 +147,7 @@ async def test_run_all_checks_parameters(mock_project_dir: Path) -> None:
 # Step 3: Tests for Server Interface Enhancement with show_details Parameter
 
 @pytest.fixture
-def mock_server():
+def mock_server() -> Tuple[Any, MagicMock]:
     """Create CodeCheckerServer for testing."""
     with patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp:
         mock_tool = MagicMock()
@@ -160,7 +161,7 @@ def mock_server():
 
 
 @pytest.fixture
-def mock_pytest_results_few_tests():
+def mock_pytest_results_few_tests() -> Dict[str, Any]:
     """Mock results for ≤3 tests scenario."""
     return {
         "success": True,
@@ -176,7 +177,7 @@ def mock_pytest_results_few_tests():
 
 
 @pytest.fixture
-def mock_pytest_results_many_failures():
+def mock_pytest_results_many_failures() -> Dict[str, Any]:
     """Mock results for >10 failures scenario."""
     return {
         "success": True,
@@ -192,7 +193,7 @@ def mock_pytest_results_many_failures():
 
 
 @pytest.fixture
-def mock_pytest_results_success():
+def mock_pytest_results_success() -> Dict[str, Any]:
     """Mock results for successful test run."""
     return {
         "success": True,
@@ -210,7 +211,7 @@ def mock_pytest_results_success():
 # Parameter Integration Tests
 
 @pytest.mark.asyncio
-async def test_run_pytest_check_with_show_details_true(mock_server):
+async def test_run_pytest_check_with_show_details_true(mock_server: Tuple[Any, MagicMock]) -> None:
     """Test that run_pytest_check properly handles show_details=True parameter."""
     server, mock_tool = mock_server
     
@@ -245,7 +246,7 @@ async def test_run_pytest_check_with_show_details_true(mock_server):
 
 
 @pytest.mark.asyncio
-async def test_run_pytest_check_with_show_details_false(mock_server):
+async def test_run_pytest_check_with_show_details_false(mock_server: Tuple[Any, MagicMock]) -> None:
     """Test that run_pytest_check properly handles show_details=False parameter."""
     server, mock_tool = mock_server
     
@@ -272,7 +273,7 @@ async def test_run_pytest_check_with_show_details_false(mock_server):
 
 
 @pytest.mark.asyncio
-async def test_run_pytest_check_show_details_default_value():
+async def test_run_pytest_check_show_details_default_value() -> None:
     """Test that show_details parameter has correct default value."""
     with patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp:
         mock_tool = MagicMock()
@@ -296,7 +297,7 @@ async def test_run_pytest_check_show_details_default_value():
 
 
 @pytest.mark.asyncio
-async def test_run_pytest_check_backward_compatibility(mock_server):
+async def test_run_pytest_check_backward_compatibility(mock_server: Tuple[Any, MagicMock]) -> None:
     """Test that existing function calls work without show_details parameter."""
     server, mock_tool = mock_server
     
@@ -322,7 +323,7 @@ async def test_run_pytest_check_backward_compatibility(mock_server):
 # Output Control Tests
 
 @pytest.mark.asyncio
-async def test_show_details_with_focused_test_run(mock_server, mock_pytest_results_few_tests):
+async def test_show_details_with_focused_test_run(mock_server: Tuple[Any, MagicMock], mock_pytest_results_few_tests: Dict[str, Any]) -> None:
     """Test show_details behavior with focused test run (≤3 tests)."""
     server, mock_tool = mock_server
     
@@ -345,7 +346,7 @@ async def test_show_details_with_focused_test_run(mock_server, mock_pytest_resul
 
 
 @pytest.mark.asyncio
-async def test_show_details_with_many_failures(mock_server, mock_pytest_results_many_failures):
+async def test_show_details_with_many_failures(mock_server: Tuple[Any, MagicMock], mock_pytest_results_many_failures: Dict[str, Any]) -> None:
     """Test show_details behavior with many failures (>10 failures)."""
     server, mock_tool = mock_server
     
@@ -368,7 +369,7 @@ async def test_show_details_with_many_failures(mock_server, mock_pytest_results_
 
 
 @pytest.mark.asyncio
-async def test_show_details_output_length_limits(mock_server):
+async def test_show_details_output_length_limits(mock_server: Tuple[Any, MagicMock]) -> None:
     """Test that output respects length limits and truncation."""
     server, mock_tool = mock_server
     
@@ -404,7 +405,7 @@ async def test_show_details_output_length_limits(mock_server):
 # Integration Tests
 
 @pytest.mark.asyncio
-async def test_server_method_signature_includes_show_details():
+async def test_server_method_signature_includes_show_details() -> None:
     """Test that server method signature will include show_details parameter."""
     with patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp:
         mock_tool = MagicMock()
@@ -428,7 +429,7 @@ async def test_server_method_signature_includes_show_details():
 
 
 @pytest.mark.asyncio
-async def test_mcp_tool_decorator_compatibility():
+async def test_mcp_tool_decorator_compatibility() -> None:
     """Test that MCP tool decorator works with current and future parameters."""
     with patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp:
         mock_tool = MagicMock()
@@ -450,7 +451,7 @@ async def test_mcp_tool_decorator_compatibility():
 
 
 @pytest.mark.asyncio
-async def test_enhanced_reporting_integration_preparation(mock_server):
+async def test_enhanced_reporting_integration_preparation(mock_server: Tuple[Any, MagicMock]) -> None:
     """Test preparation for enhanced reporting integration with show_details."""
     server, mock_tool = mock_server
     
@@ -486,7 +487,7 @@ async def test_enhanced_reporting_integration_preparation(mock_server):
 # Additional Parameter Validation Tests
 
 @pytest.mark.asyncio
-async def test_parameter_type_validation(mock_server):
+async def test_parameter_type_validation(mock_server: Tuple[Any, MagicMock]) -> None:
     """Test that parameters are properly typed and validated."""
     server, mock_tool = mock_server
     
@@ -513,7 +514,7 @@ async def test_parameter_type_validation(mock_server):
 
 
 @pytest.mark.asyncio
-async def test_integration_with_existing_server_parameters(mock_server):
+async def test_integration_with_existing_server_parameters(mock_server: Tuple[Any, MagicMock]) -> None:
     """Test integration with server constructor parameters."""
     server, mock_tool = mock_server
     
