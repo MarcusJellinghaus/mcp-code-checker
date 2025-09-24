@@ -77,7 +77,7 @@ def create_prompt_for_failed_tests(
         failed_collectors = [
             collector
             for collector in test_session_result.collectors
-            if collector.outcome == "failed"
+            if collector.outcome in ["failed", "error"]
         ]
     if len(failed_collectors) > 0:
         if not add_content("The following collectors failed during the test session:\n"):
