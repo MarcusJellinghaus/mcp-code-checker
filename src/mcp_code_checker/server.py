@@ -13,6 +13,9 @@ from mcp_code_checker.code_checker_pylint import PylintMessageType, get_pylint_p
 from mcp_code_checker.code_checker_pytest.reporting import (
     create_prompt_for_failed_tests,
     should_show_details,
+    SMALL_TEST_RUN_THRESHOLD,
+    MAX_FAILURES,
+    MAX_OUTPUT_LINES,
 )
 from mcp_code_checker.code_checker_pytest.runners import check_code_with_pytest
 from mcp_code_checker.log_utils import log_function_call
@@ -111,10 +114,10 @@ class CodeCheckerServer:
                 # Use enhanced create_prompt_for_failed_tests with new parameters
                 failed_tests_prompt = create_prompt_for_failed_tests(
                     test_results["test_results"],
-                    max_number_of_tests_reported=10,  # Increased limit
+                    max_number_of_tests_reported=MAX_FAILURES,  # Use constant
                     include_print_output=True,
-                    max_failures=10,
-                    max_output_lines=300,  # Overall output limit
+                    max_failures=MAX_FAILURES,
+                    max_output_lines=MAX_OUTPUT_LINES,  # Use constant
                 )
                 return (
                     f"Pytest found issues that need attention:\n\n{failed_tests_prompt}"
@@ -123,7 +126,7 @@ class CodeCheckerServer:
                 # Check if we should suggest show_details=True for small test runs
                 hint = (
                     " Try show_details=True for more information."
-                    if collected <= 3
+                    if collected <= SMALL_TEST_RUN_THRESHOLD
                     else ""
                 )
                 return f"Pytest completed with failures.{hint}"
