@@ -1,22 +1,22 @@
 """End-to-end integration tests for show_details parameter functionality."""
 
-import tempfile
-import shutil
 import json
+import shutil
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Union, cast
 
 import pytest
 
-from mcp_code_checker.server import CodeCheckerServer
 from mcp_code_checker.code_checker_pytest.models import (
+    Crash,
     PytestReport,
+    StageInfo,
     Summary,
     Test,
-    StageInfo,
-    Crash,
 )
 from mcp_code_checker.code_checker_pytest.parsers import parse_pytest_report
+from mcp_code_checker.server import CodeCheckerServer
 
 
 class TestIntegrationShowDetails:

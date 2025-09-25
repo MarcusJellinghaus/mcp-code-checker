@@ -5,6 +5,7 @@ Tests for the code_checker_pytest reporting functionality.
 from typing import Any
 
 import pytest
+
 from mcp_code_checker.code_checker_pytest import (
     create_prompt_for_failed_tests,
     get_test_summary,

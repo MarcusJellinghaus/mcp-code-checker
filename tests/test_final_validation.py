@@ -8,9 +8,9 @@ functionality works correctly across all scenarios and meets performance require
 import os
 import tempfile
 import textwrap
-from pathlib import Path
 import time
-from typing import Dict, Any, Generator, Iterator
+from pathlib import Path
+from typing import Any, Dict, Generator, Iterator
 
 import pytest
 

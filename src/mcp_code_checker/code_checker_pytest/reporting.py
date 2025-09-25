@@ -3,11 +3,11 @@ Functions for formatting and reporting pytest test results.
 """
 
 import logging
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
 
-from mcp_code_checker.code_checker_pytest.models import PytestReport, Test, Collector
+from mcp_code_checker.code_checker_pytest.models import Collector, PytestReport, Test
 from mcp_code_checker.log_utils import log_function_call
 
 logger = logging.getLogger(__name__)
