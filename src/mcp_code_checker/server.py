@@ -443,6 +443,8 @@ class CodeCheckerServer:
                     disable_error_codes=disable_error_codes,
                     python_executable=self.python_executable,
                     target_directories=target_directories,
+                    follow_imports=follow_imports,
+                    cache_dir=cache_dir,
                 )
 
                 # Format result
