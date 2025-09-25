@@ -638,7 +638,9 @@ def test_decision_logic_boundary_conditions() -> None:
     exactly_three_tests = {
         "summary": {"collected": 3, "passed": 2, "failed": 1, "total": 3}
     }
-    assert _mock_show_details_decision_logic(exactly_three_tests, True) is True  # ≤3 tests
+    assert (
+        _mock_show_details_decision_logic(exactly_three_tests, True) is True
+    )  # ≤3 tests
     assert _mock_show_details_decision_logic(exactly_three_tests, False) is False
 
     # Test exactly 4 tests (boundary condition)

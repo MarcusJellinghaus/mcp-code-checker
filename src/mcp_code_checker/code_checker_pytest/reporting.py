@@ -24,40 +24,42 @@ class OutputBuilder:
     """
     Helper class to manage output building with line counting and truncation.
     """
-    
+
     def __init__(self, max_lines: int = MAX_OUTPUT_LINES):
         self.parts: List[str] = []
         self.line_count = 0
         self.max_lines = max_lines
         self.truncated = False
-    
+
     def add(self, content: str) -> bool:
         """
         Add content to the output, checking line limits.
-        
+
         Args:
             content: Content to add
-            
+
         Returns:
             True if content was added, False if truncated
         """
         if self.truncated:
             return False
-            
+
         lines = content.count("\n")
         if self.line_count + lines > self.max_lines:
             remaining_lines = self.max_lines - self.line_count
             if remaining_lines > 0:
                 content_lines = content.split("\n")
                 self.parts.append("\n".join(content_lines[:remaining_lines]))
-                self.parts.append(f"\n\n[Output truncated at {self.max_lines} lines...]\n")
+                self.parts.append(
+                    f"\n\n[Output truncated at {self.max_lines} lines...]\n"
+                )
             self.truncated = True
             return False
-            
+
         self.parts.append(content)
         self.line_count += lines
         return True
-    
+
     def get_result(self) -> str:
         """Get the final output string."""
         return "".join(self.parts)
@@ -87,7 +89,7 @@ def _get_failed_collectors(test_session_result: PytestReport) -> List[Collector]
     """Extract failed collectors from test session result."""
     if not test_session_result.collectors:
         return []
-    
+
     return [
         collector
         for collector in test_session_result.collectors
@@ -95,110 +97,118 @@ def _get_failed_collectors(test_session_result: PytestReport) -> List[Collector]
     ]
 
 
-def _get_failed_tests(test_session_result: PytestReport, max_failures: int) -> List[Test]:
+def _get_failed_tests(
+    test_session_result: PytestReport, max_failures: int
+) -> List[Test]:
     """Extract and limit failed tests from test session result."""
     if not test_session_result.tests:
         return []
-    
+
     failed_tests = [
-        test
-        for test in test_session_result.tests
-        if test.outcome in FAILED_OUTCOMES
+        test for test in test_session_result.tests if test.outcome in FAILED_OUTCOMES
     ]
-    
+
     return failed_tests[:max_failures]
 
 
 def _format_collector_info(collector: Collector, output: OutputBuilder) -> bool:
     """
     Format information about a failed collector.
-    
+
     Args:
         collector: The failed collector to format
         output: OutputBuilder instance to add content to
-        
+
     Returns:
         True if successful, False if truncated
     """
-    if not output.add(f"Collector ID: {collector.nodeid} - outcome {collector.outcome}\n"):
+    if not output.add(
+        f"Collector ID: {collector.nodeid} - outcome {collector.outcome}\n"
+    ):
         return False
-    
+
     # Collection errors are always shown (critical setup issues)
     if collector.longrepr:
         if not output.add(f"  Longrepr: {collector.longrepr}\n"):
             return False
-    
+
     if collector.result:
         for result in collector.result:
             if not output.add(f"  Result: {result}\n"):
                 return False
-    
+
     return output.add("\n")
 
 
-def _format_test_output(test: Test, output: OutputBuilder, include_print_output: bool) -> bool:
+def _format_test_output(
+    test: Test, output: OutputBuilder, include_print_output: bool
+) -> bool:
     """
     Format stdout, stderr, and longrepr output for a test.
-    
+
     Args:
         test: The test to format output for
         output: OutputBuilder instance
         include_print_output: Whether to include print output
-        
+
     Returns:
         True if successful, False if truncated
     """
     if not include_print_output or not test.call:
         return True
-    
+
     if test.call.stdout:
         if not output.add(f"  Stdout:\n```\n{test.call.stdout}\n```\n"):
             return False
-    
+
     if test.call.stderr:
         if not output.add(f"  Stderr:\n```\n{test.call.stderr}\n```\n"):
             return False
-    
+
     if test.call.longrepr:
         if not output.add(f"  Longrepr:\n```\n{test.call.longrepr}\n```\n"):
             return False
-    
+
     return True
 
 
-def _format_test_setup_info(test: Test, output: OutputBuilder, include_print_output: bool) -> bool:
+def _format_test_setup_info(
+    test: Test, output: OutputBuilder, include_print_output: bool
+) -> bool:
     """
     Format setup information for a failed test.
-    
+
     Args:
         test: The test with failed setup
         output: OutputBuilder instance
         include_print_output: Whether to include print output
-        
+
     Returns:
         True if successful, False if truncated
     """
     if not test.setup or test.setup.outcome != "failed":
         return True
-    
+
     if not output.add(f"  Test Setup Outcome: {test.setup.outcome}\n"):
         return False
-    
+
     if test.setup.crash:
-        if not output.add(f"  Test Setup Crash Error Message: {test.setup.crash.message}\n"):
+        if not output.add(
+            f"  Test Setup Crash Error Message: {test.setup.crash.message}\n"
+        ):
             return False
         if not output.add(f"  Test Setup Crash Error Path: {test.setup.crash.path}\n"):
             return False
         if not output.add(f"  Setup Crash Error Line: {test.setup.crash.lineno}\n"):
             return False
-    
+
     if test.setup.traceback:
         if not output.add("  Test Setup Traceback:\n"):
             return False
         for entry in test.setup.traceback:
             if not output.add(f"   - {entry.path}:{entry.lineno} - {entry.message}\n"):
                 return False
-    
+
     # Include setup output sections only if include_print_output is True
     if include_print_output:
         if test.setup.stdout:
@@ -208,32 +218,36 @@ def _format_test_setup_info(test: Test, output: OutputBuilder, include_print_out
             if not output.add(f"  Test Setup Stderr:\n```\n{test.setup.stderr}\n```\n"):
                 return False
         if test.setup.longrepr:
-            if not output.add(f"  Test Setup Longrepr:\n```\n{test.setup.longrepr}\n```\n"):
+            if not output.add(
+                f"  Test Setup Longrepr:\n```\n{test.setup.longrepr}\n```\n"
+            ):
                 return False
-    
+
     return True
 
 
-def _format_test_info(test: Test, output: OutputBuilder, include_print_output: bool) -> bool:
+def _format_test_info(
+    test: Test, output: OutputBuilder, include_print_output: bool
+) -> bool:
     """
     Format information about a failed test.
-    
+
     Args:
         test: The failed test to format
         output: OutputBuilder instance
         include_print_output: Whether to include print output
-        
+
     Returns:
         True if successful, False if truncated
     """
     if not output.add(f"Test ID: {test.nodeid} - outcome {test.outcome}\n"):
         return False
-    
+
     # Format crash information
     if test.call and test.call.crash:
         if not output.add(f"  Error Message: {test.call.crash.message}\n"):
             return False
-    
+
     # Format traceback
     if test.call and test.call.traceback:
         if not output.add("  Traceback:\n"):
@@ -241,86 +255,87 @@ def _format_test_info(test: Test, output: OutputBuilder, include_print_output: b
         for entry in test.call.traceback:
             if not output.add(f"   - {entry.path}:{entry.lineno} - {entry.message}\n"):
                 return False
-    
+
     # Format test output (stdout, stderr, longrepr)
     if not _format_test_output(test, output, include_print_output):
         return False
-    
+
     # Format setup information if setup failed
     if not _format_test_setup_info(test, output, include_print_output):
         return False
-    
+
     return True
 
 
 def _process_failed_collectors(
-    failed_collectors: List[Collector], 
-    output: OutputBuilder
+    failed_collectors: List[Collector], output: OutputBuilder
 ) -> bool:
     """
     Process and format all failed collectors.
-    
+
     Args:
         failed_collectors: List of failed collectors
         output: OutputBuilder instance
-        
+
     Returns:
         True if successful, False if truncated
     """
     if not failed_collectors:
         return True
-    
+
     if not output.add("The following collectors failed during the test session:\n"):
         return False
-    
+
     for collector in failed_collectors:
         if not _format_collector_info(collector, output):
             return False
-    
+
     return True
 
 
 def _process_failed_tests(
-    failed_tests: List[Test], 
-    output: OutputBuilder, 
+    failed_tests: List[Test],
+    output: OutputBuilder,
     include_print_output: bool,
-    max_number_of_tests_reported: int
+    max_number_of_tests_reported: int,
 ) -> bool:
     """
     Process and format failed tests.
-    
+
     Args:
         failed_tests: List of failed tests
         output: OutputBuilder instance
         include_print_output: Whether to include print output
         max_number_of_tests_reported: Maximum number of tests to report
-        
+
     Returns:
         True if successful, False if truncated
     """
     if not failed_tests:
         return True
-    
+
     if not output.add("The following tests failed during the test session:\n"):
         return False
-    
+
     test_count = 0
     for test in failed_tests:
         if not _format_test_info(test, output, include_print_output):
             return False
-        
+
         if not output.add("\n"):
             return False
-        
+
         test_count += 1
         if test_count >= max_number_of_tests_reported:
             break
-        
-        if not output.add("===============================================================================\n"):
+
+        if not output.add(
+            "===============================================================================\n"
+        ):
             return False
         if not output.add("\n"):
             return False
-    
+
     return True
 
 
@@ -346,31 +361,28 @@ def create_prompt_for_failed_tests(
         A prompt string, or None if no tests failed
     """
     output = OutputBuilder(max_output_lines)
-    
+
     # Get failed collectors and tests
     failed_collectors = _get_failed_collectors(test_session_result)
     failed_tests = _get_failed_tests(test_session_result, max_failures)
-    
+
     # Process failed collectors (always shown - critical setup issues)
     if not _process_failed_collectors(failed_collectors, output):
         return output.get_result()
-    
+
     # Process failed tests
     if not _process_failed_tests(
-        failed_tests, 
-        output, 
-        include_print_output, 
-        max_number_of_tests_reported
+        failed_tests, output, include_print_output, max_number_of_tests_reported
     ):
         return output.get_result()
-    
+
     # Add closing question if we have content
     if output.parts:
         output.add(
             "Can you provide an explanation for why these tests failed and suggest how they could be fixed?"
         )
         return output.get_result()
-    
+
     return None
 
 

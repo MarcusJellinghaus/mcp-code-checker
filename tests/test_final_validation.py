@@ -166,7 +166,9 @@ class TestParameterCombinationsValidation:
         assert "show_details=True" not in result
         assert "completed" in result
 
-    def test_show_details_false_with_few_tests_provides_hint(self, temp_project: Path) -> None:
+    def test_show_details_false_with_few_tests_provides_hint(
+        self, temp_project: Path
+    ) -> None:
         """Test that small test runs provide hint to use show_details=True."""
         server = CodeCheckerServer(temp_project)
 
