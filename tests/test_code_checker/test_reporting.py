@@ -292,21 +292,21 @@ def mock_pytest_report_with_prints() -> PytestReport:
     return parse_pytest_report(json_with_prints)
 
 
-def _should_show_details_helper(
+def _mock_show_details_decision_logic(
     test_results: dict[str, Any], show_details: bool
 ) -> bool:
     """
-    Test helper function to simulate the decision logic that will be implemented in reporting module.
+    Test helper function that mocks the show_details decision logic for testing.
 
-    This is a temporary implementation for testing purposes only.
-    The actual implementation will be in src/mcp_code_checker/code_checker_pytest/reporting.py
+    This is a test mock implementation used to validate the expected behavior
+    before the actual implementation is in place.
 
     Args:
         test_results: Dictionary with test summary data
         show_details: Flag indicating if details were requested
 
     Returns:
-        bool: True if details should be shown
+        bool: True if details should be shown based on mocked logic
     """
     if not show_details:
         return False
@@ -332,10 +332,10 @@ def test_should_show_details_with_few_tests(
 ) -> None:
     """Test decision logic for small test runs (≤3 tests)."""
     # Should show details when requested for few tests
-    assert _should_show_details_helper(minimal_test_results, True) is True
+    assert _mock_show_details_decision_logic(minimal_test_results, True) is True
 
     # Should not show details when not requested
-    assert _should_show_details_helper(minimal_test_results, False) is False
+    assert _mock_show_details_decision_logic(minimal_test_results, False) is False
 
 
 def test_should_show_details_with_many_tests(
@@ -343,10 +343,10 @@ def test_should_show_details_with_many_tests(
 ) -> None:
     """Test decision logic for large test runs (>3 tests)."""
     # Should show details when explicitly requested for many tests
-    assert _should_show_details_helper(large_test_results, True) is True
+    assert _mock_show_details_decision_logic(large_test_results, True) is True
 
     # Should not show details when not requested
-    assert _should_show_details_helper(large_test_results, False) is False
+    assert _mock_show_details_decision_logic(large_test_results, False) is False
 
 
 def test_should_show_details_with_failures() -> None:
@@ -356,10 +356,10 @@ def test_should_show_details_with_failures() -> None:
     }
 
     # Should show details when requested, regardless of failure count
-    assert _should_show_details_helper(test_data_with_failures, True) is True
+    assert _mock_show_details_decision_logic(test_data_with_failures, True) is True
 
     # Should not show details when not requested
-    assert _should_show_details_helper(test_data_with_failures, False) is False
+    assert _mock_show_details_decision_logic(test_data_with_failures, False) is False
 
 
 def test_should_show_details_false_by_default() -> None:
@@ -367,7 +367,7 @@ def test_should_show_details_false_by_default() -> None:
     test_data = {"summary": {"collected": 5, "passed": 3, "failed": 2, "total": 5}}
 
     # Should not show details by default (show_details=False)
-    assert _should_show_details_helper(test_data, False) is False
+    assert _mock_show_details_decision_logic(test_data, False) is False
 
 
 # ===================== Test Functions for Enhanced Formatting =====================
@@ -551,14 +551,14 @@ def test_create_prompt_edge_cases() -> None:
     """Test edge cases like empty results, None values."""
     # Test with empty summary
     empty_summary = {"summary": {"collected": 0, "passed": 0, "failed": 0, "total": 0}}
-    assert _should_show_details_helper(empty_summary, True) is True  # ≤3 tests
-    assert _should_show_details_helper(empty_summary, False) is False
+    assert _mock_show_details_decision_logic(empty_summary, True) is True  # ≤3 tests
+    assert _mock_show_details_decision_logic(empty_summary, False) is False
 
     # Test with None values
     none_summary = {"summary": None}
-    # _should_show_details_helper should handle gracefully
+    # _mock_show_details_decision_logic should handle gracefully
     try:
-        result = _should_show_details_helper(none_summary, True)
+        result = _mock_show_details_decision_logic(none_summary, True)
         # Should default to showing details when requested if data is unclear
         assert result is True
     except (KeyError, TypeError):
@@ -568,16 +568,16 @@ def test_create_prompt_edge_cases() -> None:
     # Test with missing summary key
     no_summary: dict[str, Any] = {}
     assert (
-        _should_show_details_helper(no_summary, True) is True
+        _mock_show_details_decision_logic(no_summary, True) is True
     )  # Should handle gracefully
-    assert _should_show_details_helper(no_summary, False) is False
+    assert _mock_show_details_decision_logic(no_summary, False) is False
 
     # Test with negative/invalid values
     invalid_summary = {
         "summary": {"collected": -1, "passed": 0, "failed": 0, "total": -1}
     }
     # Should handle edge case gracefully (negative values treated as 0 or small)
-    assert _should_show_details_helper(invalid_summary, True) is True
+    assert _mock_show_details_decision_logic(invalid_summary, True) is True
 
 
 def test_create_prompt_output_length_limits() -> None:
@@ -638,17 +638,17 @@ def test_decision_logic_boundary_conditions() -> None:
     exactly_three_tests = {
         "summary": {"collected": 3, "passed": 2, "failed": 1, "total": 3}
     }
-    assert _should_show_details_helper(exactly_three_tests, True) is True  # ≤3 tests
-    assert _should_show_details_helper(exactly_three_tests, False) is False
+    assert _mock_show_details_decision_logic(exactly_three_tests, True) is True  # ≤3 tests
+    assert _mock_show_details_decision_logic(exactly_three_tests, False) is False
 
     # Test exactly 4 tests (boundary condition)
     exactly_four_tests = {
         "summary": {"collected": 4, "passed": 3, "failed": 1, "total": 4}
     }
     assert (
-        _should_show_details_helper(exactly_four_tests, True) is True
+        _mock_show_details_decision_logic(exactly_four_tests, True) is True
     )  # >3 tests but requested
-    assert _should_show_details_helper(exactly_four_tests, False) is False
+    assert _mock_show_details_decision_logic(exactly_four_tests, False) is False
 
 
 def test_enhanced_formatting_structure() -> None:
