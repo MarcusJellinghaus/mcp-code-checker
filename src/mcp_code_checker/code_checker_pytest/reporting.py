@@ -14,23 +14,24 @@ logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
 
 
-def should_show_details(test_results: Dict[str, Any], show_details: bool) -> bool:
+def should_show_details(_test_results: Dict[str, Any], show_details: bool) -> bool:
     """
     Determine if detailed output should be shown based on test results and user preference.
 
     Args:
-        test_results: Dictionary containing test summary information
+        _test_results: Dictionary containing test summary information (currently unused)
         show_details: User preference for showing details
 
     Returns:
         True if conditions meet criteria for showing details, False otherwise
     """
-    # If show_details is explicitly True, always show details (output truncation handles length)
-    if show_details:
-        return True
+    # If show_details is False, never show details (explicit user choice)
+    if not show_details:
+        return False
 
-    # For default behavior (show_details=False), never show details
-    return False
+    # If show_details is True, always show details (but output will be limited by other mechanisms)
+    # The limitation of max failures and output length is handled in create_prompt_for_failed_tests
+    return True
 
 
 @log_function_call
