@@ -85,6 +85,8 @@ def get_mypy_prompt(
     disable_error_codes: list[str] | None = None,
     python_executable: str | None = None,
     target_directories: list[str] | None = None,
+    follow_imports: str | None = None,
+    cache_dir: str | None = None,
 ) -> str | None:
     """
     Run mypy and generate an LLM prompt if issues are found.
@@ -97,6 +99,8 @@ def get_mypy_prompt(
         disable_error_codes: Error codes to ignore
         python_executable: Python interpreter to use
         target_directories: Directories to check
+        follow_imports: How to handle imports ('normal', 'silent', 'skip', 'error')
+        cache_dir: Custom cache directory for incremental checking
 
     Returns:
         LLM prompt string or None if no issues
@@ -109,6 +113,8 @@ def get_mypy_prompt(
         disable_error_codes=disable_error_codes,
         target_directories=target_directories,
         python_executable=python_executable,
+        follow_imports=follow_imports or "normal",
+        cache_dir=cache_dir,
     )
 
     if result.error:
