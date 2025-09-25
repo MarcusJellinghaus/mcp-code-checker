@@ -10,7 +10,7 @@ import tempfile
 import textwrap
 from pathlib import Path
 import time
-from typing import Dict, Any
+from typing import Dict, Any, Generator, Iterator
 
 import pytest
 
@@ -21,7 +21,7 @@ class TestParameterCombinationsValidation:
     """Test various parameter combinations with show_details."""
 
     @pytest.fixture
-    def temp_project(self):
+    def temp_project(self) -> Generator[Path, None, None]:
         """Create a temporary project with test files for validation."""
         with tempfile.TemporaryDirectory() as temp_dir:
             project_path = Path(temp_dir)
@@ -117,7 +117,7 @@ class TestParameterCombinationsValidation:
 
             yield project_path
 
-    def test_show_details_true_with_specific_test(self, temp_project):
+    def test_show_details_true_with_specific_test(self, temp_project: Path) -> None:
         """Test show_details=True with specific failing test."""
         server = CodeCheckerServer(temp_project)
 
@@ -149,7 +149,7 @@ class TestParameterCombinationsValidation:
         # Should show detailed output or indicate failure handling
         assert "attention" in result or "completed" in result
 
-    def test_show_details_false_with_multiple_tests(self, temp_project):
+    def test_show_details_false_with_multiple_tests(self, temp_project: Path) -> None:
         """Test show_details=False with multiple tests provides summary."""
         server = CodeCheckerServer(temp_project)
 
@@ -166,7 +166,7 @@ class TestParameterCombinationsValidation:
         assert "show_details=True" not in result
         assert "completed" in result
 
-    def test_show_details_false_with_few_tests_provides_hint(self, temp_project):
+    def test_show_details_false_with_few_tests_provides_hint(self, temp_project: Path) -> None:
         """Test that small test runs provide hint to use show_details=True."""
         server = CodeCheckerServer(temp_project)
 
@@ -198,7 +198,7 @@ class TestParameterCombinationsValidation:
         # Should suggest show_details=True for small test runs with failures
         assert "show_details=True" in result
 
-    def test_collection_errors_always_shown(self, temp_project):
+    def test_collection_errors_always_shown(self, temp_project: Path) -> None:
         """Test that collection errors are shown regardless of show_details setting."""
         server = CodeCheckerServer(temp_project)
 
@@ -225,7 +225,7 @@ class TestParameterCombinationsValidation:
 class TestOutputFormatConsistency:
     """Test that output formatting is consistent across scenarios."""
 
-    def test_success_message_consistency(self):
+    def test_success_message_consistency(self) -> None:
         """Test that success messages are consistent."""
         server = CodeCheckerServer(Path("/tmp"))
 
@@ -250,7 +250,7 @@ class TestOutputFormatConsistency:
         assert "All tests passed" in result_false
         assert "All tests passed" in result_true
 
-    def test_error_message_consistency(self):
+    def test_error_message_consistency(self) -> None:
         """Test that error messages are consistent."""
         server = CodeCheckerServer(Path("/tmp"))
 
@@ -269,7 +269,7 @@ class TestOutputFormatConsistency:
         assert "pytest execution failed" in result_false
         assert "pytest execution failed" in result_true
 
-    def test_invalid_summary_handling(self):
+    def test_invalid_summary_handling(self) -> None:
         """Test handling of invalid summary data."""
         server = CodeCheckerServer(Path("/tmp"))
 
@@ -293,7 +293,7 @@ class TestOutputFormatConsistency:
 class TestPerformanceBenchmarks:
     """Test performance impact of show_details parameter."""
 
-    def test_performance_impact_measurement(self):
+    def test_performance_impact_measurement(self) -> None:
         """Measure performance impact of show_details parameter."""
         server = CodeCheckerServer(Path("/tmp"))
 
@@ -322,7 +322,7 @@ class TestPerformanceBenchmarks:
             overhead_ratio < 0.5
         ), f"Performance overhead too high: {overhead_ratio:.2%}"
 
-    def test_memory_usage_reasonable(self):
+    def test_memory_usage_reasonable(self) -> None:
         """Test that memory usage remains reasonable with show_details."""
         server = CodeCheckerServer(Path("/tmp"))
 
@@ -344,7 +344,7 @@ class TestPerformanceBenchmarks:
 class TestDocumentationAccuracy:
     """Test that docstring examples work as documented."""
 
-    def test_docstring_examples_execute(self):
+    def test_docstring_examples_execute(self) -> None:
         """Test that examples in docstrings actually work."""
         # This tests the examples from the docstring in run_pytest_check
 
@@ -376,7 +376,7 @@ class TestDocumentationAccuracy:
         except Exception as e:
             pytest.fail(f"Docstring examples failed to execute: {e}")
 
-    def test_parameter_type_validation(self):
+    def test_parameter_type_validation(self) -> None:
         """Test that parameters accept documented types."""
         server = CodeCheckerServer(Path("/tmp"))
 
@@ -391,7 +391,7 @@ class TestDocumentationAccuracy:
             show_details=False,
         )
 
-    def test_return_type_consistency(self):
+    def test_return_type_consistency(self) -> None:
         """Test that return types match documentation."""
         server = CodeCheckerServer(Path("/tmp"))
 
@@ -413,7 +413,7 @@ class TestDocumentationAccuracy:
 class TestBackwardCompatibility:
     """Test that changes maintain backward compatibility."""
 
-    def test_old_format_method_still_works(self):
+    def test_old_format_method_still_works(self) -> None:
         """Test that the old _format_pytest_result method still works."""
         server = CodeCheckerServer(Path("/tmp"))
 
@@ -427,7 +427,7 @@ class TestBackwardCompatibility:
         assert isinstance(result, str)
         assert "completed" in result
 
-    def test_missing_show_details_defaults_correctly(self):
+    def test_missing_show_details_defaults_correctly(self) -> None:
         """Test that missing show_details parameter defaults correctly."""
         server = CodeCheckerServer(Path("/tmp"))
 
@@ -440,7 +440,7 @@ class TestBackwardCompatibility:
         result = server._format_pytest_result(test_result)
         assert isinstance(result, str)
 
-    def test_parameter_combinations_backward_compatible(self):
+    def test_parameter_combinations_backward_compatible(self) -> None:
         """Test that new parameters don't break existing usage."""
         server = CodeCheckerServer(Path("/tmp"))
 
@@ -456,7 +456,7 @@ class TestBackwardCompatibility:
 class TestEdgeCases:
     """Test edge cases and error conditions."""
 
-    def test_none_values_handling(self):
+    def test_none_values_handling(self) -> None:
         """Test handling of None values in summary."""
         server = CodeCheckerServer(Path("/tmp"))
 
@@ -482,7 +482,7 @@ class TestEdgeCases:
         )
         assert isinstance(result, str)
 
-    def test_empty_summary_handling(self):
+    def test_empty_summary_handling(self) -> None:
         """Test handling of empty summary dict."""
         server = CodeCheckerServer(Path("/tmp"))
 
@@ -493,7 +493,7 @@ class TestEdgeCases:
         )
         assert isinstance(result, str)
 
-    def test_missing_summary_handling(self):
+    def test_missing_summary_handling(self) -> None:
         """Test handling when summary is missing."""
         server = CodeCheckerServer(Path("/tmp"))
 
@@ -510,7 +510,7 @@ class TestEdgeCases:
 class TestRealIntegration:
     """Integration tests with real pytest execution."""
 
-    def test_integration_placeholder(self):
+    def test_integration_placeholder(self) -> None:
         """Placeholder for integration tests that would use real pytest."""
         # This would require setting up actual test files and running pytest
         # For now, we test the formatting logic which is the core of the feature

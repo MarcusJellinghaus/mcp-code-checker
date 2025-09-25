@@ -4,7 +4,7 @@ import tempfile
 import shutil
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Generator, List, Union, cast
 
 import pytest
 
@@ -23,7 +23,7 @@ class TestIntegrationShowDetails:
     """Integration tests for show_details parameter end-to-end flow."""
 
     @pytest.fixture
-    def temp_project_dir(self) -> Path:
+    def temp_project_dir(self) -> Generator[Path, None, None]:
         """Create a temporary directory for test projects."""
         temp_dir = Path(tempfile.mkdtemp())
         yield temp_dir
@@ -1048,6 +1048,7 @@ def test_fast_operation():
         assert len(result2) > len(result1)  # More detailed output
 
         # Pattern 3: Targeted debugging (specific test + show_details)
+        tests_list = cast(List[Dict[str, Any]], json_report.get("tests", []))
         single_test_json_report = {
             "created": 1518371686.7981803,
             "duration": 0.05,
@@ -1056,7 +1057,7 @@ def test_fast_operation():
             "environment": {},
             "summary": {"collected": 1, "passed": 0, "failed": 1, "total": 1},
             "collectors": [],
-            "tests": [json_report["tests"][0]],  # Same test data
+            "tests": [tests_list[0]] if tests_list else [],  # Same test data
             "warnings": [],
         }
 
