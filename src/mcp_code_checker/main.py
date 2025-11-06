@@ -8,7 +8,8 @@ from pathlib import Path
 
 import structlog
 
-# Import logging utilities
+# Import logging utilities and version
+from mcp_code_checker import __version__  # pylint: disable=no-name-in-module
 from mcp_code_checker.log_utils import setup_logging
 from mcp_code_checker.server import create_server
 
@@ -24,7 +25,21 @@ def parse_args() -> argparse.Namespace:
     Returns:
         Parsed arguments
     """
-    parser = argparse.ArgumentParser(description="MCP Code Checker Server")
+    parser = argparse.ArgumentParser(
+        description="MCP Code Checker Server - Run pylint, pytest, and mypy checks on Python code",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  mcp-code-checker --project-dir /path/to/project
+  mcp-code-checker --project-dir . --log-level DEBUG --keep-temp-files
+  mcp-code-checker --project-dir /path/to/project --venv-path .venv --test-folder tests
+        """,
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+    )
     parser.add_argument(
         "--project-dir",
         type=str,
@@ -34,12 +49,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--python-executable",
         type=str,
-        help="Path to Python interpreter to use for running tests. If not specified, defaults to the current Python interpreter (sys.executable)",
+        help=(
+            "Path to Python interpreter to use for running tests. "
+            "If not specified, defaults to the current Python interpreter (sys.executable)"
+        ),
     )
     parser.add_argument(
         "--venv-path",
         type=str,
-        help="Path to virtual environment to activate for running tests. When specified, the Python executable from this venv will be used instead of python-executable",
+        help=(
+            "Path to virtual environment to activate for running tests. "
+            "When specified, the Python executable from this venv will be used "
+            "instead of python-executable"
+        ),
     )
     parser.add_argument(
         "--test-folder",
@@ -63,7 +85,10 @@ def parse_args() -> argparse.Namespace:
         "--log-file",
         type=str,
         default=None,
-        help="Path for structured JSON logs (default: mcp_code_checker_{timestamp}.log in project_dir/logs/).",
+        help=(
+            "Path for structured JSON logs "
+            "(default: mcp_code_checker_{timestamp}.log in project_dir/logs/)."
+        ),
     )
     parser.add_argument(
         "--console-only",
@@ -112,7 +137,7 @@ def main() -> None:
     )
 
     stdlogger.info(
-        f"Starting MCP Code Checker server with project directory: {project_dir}"
+        "Starting MCP Code Checker server with project directory: %s", project_dir
     )
     if log_file:
         structured_logger.info(
