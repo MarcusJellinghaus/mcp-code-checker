@@ -23,7 +23,7 @@ This tracks **Feature Implementation** consisting of multiple **Implementation S
 - [x] Update import statement in `src/mcp_code_checker/log_utils.py` (line 12): change `from pythonjsonlogger import jsonlogger` to `from pythonjsonlogger.json import JsonFormatter`
 - [x] Update usage in `src/mcp_code_checker/log_utils.py` (line 46): change `jsonlogger.JsonFormatter(  # type: ignore[attr-defined]` to `JsonFormatter(`
 - [x] Run pylint check and fix any issues found
-- [ ] Run pytest check and fix any issues found
+- [x] Run pytest check and fix any issues found
 - [ ] Run mypy check and fix any issues found
 - [ ] Prepare git commit message for Step 1
 
