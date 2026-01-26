@@ -42,8 +42,7 @@ def test_mypy_with_test_files() -> None:
     # Create a temporary directory with test files
     with tempfile.TemporaryDirectory() as tmpdir:
         test_file = Path(tmpdir) / "test_types.py"
-        test_file.write_text(
-            """
+        test_file.write_text("""
 def add(a: int, b: int) -> int:
     return a + b
 
@@ -55,8 +54,7 @@ def greet(name: str) -> str:
     return f"Hello, {name}"
 
 greet(123)  # Type error: expected str, got int
-"""
-        )
+""")
 
         result = run_mypy_check(
             project_dir=tmpdir, strict=True, target_directories=["."]
@@ -75,8 +73,7 @@ def test_mypy_with_clean_code() -> None:
     """Test running mypy on clean code with no type errors."""
     with tempfile.TemporaryDirectory() as tmpdir:
         clean_file = Path(tmpdir) / "clean_code.py"
-        clean_file.write_text(
-            """
+        clean_file.write_text("""
 from typing import List, Optional
 
 def add(a: int, b: int) -> int:
@@ -92,8 +89,7 @@ def process_list(items: List[str]) -> Optional[str]:
 # Correct usage
 result: int = add(1, 2)
 first_item: Optional[str] = process_list(["hello", "world"])
-"""
-        )
+""")
 
         result = run_mypy_check(
             project_dir=tmpdir, strict=True, target_directories=["."]
@@ -108,14 +104,12 @@ def test_mypy_handles_import_errors() -> None:
     """Test that mypy handles import errors gracefully."""
     with tempfile.TemporaryDirectory() as tmpdir:
         import_error_file = Path(tmpdir) / "import_error.py"
-        import_error_file.write_text(
-            """
+        import_error_file.write_text("""
 import non_existent_module  # This module doesn't exist
 
 def process_data() -> None:
     non_existent_module.do_something()
-"""
-        )
+""")
 
         result = run_mypy_check(
             project_dir=tmpdir, strict=True, target_directories=["."]
@@ -138,22 +132,18 @@ def test_mypy_with_multiple_files() -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create multiple Python files
         file1 = Path(tmpdir) / "module1.py"
-        file1.write_text(
-            """
+        file1.write_text("""
 def func1(x: int) -> str:
     return str(x)
-"""
-        )
+""")
 
         file2 = Path(tmpdir) / "module2.py"
-        file2.write_text(
-            """
+        file2.write_text("""
 from module1 import func1
 
 # Type error: func1 returns str, not int
 result: int = func1(42)
-"""
-        )
+""")
 
         result = run_mypy_check(
             project_dir=tmpdir, strict=True, target_directories=["."]
@@ -168,14 +158,12 @@ def test_mypy_respects_disable_codes() -> None:
     """Test that mypy respects disabled error codes."""
     with tempfile.TemporaryDirectory() as tmpdir:
         test_file = Path(tmpdir) / "test_disable.py"
-        test_file.write_text(
-            """
+        test_file.write_text("""
 import non_existent  # import error
 
 def func(x: int) -> int:
     return x + "string"  # operator error
-"""
-        )
+""")
 
         # Run without disabling
         result1 = run_mypy_check(
@@ -202,16 +190,14 @@ def test_mypy_strict_vs_non_strict() -> None:
     """Test difference between strict and non-strict modes."""
     with tempfile.TemporaryDirectory() as tmpdir:
         test_file = Path(tmpdir) / "test_strict.py"
-        test_file.write_text(
-            """
+        test_file.write_text("""
 # Missing type annotations - only caught in strict mode
 def func(x, y):
     return x + y
 
 # This is always an error
 result = func("string", 123)
-"""
-        )
+""")
 
         # Run in strict mode
         strict_result = run_mypy_check(
