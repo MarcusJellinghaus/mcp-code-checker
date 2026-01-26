@@ -19,11 +19,11 @@ This tracks **Feature Implementation** consisting of multiple **Implementation S
 
 ## Step 1: Add Test for LogRecord with Extra Fields (TDD)
 
-- [ ] Implement step 1 - add test in `tests/test_code_checker/test_parsers.py`
-- [ ] Run pylint check and fix any issues
-- [ ] Run pytest check and verify test fails (TDD)
-- [ ] Run mypy check and fix any issues
-- [ ] Prepare git commit message
+- [x] Implement step 1 - add test in `tests/test_code_checker/test_parsers.py`
+- [x] Run pylint check and fix any issues
+- [x] Run pytest check and verify test fails (TDD)
+- [x] Run mypy check and fix any issues
+- [x] Prepare git commit message
 
 **Details:** [step_1.md](steps/step_1.md)
 

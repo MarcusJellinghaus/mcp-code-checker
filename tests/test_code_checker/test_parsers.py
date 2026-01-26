@@ -255,3 +255,110 @@ def test_parse_report_with_log() -> None:
     assert report.tests[0].call.log is not None
     assert report.tests[0].call.log.logs is not None
     assert report.tests[0].call.log.logs[0].msg == "This is a warning."
+
+
+def test_parse_report_with_extra_log_fields() -> None:
+    """Test parsing log records with extra fields from logging extra parameter."""
+    json_with_extra_fields = """
+    {
+        "created": 1518371686.7981803,
+        "duration": 0.1235666275024414,
+        "exitcode": 0,
+        "root": "/path/to/tests",
+        "environment": {
+            "Python": "3.6.4",
+            "Platform": "Linux-4.56.78-9-ARCH-x86_64-with-arch",
+            "Packages": {
+                "pytest": "3.4.0",
+                "py": "1.5.2",
+                "pluggy": "0.6.0"
+            },
+            "Plugins": {
+                "json-report": "0.4.1"
+            },
+            "foo": "bar"
+        },
+        "summary": {
+            "collected": 1,
+            "passed": 1,
+            "failed": 0,
+            "total": 1
+        },
+        "collectors": [],
+        "tests": [{
+            "nodeid": "test_example.py::test_with_extra_logging",
+            "lineno": 10,
+            "keywords": ["test_with_extra_logging", "test_example.py"],
+            "outcome": "passed",
+            "setup": {
+                "duration": 0.001,
+                "outcome": "passed"
+            },
+            "call": {
+                "duration": 0.002,
+                "outcome": "passed",
+                "log": [{
+                    "name": "my_logger",
+                    "msg": "Looking for data file",
+                    "args": null,
+                    "levelname": "DEBUG",
+                    "levelno": 10,
+                    "pathname": "/path/to/file.py",
+                    "filename": "file.py",
+                    "module": "file",
+                    "exc_info": null,
+                    "exc_text": null,
+                    "stack_info": null,
+                    "lineno": 42,
+                    "funcName": "find_file",
+                    "created": 1519772464.291738,
+                    "msecs": 291.73803329467773,
+                    "relativeCreated": 332.90839195251465,
+                    "thread": 140671803118912,
+                    "threadName": "MainThread",
+                    "processName": "MainProcess",
+                    "process": 31481,
+                    "package_name": "my_package",
+                    "relative_path": "file.txt"
+                }]
+            },
+            "teardown": {
+                "duration": 0.001,
+                "outcome": "passed"
+            }
+        }],
+        "warnings": []
+    }
+    """
+    report = parse_pytest_report(json_with_extra_fields)
+
+    assert isinstance(report, PytestReport)
+    assert report.tests is not None
+    assert len(report.tests) == 1
+    assert report.tests[0].call is not None
+    assert report.tests[0].call.log is not None
+    assert report.tests[0].call.log.logs is not None
+
+    log_record = report.tests[0].call.log.logs[0]
+
+    # Verify standard fields are parsed correctly
+    assert log_record.name == "my_logger"
+    assert log_record.msg == "Looking for data file"
+    assert log_record.levelname == "DEBUG"
+    assert log_record.levelno == 10
+    assert log_record.pathname == "/path/to/file.py"
+    assert log_record.filename == "file.py"
+    assert log_record.lineno == 42
+    assert log_record.funcName == "find_file"
+
+    # Verify extra fields are captured in the extra dict
+    assert log_record.extra is not None
+    assert log_record.extra == {
+        "package_name": "my_package",
+        "relative_path": "file.txt",
+    }
+
+    # Verify standard fields are NOT in the extra dict
+    assert "name" not in log_record.extra
+    assert "msg" not in log_record.extra
+    assert "levelname" not in log_record.extra
