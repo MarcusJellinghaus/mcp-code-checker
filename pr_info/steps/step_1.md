@@ -54,17 +54,13 @@ json_formatter = JsonFormatter(
 No changes to return values or data structures.
 
 ## Verification
-Run the following commands to verify the fix:
-```bash
-# Run pytest to confirm deprecation warning is gone
-pytest
-
-# Run pylint check
-pylint src/mcp_code_checker/log_utils.py
-
-# Run mypy check
-mypy src/mcp_code_checker/log_utils.py
+Run the following MCP tools to verify the fix:
 ```
+mcp__code-checker__run_pytest_check(extra_args=["-v"])
+mcp__code-checker__run_pylint_check()
+mcp__code-checker__run_mypy_check()
+```
+Confirm: no deprecation warnings, all tests pass, no linting or type errors.
 
 ## Test-Driven Development Note
 This change does not require new tests as:
@@ -87,7 +83,7 @@ Changes required:
 1. Line 12: Change `from pythonjsonlogger import jsonlogger` to `from pythonjsonlogger.json import JsonFormatter`
 2. Line 46: Change `jsonlogger.JsonFormatter(  # type: ignore[attr-defined]` to `JsonFormatter(`
 
-After making changes, run pytest, pylint, and mypy to verify:
+After making changes, run MCP tools (run_pytest_check, run_pylint_check, run_mypy_check) to verify:
 - No deprecation warnings appear
 - All tests pass
 - No linting or type errors
