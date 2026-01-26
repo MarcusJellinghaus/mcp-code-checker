@@ -31,3 +31,8 @@ venv/
 .mcp.linux.json
 .mcp.macos.json
 .mcp.windows.json
+
+# MCP coder session files
+.mcp-coder/
+
+uv.lock

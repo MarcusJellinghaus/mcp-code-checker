@@ -2,7 +2,7 @@
 Data models for pytest test results and reports.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 
@@ -26,6 +26,9 @@ class LogRecord:
 
     Note: Some attribute names use camelCase to maintain compatibility with
     Python's standard logging.LogRecord class.
+
+    The `extra` field captures any additional fields added via Python's
+    logging extra parameter (e.g., logger.info("msg", extra={"key": "value"})).
     """
 
     name: str
@@ -50,6 +53,8 @@ class LogRecord:
     process: int
     taskName: str = ""  # pylint: disable=invalid-name
     asctime: str = ""
+    message: str = ""  # Formatted message (msg % args), included for completeness
+    extra: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
