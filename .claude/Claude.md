@@ -151,4 +151,9 @@ git push
 **Git commit message format:**
 - Use standard commit message format without advertising footers
 - Focus on clear, descriptive commit messages
-- No required Claude Code attribution or links
+- No Claude Code attribution or links
+
+**Pull Request format:**
+- No "Generated with Claude Code" footer or similar attribution
+- Focus on clear summary and test plan
+- Keep PR descriptions concise and professional
