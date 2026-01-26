@@ -24,8 +24,8 @@ This tracks **Feature Implementation** consisting of multiple **Implementation S
 - [x] Update usage in `src/mcp_code_checker/log_utils.py` (line 46): change `jsonlogger.JsonFormatter(  # type: ignore[attr-defined]` to `JsonFormatter(`
 - [x] Run pylint check and fix any issues found
 - [x] Run pytest check and fix any issues found
-- [ ] Run mypy check and fix any issues found
-- [ ] Prepare git commit message for Step 1
+- [x] Run mypy check and fix any issues found
+- [x] Prepare git commit message for Step 1
 
 ---
 
