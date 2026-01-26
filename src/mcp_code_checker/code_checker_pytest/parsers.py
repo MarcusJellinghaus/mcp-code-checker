@@ -19,6 +19,10 @@ from mcp_code_checker.code_checker_pytest.models import (
     Warning,
 )
 
+# Derive known fields from LogRecord dataclass to auto-sync if fields are added.
+# The "extra" field is excluded as it's our container for unknown fields.
+LOG_RECORD_FIELDS = set(LogRecord.__dataclass_fields__.keys()) - {"extra"}
+
 
 def parse_test_stage(stage_data: Dict[str, Any]) -> StageInfo:
     """
@@ -40,9 +44,15 @@ def parse_test_stage(stage_data: Dict[str, Any]) -> StageInfo:
 
     log = None
     if "log" in stage_data and stage_data["log"]:
-        log_records = [
-            LogRecord(**log_record_data) for log_record_data in stage_data["log"]
-        ]
+        log_records = []
+        for log_record_data in stage_data["log"]:
+            known_fields = {
+                k: v for k, v in log_record_data.items() if k in LOG_RECORD_FIELDS
+            }
+            extra_fields = {
+                k: v for k, v in log_record_data.items() if k not in LOG_RECORD_FIELDS
+            }
+            log_records.append(LogRecord(**known_fields, extra=extra_fields))
         log = Log(logs=log_records)
 
     return StageInfo(

@@ -31,12 +31,12 @@ This tracks **Feature Implementation** consisting of multiple **Implementation S
 
 ## Step 2: Implement LogRecord Extra Fields Support
 
-- [ ] Implement step 2 - add `extra` field to LogRecord model in `models.py`
-- [ ] Implement step 2 - add LOG_RECORD_FIELDS and filtering logic in `parsers.py`
-- [ ] Run pylint check and fix any issues
-- [ ] Run pytest check and verify all tests pass
-- [ ] Run mypy check and fix any issues
-- [ ] Prepare git commit message
+- [x] Implement step 2 - add `extra` field to LogRecord model in `models.py`
+- [x] Implement step 2 - add LOG_RECORD_FIELDS and filtering logic in `parsers.py`
+- [x] Run pylint check and fix any issues
+- [x] Run pytest check and verify all tests pass
+- [x] Run mypy check and fix any issues
+- [x] Prepare git commit message
 
 **Details:** [step_2.md](steps/step_2.md)
 
