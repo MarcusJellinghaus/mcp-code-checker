@@ -16,3 +16,22 @@ This tracks **Feature Implementation** consisting of multiple **Implementation S
 ---
 
 ## Tasks
+
+### Step 1: Update JsonFormatter Import and Usage
+*Reference: [pr_info/steps/step_1.md](steps/step_1.md)*
+
+- [ ] Update import statement in `src/mcp_code_checker/log_utils.py` (line 12): change `from pythonjsonlogger import jsonlogger` to `from pythonjsonlogger.json import JsonFormatter`
+- [ ] Update usage in `src/mcp_code_checker/log_utils.py` (line 46): change `jsonlogger.JsonFormatter(  # type: ignore[attr-defined]` to `JsonFormatter(`
+- [ ] Run pylint check and fix any issues found
+- [ ] Run pytest check and fix any issues found
+- [ ] Run mypy check and fix any issues found
+- [ ] Prepare git commit message for Step 1
+
+---
+
+## Pull Request
+
+- [ ] Review all implementation steps are complete
+- [ ] Verify all quality checks pass (pylint, pytest, mypy)
+- [ ] Prepare PR summary and description
+- [ ] Final PR review
