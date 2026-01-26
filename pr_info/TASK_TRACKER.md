@@ -1,12 +1,21 @@
-# Task Tracker - Issue #74: Fix LogRecord Parsing with Extra Fields
+# Task Tracker
 
 ## Overview
 
-Track implementation progress for fixing LogRecord parsing when pytest captures logs with extra fields.
+This tracks **Feature Implementation** consisting of multiple **Implementation Steps**.
 
-**Issue:** LogRecord.__init__() got an unexpected keyword argument 'package_name'
+- **Feature**: A complete user-facing capability
+- **Implementation Step**: A self-contained unit of work (tests + implementation)
+
+## Status Legend
+
+- [x] = Implementation step complete
+- [ ] = Implementation step not complete
+- Each task links to a detail file in pr_info/steps/ folder
 
 ---
+
+## Tasks
 
 ## Step 1: Add Test for LogRecord with Extra Fields (TDD)
 
