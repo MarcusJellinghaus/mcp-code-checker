@@ -3,6 +3,7 @@ Functions for parsing pytest test results and output.
 """
 
 import json
+from dataclasses import fields
 from typing import Any, Dict
 
 from mcp_code_checker.code_checker_pytest.models import (
@@ -21,7 +22,7 @@ from mcp_code_checker.code_checker_pytest.models import (
 
 # Derive known fields from LogRecord dataclass to auto-sync if fields are added.
 # The "extra" field is excluded as it's our container for unknown fields.
-LOG_RECORD_FIELDS = set(LogRecord.__dataclass_fields__.keys()) - {"extra"}
+LOG_RECORD_FIELDS = {f.name for f in fields(LogRecord)} - {"extra"}
 
 
 def parse_test_stage(stage_data: Dict[str, Any]) -> StageInfo:

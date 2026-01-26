@@ -1,0 +1,7 @@
+# CI Failure Analysis
+
+The CI pipeline failed in the pylint job due to error E1101 (no-member) on line 24 of `src/mcp_code_checker/code_checker_pytest/parsers.py`. Pylint reports that the `LogRecord` class has no `__dataclass_fields__` member. This is a false positive because `__dataclass_fields__` is a valid attribute that Python's `@dataclass` decorator adds to all dataclass instances at runtime. However, pylint's static analysis cannot detect this dynamically-added attribute.
+
+The affected file is `src/mcp_code_checker/code_checker_pytest/parsers.py` at line 24, where the code accesses `LogRecord.__dataclass_fields__.keys()` to derive a set of known field names. The `LogRecord` class is defined in `src/mcp_code_checker/code_checker_pytest/models.py` as a standard dataclass.
+
+To fix this issue, the code should add a pylint disable comment for the specific line where `__dataclass_fields__` is accessed. The appropriate fix is to add `# pylint: disable=no-member` at the end of line 24 in `parsers.py`, or alternatively use `dataclasses.fields(LogRecord)` which pylint can properly analyze. The `dataclasses.fields()` approach would be cleaner as it uses the official API rather than the dunder attribute, though both are valid Python.
