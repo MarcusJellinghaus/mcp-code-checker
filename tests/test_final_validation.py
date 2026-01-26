@@ -278,13 +278,8 @@ class TestPerformanceBenchmarks:
     """Test performance impact of show_details parameter."""
 
     def test_both_code_paths_complete_successfully(self) -> None:
-        """Test that both show_details=True and show_details=False complete successfully.
-
-        Note: This test verifies correctness rather than timing. Microbenchmarks comparing
-        these code paths are unreliable in CI due to variable system load, and the two paths
-        perform different amounts of work by design (show_details=True does additional
-        formatting work).
-        """
+        """Test that both show_details code paths complete successfully."""
+        # Note: Tests correctness, not timing - microbenchmarks are unreliable in CI
         server = CodeCheckerServer(Path("/tmp"))
 
         # Create test data
