@@ -20,7 +20,7 @@ This tracks **Feature Implementation** consisting of multiple **Implementation S
 ### Step 1: Update JsonFormatter Import and Usage
 *Reference: [pr_info/steps/step_1.md](steps/step_1.md)*
 
-- [ ] Update import statement in `src/mcp_code_checker/log_utils.py` (line 12): change `from pythonjsonlogger import jsonlogger` to `from pythonjsonlogger.json import JsonFormatter`
+- [x] Update import statement in `src/mcp_code_checker/log_utils.py` (line 12): change `from pythonjsonlogger import jsonlogger` to `from pythonjsonlogger.json import JsonFormatter`
 - [ ] Update usage in `src/mcp_code_checker/log_utils.py` (line 46): change `jsonlogger.JsonFormatter(  # type: ignore[attr-defined]` to `JsonFormatter(`
 - [ ] Run pylint check and fix any issues found
 - [ ] Run pytest check and fix any issues found

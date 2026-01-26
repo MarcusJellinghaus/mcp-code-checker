@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional, ParamSpec, TypeVar, cast
 
 import structlog
-from pythonjsonlogger import jsonlogger
+from pythonjsonlogger.json import JsonFormatter
 
 # Type variables for function signatures
 P = ParamSpec("P")
