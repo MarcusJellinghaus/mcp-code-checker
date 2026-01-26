@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional, ParamSpec, TypeVar, cast
 
 import structlog
-from pythonjsonlogger import jsonlogger
+from pythonjsonlogger.json import JsonFormatter
 
 # Type variables for function signatures
 P = ParamSpec("P")
@@ -43,7 +43,7 @@ def setup_logging(log_level: str, log_file: Optional[str] = None) -> None:
         json_handler = logging.FileHandler(log_file)
 
         # This formatter ensures timestamp and level are included as separate fields in JSON
-        json_formatter = jsonlogger.JsonFormatter(  # type: ignore[attr-defined]
+        json_formatter = JsonFormatter(
             fmt="%(timestamp)s %(level)s %(name)s %(message)s %(module)s %(funcName)s %(lineno)d",
             timestamp=True,
         )
