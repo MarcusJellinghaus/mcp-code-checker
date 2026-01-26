@@ -16,10 +16,10 @@ Add an `extra` field to `LogRecord` and filter known/unknown fields during parsi
 ## Architectural Changes
 
 ### Data Model Change
-- **`LogRecord` dataclass**: Add `extra: Dict[str, Any]` field to store unknown fields from logging's `extra` parameter
+- **`LogRecord` dataclass**: Add `message: str` field (for completeness) and `extra: Dict[str, Any]` field to store unknown fields from logging's `extra` parameter
 
 ### Parser Change  
-- **`parsers.py`**: Add field filtering logic when parsing `LogRecord` to separate known fields from extra fields
+- **`parsers.py`**: Derive known fields from `LogRecord` dataclass and filter unknown fields into `extra`
 
 ## Files Modified
 
@@ -39,3 +39,5 @@ Add an `extra` field to `LogRecord` and filter known/unknown fields during parsi
 1. **Preserve extra fields**: Store in `extra` dict rather than discarding - preserves debugging info
 2. **Targeted fix**: Only modify `LogRecord` parsing, not other dataclasses (KISS/YAGNI)
 3. **Inline filtering**: Simple set-based filtering instead of generic helper function
+4. **Include `message` field**: Added for completeness, some logging configs include it
+5. **Derive field set from dataclass**: Auto-syncs if fields are added, with explanatory comment

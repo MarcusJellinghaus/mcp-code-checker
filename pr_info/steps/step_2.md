@@ -14,16 +14,18 @@ This should make the test from Step 1 pass.
 ## WHAT
 
 ### models.py
-Add field to `LogRecord` dataclass:
+Add fields to `LogRecord` dataclass:
 ```python
+message: str = ""  # Formatted message (msg % args), included for completeness
 extra: Dict[str, Any] = field(default_factory=dict)
 ```
 
 ### parsers.py
-Add constant and modify `parse_test_stage()`:
+Derive field set from dataclass and modify `parse_test_stage()`:
 ```python
-# Module-level constant
-LOG_RECORD_FIELDS: set[str] = {...}  # All known LogRecord field names
+# Derive known fields from LogRecord dataclass to auto-sync if fields are added.
+# The "extra" field is excluded as it's our container for unknown fields.
+LOG_RECORD_FIELDS = set(LogRecord.__dataclass_fields__.keys()) - {"extra"}
 
 # In parse_test_stage(), modify log parsing logic
 ```
@@ -32,6 +34,7 @@ LOG_RECORD_FIELDS: set[str] = {...}  # All known LogRecord field names
 
 ### models.py
 - Add import: `from dataclasses import dataclass, field`
+- Add `message: str = ""` field (for completeness, some configs include it)
 - Add `extra` field as last field in `LogRecord` with default empty dict
 
 ### parsers.py
@@ -50,32 +53,11 @@ LOG_RECORD_FIELDS: set[str] = {...}  # All known LogRecord field names
 
 ## DATA
 
-### LOG_RECORD_FIELDS constant
+### LOG_RECORD_FIELDS (derived from dataclass)
 ```python
-LOG_RECORD_FIELDS: set[str] = {
-    "name",
-    "msg",
-    "args",
-    "levelname",
-    "levelno",
-    "pathname",
-    "filename",
-    "module",
-    "exc_info",
-    "exc_text",
-    "stack_info",
-    "lineno",
-    "funcName",
-    "created",
-    "msecs",
-    "relativeCreated",
-    "thread",
-    "threadName",
-    "processName",
-    "process",
-    "taskName",
-    "asctime",
-}
+# Derive known fields from LogRecord dataclass to auto-sync if fields are added.
+# The "extra" field is excluded as it's our container for unknown fields.
+LOG_RECORD_FIELDS = set(LogRecord.__dataclass_fields__.keys()) - {"extra"}
 ```
 
 ### Modified LogRecord dataclass
@@ -93,6 +75,7 @@ class LogRecord:
     # ... existing fields ...
     taskName: str = ""
     asctime: str = ""
+    message: str = ""  # Formatted message (msg % args), included for completeness
     extra: Dict[str, Any] = field(default_factory=dict)
 ```
 
