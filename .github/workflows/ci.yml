@@ -2,81 +2,132 @@ name: Python CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "*" ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  test:
+  check-forbidden-folders:
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
-        
-    - name: Install dependencies
+
+    - name: Check for forbidden folders in PR
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install .
-        python -m pip install .[dev]
-        
-    - name: Show tool versions
-      run: |
-        echo "=== Tool Versions ==="
-        python --version
-        python -m pip --version
-        echo "Python executable: $(which python)"
-        echo "MyPy version:"
-        python -m mypy --version
-        echo "Pylint version:"
-        python -m pylint --version
-        echo "Pytest version:"
-        python -m pytest --version
-        echo "Black version:"
-        python -m black --version
-        echo "isort version:"
-        python -m isort --version
-        echo "================="
-        
-    - name: Check formatting with black
-      id: black
-      run: black --check src tests
-      continue-on-error: true
-        
-    - name: Check imports with isort
-      id: isort
-      run: isort --check --profile=black --float-to-top src tests
-      continue-on-error: true
-        
-    - name: Check for errors with pylint
-      id: pylint
-      run: pylint -E ./src ./tests
-      continue-on-error: true
-        
-    - name: Run tests
-      id: pytest
-      run: pytest tests
-      continue-on-error: true
-        
-    - name: Check type hints with mypy
-      id: mypy
-      run: mypy --strict src tests
-      continue-on-error: true
-      
-    - name: Summarize results
-      if: always()
-      run: |
-        echo "CI checks completed. Review logs for any errors or warnings."
-        
+        echo "Checking for forbidden folders in pull request..."
+
+        # Function to check for folder existence case-insensitively
+        check_forbidden_folder() {
+          local pattern="$1"
+          local description="$2"
+
+          # Use find with case-insensitive matching
+          if find . -type d -ipath "*${pattern}*" -print -quit | grep -q .; then
+            echo "❌ ERROR: Found forbidden folder matching '${pattern}'"
+            echo "Description: ${description}"
+            find . -type d -ipath "*${pattern}*" | sed 's/^/ Found: /'
+            return 1
+          else
+            echo "✅ No forbidden folder found for pattern: ${pattern}"
+            return 0
+          fi
+        }
+
+        # Function to check if folder is empty (or doesn't exist)
+        check_empty_folder() {
+          local pattern="$1"
+          local description="$2"
+
+          # Find matching folders
+          local folders=$(find . -type d -path "*${pattern}*" 2>/dev/null)
+
+          if [ -z "$folders" ]; then
+            echo "✅ Folder not found (acceptable): ${pattern}"
+            return 0
+          fi
+
+          # Check if any found folder is not empty
+          local has_content=0
+          while IFS= read -r folder; do
+            if [ -n "$(find "$folder" -mindepth 1 -print -quit)" ]; then
+              echo "❌ ERROR: Folder should be empty: ${folder}"
+              echo "Description: ${description}"
+              find "$folder" -mindepth 1 -maxdepth 1 | sed 's/^/ Contains: /'
+              has_content=1
+            fi
+          done <<< "$folders"
+
+          if [ $has_content -eq 1 ]; then
+            return 1
+          else
+            echo "✅ Folder exists and is empty: ${pattern}"
+            return 0
+          fi
+        }
+
+        # Check for forbidden folders
         ERROR=0
-        [[ "${{ steps.black.outcome }}" == "failure" ]] && { echo "❌ Black formatting check failed"; ERROR=1; } || echo "✅ Black formatting check passed"
-        [[ "${{ steps.isort.outcome }}" == "failure" ]] && { echo "❌ isort import check failed"; ERROR=1; } || echo "✅ isort import check passed"
-        [[ "${{ steps.pylint.outcome }}" == "failure" ]] && { echo "❌ pylint error check failed"; ERROR=1; } || echo "✅ pylint error check passed"
-        [[ "${{ steps.pytest.outcome }}" == "failure" ]] && { echo "❌ pytest tests failed"; ERROR=1; } || echo "✅ pytest tests passed"
-        [[ "${{ steps.mypy.outcome }}" == "failure" ]] && { echo "❌ mypy type checking failed"; ERROR=1; } || echo "✅ mypy type checking passed"
-        
-        exit $ERROR
+
+        check_forbidden_folder "pr_info/steps" "Temporary development steps folder" || ERROR=1
+        check_forbidden_folder "pr_info/.conversations" "Temporary conversation history folder" || ERROR=1
+
+        # Check for forbidden commit message file
+        if [ -f "pr_info/.commit_message.txt" ]; then
+            echo "❌ ERROR: Found forbidden file pr_info/.commit_message.txt"
+            echo "Description: Transient commit message file should not be committed"
+            ERROR=1
+        else
+            echo "✅ No forbidden commit message file found"
+        fi
+
+        if [ $ERROR -eq 1 ]; then
+          echo ""
+          echo "❌ PULL REQUEST BLOCKED: Forbidden folders detected!"
+          echo "These folders should not be included in pull requests."
+          echo "Please remove them and update your .gitignore if necessary."
+          echo "Note: These folders are allowed in regular commits, just not in PRs."
+          exit 1
+        else
+          echo ""
+          echo "✅ All checks passed! No forbidden folders found."
+        fi
+
+  # Matrix approach: Each check runs as independent job with individual pass/fail status
+  # fail-fast: false ensures all checks complete even if one fails
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - {name: "black", cmd: "black --version && black --check src tests"}
+          - {name: "isort", cmd: "isort --version && isort --check --profile=black --float-to-top src tests"}
+          - {name: "pylint", cmd: "pylint --version && pylint -E ./src ./tests"}
+          - {name: "pytest", cmd: "pytest --version && pytest tests"}
+          - {name: "mypy", cmd: "mypy --version && mypy --strict src tests"}
+    name: ${{ matrix.check.name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: uv pip install --system ".[dev]"
+
+      - name: Environment info
+        run: |
+          uname -a
+          python --version
+          uv --version
+          git --version
+
+      - name: Run ${{ matrix.check.name }}
+        run: ${{ matrix.check.cmd }}

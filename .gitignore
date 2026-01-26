@@ -25,3 +25,9 @@ venv/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# MCP configuration files (may contain sensitive paths)
+# Keep .mcp.json but ignore platform-specific variants
+.mcp.linux.json
+.mcp.macos.json
+.mcp.windows.json
