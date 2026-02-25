@@ -51,6 +51,8 @@ Both `run_pytest_check` and `run_all_checks` expose the following parameters for
 | `extra_args` | list | None | Optional list of additional pytest arguments |
 | `env_vars` | dictionary | None | Optional environment variables for the subprocess |
 
+**Note:** Parallel test execution is enabled by default using pytest-xdist (`-n auto`).
+
 ### Mypy Parameters
 
 The mypy tools expose the following parameters for customization:

@@ -43,15 +43,15 @@ This runs:
 
 **Recommended pytest parameters:**
 - Use `extra_args: ["-v"]` for verbose output
-- If pytest-xdist is installed, use `extra_args: ["-n", "auto"]` for parallel execution
+- Use `extra_args: ["-n", "auto"]` for parallel execution (enabled by default)
 
 **Examples:**
 ```python
 # Standard test run
 mcp__code-checker__run_pytest_check(extra_args=["-v"])
 
-# Parallel execution (if pytest-xdist installed)
-mcp__code-checker__run_pytest_check(extra_args=["-n", "auto"])
+# Parallel execution with verbose output
+mcp__code-checker__run_pytest_check(extra_args=["-n", "auto", "-v"])
 
 # Verbose with short traceback
 mcp__code-checker__run_pytest_check(extra_args=["-v", "--tb=short"])

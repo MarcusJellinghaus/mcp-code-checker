@@ -26,6 +26,7 @@ dependencies = [
     "pytest>=8.3.5",
     "pytest-json-report>=1.5.0",
     "pytest-asyncio>=0.25.3",
+    "pytest-xdist>=3.5.0",
     "mypy>=1.9.0",
     "structlog>=24.5.0",
     "python-json-logger>=3.2.1",
@@ -36,7 +37,6 @@ dependencies = [
 dev = [
     "black>=24.10.0",
     "isort>=5.13.2",
-    "pytest-xdist>=3.5.0",
     "mcp-server-filesystem @ git+https://github.com/MarcusJellinghaus/mcp_server_filesystem.git",
     ]
 
