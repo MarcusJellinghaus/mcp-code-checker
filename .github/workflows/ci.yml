@@ -143,7 +143,7 @@ jobs:
       fail-fast: false
       matrix:
         check:
-          - {name: "import-linter", cmd: "python -m import_linter --help > /dev/null && python -m import_linter"}
+          - {name: "import-linter", cmd: "lint-imports --help > /dev/null && lint-imports"}
           - {name: "tach", cmd: "tach --version && tach check"}
           - {name: "pycycle", cmd: "pycycle --version && pycycle --here"}
           - {name: "vulture", cmd: "vulture --version && vulture src tests vulture_whitelist.py --min-confidence 60"}
