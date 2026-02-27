@@ -44,9 +44,9 @@ dev = [
 mcp-code-checker = "mcp_code_checker.main:main"
 
 [project.urls]
-"Homepage" = "https://github.com/yourusername/mcp-code-checker"
-"Bug Tracker" = "https://github.com/yourusername/mcp-code-checker/issues"
-"Documentation" = "https://github.com/yourusername/mcp-code-checker#readme"
+"Homepage" = "https://github.com/MarcusJellinghaus/mcp-code-checker"
+"Bug Tracker" = "https://github.com/MarcusJellinghaus/mcp-code-checker/issues"
+"Documentation" = "https://github.com/MarcusJellinghaus/mcp-code-checker#readme"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
