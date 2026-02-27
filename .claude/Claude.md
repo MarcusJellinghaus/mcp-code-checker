@@ -41,21 +41,30 @@ This runs:
 
 ### 📋 Pytest Execution Requirements
 
-**Recommended pytest parameters:**
-- Use `extra_args: ["-v"]` for verbose output
-- Use `extra_args: ["-n", "auto"]` for parallel execution (enabled by default)
+**MANDATORY pytest parameters:**
+- ALWAYS use `extra_args: ["-n", "auto"]` for parallel execution
+
+**Available markers in pyproject.toml:**
+- `integration`: Integration tests requiring external resources
+
+**RECOMMENDED USAGE:**
+- **Fast unit tests (recommended)**: Use `-m` with `not` expressions to exclude slow integration tests
+- **All tests**: Run without markers to include everything (slow!)
+- **Specific integration tests**: Use specific `markers` parameter when testing integration functionality
 
 **Examples:**
 ```python
-# Standard test run
-mcp__code-checker__run_pytest_check(extra_args=["-v"])
+# RECOMMENDED: Fast unit tests (excludes integration tests)
+mcp__code-checker__run_pytest_check(extra_args=["-n", "auto", "-m", "not integration"])
 
-# Parallel execution with verbose output
-mcp__code-checker__run_pytest_check(extra_args=["-n", "auto", "-v"])
+# All tests including slow integration tests (not recommended for regular development)
+mcp__code-checker__run_pytest_check(extra_args=["-n", "auto"])
 
-# Verbose with short traceback
-mcp__code-checker__run_pytest_check(extra_args=["-v", "--tb=short"])
+# Specific integration tests (only when needed)
+mcp__code-checker__run_pytest_check(extra_args=["-n", "auto"], markers=["integration"])
 ```
+
+**Important:** Without the `-m "not integration"` exclusions, pytest runs ALL tests including slow integration tests that may require external resources. For regular development, always use the exclusion pattern as shown in the first example above.
 
 ## 📁 MANDATORY: File Access Tools
 
@@ -157,3 +166,13 @@ git push
 - No "Generated with Claude Code" footer or similar attribution
 - Focus on clear summary and test plan
 - Keep PR descriptions concise and professional
+
+## 📏 File Size Check
+
+Check for large files (>750 lines) that may impact LLM context:
+```bash
+# Check if available (mcp-coder integration)
+Bash("find . -name '*.py' -exec wc -l {} + | awk '$1 > 750 { print $2, $1 }' | head -10")
+```
+
+For guidance on splitting large files, consider breaking them into smaller, focused modules.
