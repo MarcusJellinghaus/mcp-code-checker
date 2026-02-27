@@ -43,7 +43,6 @@ dev = [
     "tach>=0.15.0",
     "pycycle>=0.0.8",
     "vulture>=2.13",
-    "mcp-coder @ git+https://github.com/MarcusJellinghaus/mcp_coder.git",
     ]
 
 [project.scripts]
