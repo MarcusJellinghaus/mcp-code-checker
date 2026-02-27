@@ -4,7 +4,7 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Union, cast
+from typing import Any, Dict, Generator, List, cast
 
 import pytest
 
