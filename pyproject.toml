@@ -38,15 +38,20 @@ dev = [
     "black>=24.10.0",
     "isort>=5.13.2",
     "mcp-server-filesystem @ git+https://github.com/MarcusJellinghaus/mcp_server_filesystem.git",
+    # Architecture and code quality tools
+    "import-linter>=2.0",
+    "tach>=0.15.0",
+    "pycycle>=0.0.8",
+    "vulture>=2.13",
     ]
 
 [project.scripts]
 mcp-code-checker = "mcp_code_checker.main:main"
 
 [project.urls]
-"Homepage" = "https://github.com/yourusername/mcp-code-checker"
-"Bug Tracker" = "https://github.com/yourusername/mcp-code-checker/issues"
-"Documentation" = "https://github.com/yourusername/mcp-code-checker#readme"
+"Homepage" = "https://github.com/MarcusJellinghaus/mcp-code-checker"
+"Bug Tracker" = "https://github.com/MarcusJellinghaus/mcp-code-checker/issues"
+"Documentation" = "https://github.com/MarcusJellinghaus/mcp-code-checker#readme"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

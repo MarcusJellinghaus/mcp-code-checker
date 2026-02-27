@@ -1,0 +1,72 @@
+# Tach configuration for architectural boundaries
+source_roots = ["src"]
+exact = false
+forbid_circular_dependencies = true
+
+# Define layers
+[[layers]]
+name = "entry_point"
+
+[[layers]]
+name = "server"
+
+[[layers]]
+name = "checker_implementation"
+
+[[layers]]
+name = "utilities"
+
+# Define architectural modules
+[[modules]]
+path = "mcp_code_checker.code_checker_pytest"
+layer = "checker_implementation"
+depends_on = [
+    { path = "mcp_code_checker.utils" },
+    { path = "mcp_code_checker.log_utils" }
+]
+
+[[modules]]
+path = "mcp_code_checker.code_checker_pylint"
+layer = "checker_implementation"
+depends_on = [
+    { path = "mcp_code_checker.utils" },
+    { path = "mcp_code_checker.log_utils" }
+]
+
+[[modules]]
+path = "mcp_code_checker.code_checker_mypy"
+layer = "checker_implementation"
+depends_on = [
+    { path = "mcp_code_checker.utils" },
+    { path = "mcp_code_checker.log_utils" }
+]
+
+[[modules]]
+path = "mcp_code_checker.server"
+layer = "server"
+depends_on = [
+    { path = "mcp_code_checker.code_checker_pytest" },
+    { path = "mcp_code_checker.code_checker_pylint" },
+    { path = "mcp_code_checker.code_checker_mypy" },
+    { path = "mcp_code_checker.utils" },
+    { path = "mcp_code_checker.log_utils" }
+]
+
+[[modules]]
+path = "mcp_code_checker.main"
+layer = "entry_point"
+depends_on = [
+    { path = "mcp_code_checker.server" }
+]
+
+[[modules]]
+path = "mcp_code_checker.utils"
+layer = "utilities"
+depends_on = [
+    { path = "mcp_code_checker.log_utils" }
+]
+
+[[modules]]
+path = "mcp_code_checker.log_utils"
+layer = "utilities"
+depends_on = []
