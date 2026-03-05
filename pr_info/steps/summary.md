@@ -59,11 +59,11 @@ disable = ["W", "C", "R"]
 
 | File | Change |
 |------|--------|
-| `src/mcp_code_checker/code_checker_pylint/runners.py` | Replace `disable_codes` with `extra_args` in `get_pylint_results`; simplify `run_pylint_check` |
+| `src/mcp_code_checker/code_checker_pylint/runners.py` | Replace `disable_codes` with `extra_args` in `get_pylint_results`; delete `run_pylint_check` (unused wrapper) |
 | `src/mcp_code_checker/code_checker_pylint/reporting.py` | Remove `categories` + `disable_codes`; add `extra_args`; remove `filter_pylint_codes_by_category` call |
 | `src/mcp_code_checker/code_checker_pylint/models.py` | Remove `DEFAULT_CATEGORIES` constant |
 | `src/mcp_code_checker/code_checker_pylint/utils.py` | Remove `filter_pylint_codes_by_category` function (dead code) |
-| `src/mcp_code_checker/code_checker_pylint/__init__.py` | Remove `DEFAULT_CATEGORIES` and `filter_pylint_codes_by_category` from exports |
+| `src/mcp_code_checker/code_checker_pylint/__init__.py` | Remove `DEFAULT_CATEGORIES`, `filter_pylint_codes_by_category`, `run_pylint_check`, `PylintCategory` from exports |
 | `src/mcp_code_checker/server.py` | Delete `_parse_pylint_categories`; update `run_pylint_check` and `run_all_checks` MCP tools |
 | `pyproject.toml` | Add `[tool.pylint.messages_control]` section |
 | `README.md` | Update Pylint Parameters table; add config section |
@@ -83,10 +83,15 @@ disable = ["W", "C", "R"]
 
 ## What Is NOT Changed
 
-- `PylintMessageType` enum — kept in `models.py` (not scoped for removal)
+- `PylintMessageType` enum — kept in `models.py`
 - `normalize_path` in `utils.py` — still used by `reporting.py`
 - `target_directories` and `python_executable` parameters — unchanged throughout
 - All pytest and mypy tooling — unaffected
+
+## What Is Also Removed (decided during plan review)
+
+- `run_pylint_check()` in `runners.py` — unused wrapper, deleted in Step 1 (D2)
+- `PylintCategory` alias in `models.py` — dead backward-compat alias, deleted in Step 4 (D1)
 
 ---
 

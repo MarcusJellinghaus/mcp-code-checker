@@ -97,19 +97,6 @@ No data structures. The `docs/` directory must be created if it does not exist.
 
 ---
 
-## Verification
-
-After this step, run pylint manually on this project to confirm the `pyproject.toml`
-config correctly replicates the old behaviour (only E/F codes reported):
-
-```bash
-python -m pylint src tests --output-format=json
-```
-
-Expected: only ERROR and FATAL messages (same as the old hardcoded default).
-
----
-
 ## LLM Prompt
 
 ```

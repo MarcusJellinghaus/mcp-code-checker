@@ -13,6 +13,7 @@ This step replaces the hardcoded `disable_codes` mechanism in the runner layer w
 |------|--------|
 | `tests/test_code_checker_pylint_main.py` | Update tests — write first |
 | `src/mcp_code_checker/code_checker_pylint/runners.py` | Update implementation |
+| `src/mcp_code_checker/code_checker_pylint/__init__.py` | Remove `run_pylint_check` from exports |
 
 ---
 
@@ -28,15 +29,11 @@ def get_pylint_results(
 ) -> PylintResult:
 ```
 
-### `run_pylint_check()` — updated signature
-```python
-def run_pylint_check(
-    project_dir: str,
-    extra_args: Optional[List[str]] = None,
-    python_executable: Optional[str] = None,
-    target_directories: Optional[List[str]] = None,
-) -> PylintResult:
-```
+### `run_pylint_check()` — DELETE entirely
+
+This function is not called by any production code (server.py → reporting.py → `get_pylint_results` directly).
+It is a redundant wrapper. Remove the function definition and remove `run_pylint_check` from
+`__init__.py` imports and `__all__`.
 
 ---
 
@@ -56,12 +53,10 @@ if extra_args:
     pylint_command.extend(extra_args)
 ```
 
-### `run_pylint_check()` — becomes a thin pass-through
+### `run_pylint_check()` — DELETE entirely
 
-**Before:** applied hardcoded `disable_codes` defaults + category filtering block  
-**After:** calls `get_pylint_results()` with `extra_args`, returns result directly
-
-Remove the `categories` parameter and the entire category-filtering block entirely. Remove the hardcoded `disable_codes` default list.
+Remove the entire function from `runners.py`. It is not called by any production code;
+`reporting.py` calls `get_pylint_results` directly.
 
 ---
 
@@ -77,9 +72,6 @@ get_pylint_results(project_dir, extra_args, python_executable, target_directorie
   execute command via execute_command()
   parse JSON output → List[PylintMessage]
   return PylintResult(return_code, messages, error, raw_output)
-
-run_pylint_check(project_dir, extra_args, python_executable, target_directories):
-  return get_pylint_results(project_dir, extra_args, python_executable, target_directories)
 ```
 
 ---
@@ -107,7 +99,7 @@ PylintResult(
 
 ### Remove / replace
 - `test_get_pylint_results_no_issues` — replace `disable_codes=["C0114", "C0116"]` with `extra_args=["--disable=C0114,C0116"]`
-- `test_run_pylint_check` — remove `categories=` and `disable_codes=` calls; test with `extra_args=None` and `extra_args=["--disable=C0114"]`
+- `test_run_pylint_check` — **delete entirely** (the function it tests is being removed)
 
 ### Keep unchanged
 - `test_get_pylint_results_with_issues`
@@ -136,20 +128,19 @@ CHANGES REQUIRED:
    - Update the structlog call to log `extra_args` instead of `disable_codes`
    - Update the docstring
 
-2. In `run_pylint_check()`:
-   - Remove parameters: `categories`, `disable_codes`
-   - Add parameter: `extra_args: Optional[List[str]] = None`
-   - Remove the hardcoded `disable_codes` default list
-   - Remove the entire category-filtering block (the `if categories is not None:` block)
-   - Call `get_pylint_results(project_dir, extra_args=extra_args, ...)` and return the result
-   - Update the docstring
+2. DELETE `run_pylint_check()` from `runners.py` entirely.
+   It is not called by any production code. `reporting.py` calls `get_pylint_results` directly.
 
-3. In `tests/test_code_checker_pylint_main.py`:
+3. In `src/mcp_code_checker/code_checker_pylint/__init__.py`:
+   - Remove `run_pylint_check` from the import block and from `__all__`
+
+4. In `tests/test_code_checker_pylint_main.py`:
    - Update `test_get_pylint_results_no_issues`: change `disable_codes=["C0114", "C0116"]`
      to `extra_args=["--disable=C0114,C0116"]`
-   - Update `test_run_pylint_check`: remove `categories=` and `disable_codes=` arguments;
-     add a test call with `extra_args=["--disable=C0114,C0116"]`
+   - DELETE `test_run_pylint_check` entirely (the function it tests is being removed)
+   - Remove `run_pylint_check` from the import at the top of the file
 
-Write tests first, then implement. Do not modify any other files in this step.
+Write tests first (delete test_run_pylint_check, update test_get_pylint_results_no_issues),
+then implement. Do not modify any other files in this step.
 Run the tests to confirm they pass before finishing.
 ```

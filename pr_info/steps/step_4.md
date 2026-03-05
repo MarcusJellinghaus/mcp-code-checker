@@ -58,9 +58,15 @@ filter_pylint_codes_by_category,  # from utils
 "filter_pylint_codes_by_category",
 ```
 
-Keep all other exports unchanged (`PylintMessageType`, `PylintCategory`, `PylintMessage`,
-`PylintResult`, `get_pylint_results`, `run_pylint_check`, `get_pylint_prompt`,
+Keep all other exports unchanged (`PylintMessageType`, `PylintMessage`,
+`PylintResult`, `get_pylint_results`, `get_pylint_prompt`,
 `get_direct_instruction_for_pylint_code`, `normalize_path`).
+
+Note: `run_pylint_check` was already removed from `__init__.py` in Step 1.
+
+**Also remove `PylintCategory`** — it is an unused backward-compatibility alias
+(`PylintCategory = PylintMessageType` in `models.py`). No external users exist;
+it should be deleted from `models.py`, removed from `__init__.py` imports and `__all__`.
 
 ---
 
@@ -130,7 +136,7 @@ def test_default_categories_from_init() -> None: ...
 class TestFilterPylintCodesByCategory: ...
 ```
 Also remove `DEFAULT_CATEGORIES`, `PylintCategory`, `filter_pylint_codes_by_category`
-from the import at the top (if no other test in the file uses them after the deletions).
+from the import at the top (they are no longer used after the deletions).
 
 ---
 
@@ -169,6 +175,7 @@ STEP ORDER (important for TDD):
 
 4. Run all tests again — should all pass.
 
-Do NOT remove `PylintMessageType`, `PylintCategory`, `normalize_path`, or any other symbols.
+Do NOT remove `PylintMessageType`, `normalize_path`, or any other symbols.
+`PylintCategory` IS removed (it is a dead backward-compatibility alias — see step_4.md).
 Do not modify any files outside this scope.
 ```
