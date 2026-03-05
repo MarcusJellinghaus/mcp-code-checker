@@ -59,10 +59,10 @@ See [step_4.md](./steps/step_4.md) for full details.
 - [x] Verify tests still pass after test removal
 - [x] Remove `DEFAULT_CATEGORIES` constant from `src/mcp_code_checker/code_checker_pylint/models.py` (and `Set` from typing if unused)
 - [x] Remove `filter_pylint_codes_by_category` function from `src/mcp_code_checker/code_checker_pylint/utils.py` (and unused imports)
-- [ ] Remove `PylintCategory` alias from `src/mcp_code_checker/code_checker_pylint/models.py`
-- [ ] Update `src/mcp_code_checker/code_checker_pylint/__init__.py`: remove `DEFAULT_CATEGORIES`, `filter_pylint_codes_by_category`, `PylintCategory` from imports and `__all__`
-- [ ] Run pylint, pytest, mypy — fix all issues found
-- [ ] Prepare git commit message for Step 4
+- [x] Remove `PylintCategory` alias from `src/mcp_code_checker/code_checker_pylint/models.py`
+- [x] Update `src/mcp_code_checker/code_checker_pylint/__init__.py`: remove `DEFAULT_CATEGORIES`, `filter_pylint_codes_by_category`, `PylintCategory` from imports and `__all__`
+- [x] Run pylint, pytest, mypy — fix all issues found
+- [x] Prepare git commit message for Step 4
 
 ---
 

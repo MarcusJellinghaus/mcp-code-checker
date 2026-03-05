@@ -50,7 +50,3 @@ class PylintResult(NamedTuple):
         return [
             message for message in self.messages if message.message_id == message_id
         ]
-
-
-# For backward compatibility
-PylintCategory = PylintMessageType
