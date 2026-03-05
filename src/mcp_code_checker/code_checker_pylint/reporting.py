@@ -223,7 +223,7 @@ def get_pylint_prompt(
 
     pylint_results = get_pylint_results(
         project_dir,
-        disable_codes=disable_codes,
+        extra_args=[f"--disable={','.join(disable_codes)}"] if disable_codes else None,
         python_executable=python_executable,
         target_directories=target_directories,
     )

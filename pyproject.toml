@@ -56,7 +56,7 @@ mcp-code-checker = "mcp_code_checker.main:main"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
-pythonpath = ["."]
+pythonpath = ["src"]
 addopts = "-n auto"
 
 

@@ -21,7 +21,6 @@ from mcp_code_checker.code_checker_pylint.reporting import (
 )
 from mcp_code_checker.code_checker_pylint.runners import (
     get_pylint_results,
-    run_pylint_check,
 )
 
 # Re-export utilities
@@ -40,7 +39,6 @@ __all__ = [
     "PylintResult",
     # Main functionality
     "get_pylint_results",
-    "run_pylint_check",
     "get_pylint_prompt",
     "get_direct_instruction_for_pylint_code",
     # Utilities

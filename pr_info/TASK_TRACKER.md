@@ -26,9 +26,9 @@ See [step_1.md](./steps/step_1.md) for full details.
 
 - [x] Update `tests/test_code_checker_pylint_main.py`: delete `test_run_pylint_check`, update `test_get_pylint_results_no_issues` to use `extra_args=[\"--disable=C0114,C0116\"]`, remove `run_pylint_check` import
 - [x] Update `src/mcp_code_checker/code_checker_pylint/runners.py`: rename `disable_codes` → `extra_args` in `get_pylint_results()`, replace `--disable=...` join logic with `pylint_command.extend(extra_args)`, delete `run_pylint_check()` entirely
-- [ ] Update `src/mcp_code_checker/code_checker_pylint/__init__.py`: remove `run_pylint_check` from imports and `__all__`
-- [ ] Run pylint, pytest, mypy — fix all issues found
-- [ ] Prepare git commit message for Step 1
+- [x] Update `src/mcp_code_checker/code_checker_pylint/__init__.py`: remove `run_pylint_check` from imports and `__all__`
+- [x] Run pylint, pytest, mypy — fix all issues found
+- [x] Prepare git commit message for Step 1
 
 ---
 
