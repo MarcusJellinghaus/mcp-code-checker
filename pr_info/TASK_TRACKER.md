@@ -56,7 +56,7 @@ See [step_3.md](./steps/step_3.md) for full details.
 See [step_4.md](./steps/step_4.md) for full details.
 
 - [x] Remove dead tests first: delete `test_default_categories` from `tests/test_code_checker_pylint/test_models.py`, delete `TestFilterPylintCodesByCategory` from `tests/test_code_checker_pylint/test_utils.py`, delete `test_default_categories_from_init` and `TestFilterPylintCodesByCategory` from `tests/test_code_checker_pylint_main.py`, remove corresponding imports
-- [ ] Verify tests still pass after test removal
+- [x] Verify tests still pass after test removal
 - [ ] Remove `DEFAULT_CATEGORIES` constant from `src/mcp_code_checker/code_checker_pylint/models.py` (and `Set` from typing if unused)
 - [ ] Remove `filter_pylint_codes_by_category` function from `src/mcp_code_checker/code_checker_pylint/utils.py` (and unused imports)
 - [ ] Remove `PylintCategory` alias from `src/mcp_code_checker/code_checker_pylint/models.py`
