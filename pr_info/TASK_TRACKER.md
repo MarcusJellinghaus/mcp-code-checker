@@ -46,9 +46,9 @@ See [step_2.md](./steps/step_2.md) for full details.
 See [step_3.md](./steps/step_3.md) for full details.
 
 - [x] Update `tests/test_server_params.py`: remove `categories=[\"error\"]` from `run_all_checks` call, remove assertions checking pylint was called with categories, add test verifying `run_pylint_check` signature has `extra_args` and no `categories`/`disable_codes`
-- [ ] Update `src/mcp_code_checker/server.py`: delete `_parse_pylint_categories()` method, update `run_pylint_check` MCP tool (remove `categories`/`disable_codes` params, add `extra_args`, update `get_pylint_prompt` call), update `run_all_checks` MCP tool (remove `categories` param, remove `_parse_pylint_categories` call, update `get_pylint_prompt` call), remove `PylintMessageType` from imports
-- [ ] Run pylint, pytest, mypy — fix all issues found
-- [ ] Prepare git commit message for Step 3
+- [x] Update `src/mcp_code_checker/server.py`: delete `_parse_pylint_categories()` method, update `run_pylint_check` MCP tool (remove `categories`/`disable_codes` params, add `extra_args`, update `get_pylint_prompt` call), update `run_all_checks` MCP tool (remove `categories` param, remove `_parse_pylint_categories` call, update `get_pylint_prompt` call), remove `PylintMessageType` from imports
+- [x] Run pylint, pytest, mypy — fix all issues found
+- [x] Prepare git commit message for Step 3
 
 ---
 
