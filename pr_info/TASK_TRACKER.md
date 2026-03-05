@@ -69,7 +69,7 @@ See [step_4.md](./steps/step_4.md) for full details.
 ### Step 5: Config + Docs — `pyproject.toml`, `docs/`, `README.md`
 See [step_5.md](./steps/step_5.md) for full details.
 
-- [ ] Add `[tool.pylint.messages_control]` section to `pyproject.toml` (after `[tool.mypy]`): `disable = ["W", "C", "R"]`
+- [x] Add `[tool.pylint.messages_control]` section to `pyproject.toml` (after `[tool.mypy]`): `disable = ["W", "C", "R"]`
 - [ ] Create `docs/pyproject-configuration.md`: cover how pylint reads pyproject.toml, recommended config to replicate old ERROR/FATAL default, finer-grained code config, `extra_args` one-off override usage, link to pylint messages reference
 - [ ] Update `README.md`: remove `categories` and `disable_codes` rows from Pylint Parameters table, add `extra_args` row, add `### Pylint Configuration` subsection linking to the new docs file
 - [ ] Run pylint to verify project still runs cleanly with the new config

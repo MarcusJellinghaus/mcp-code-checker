@@ -96,6 +96,9 @@ ignore_missing_imports = true
 module = ["mcp.server.fastmcp"]
 ignore_missing_imports = true
 
+[tool.pylint.messages_control]
+disable = ["W", "C", "R"]
+
 # Include tools directory in the distribution
 [tool.setuptools]
 include-package-data = true
