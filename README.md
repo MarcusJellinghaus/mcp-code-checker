@@ -29,9 +29,15 @@ The pylint tools expose the following parameters for customization:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `categories` | list | ['error', 'fatal'] | List of pylint message categories to include |
-| `disable_codes` | list | None | List of pylint error codes to disable during analysis |
+| `extra_args` | list | None | Optional list of additional pylint CLI arguments (e.g. `["--disable=W0611"]`) |
 | `target_directories` | list | ["src", "tests"] | List of directories to analyze relative to project_dir |
+
+### Pylint Configuration
+
+Pylint reads your project's `pyproject.toml` automatically. Control which issues
+are reported by configuring `[tool.pylint.messages_control]` in your `pyproject.toml`.
+See [docs/pyproject-configuration.md](docs/pyproject-configuration.md) for examples
+and migration guidance.
 
 **Target Directories Examples:**
 - `["src"]` - Analyze only source code directory
