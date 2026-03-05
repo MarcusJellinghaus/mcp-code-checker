@@ -36,9 +36,9 @@ See [step_1.md](./steps/step_1.md) for full details.
 See [step_2.md](./steps/step_2.md) for full details.
 
 - [x] Update `tests/test_code_checker_pylint/test_reporting.py`: remove `categories=` and `disable_codes=` args from all `get_pylint_prompt` calls, add test verifying warning-level codes are included
-- [ ] Update `src/mcp_code_checker/code_checker_pylint/reporting.py`: replace `categories`/`disable_codes` params with `extra_args`, remove `DEFAULT_CATEGORIES` fallback block, remove `disable_codes` defaults block, remove `filter_pylint_codes_by_category` call, remove unused imports (`DEFAULT_CATEGORIES`, `PylintMessageType`, `filter_pylint_codes_by_category`)
-- [ ] Run pylint, pytest, mypy — fix all issues found
-- [ ] Prepare git commit message for Step 2
+- [x] Update `src/mcp_code_checker/code_checker_pylint/reporting.py`: replace `categories`/`disable_codes` params with `extra_args`, remove `DEFAULT_CATEGORIES` fallback block, remove `disable_codes` defaults block, remove `filter_pylint_codes_by_category` call, remove unused imports (`DEFAULT_CATEGORIES`, `PylintMessageType`, `filter_pylint_codes_by_category`)
+- [x] Run pylint, pytest, mypy — fix all issues found
+- [x] Prepare git commit message for Step 2
 
 ---
 
