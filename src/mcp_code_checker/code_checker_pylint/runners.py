@@ -5,13 +5,11 @@ Functions for running pylint analysis and processing results.
 import logging
 import os
 import sys
-from typing import List, Optional, Set
+from typing import List, Optional
 
 import structlog
 
 from mcp_code_checker.code_checker_pylint.models import (
-    DEFAULT_CATEGORIES,
-    PylintMessageType,
     PylintResult,
 )
 from mcp_code_checker.code_checker_pylint.parsers import parse_pylint_json_output
@@ -25,7 +23,7 @@ structured_logger = structlog.get_logger(__name__)
 @log_function_call
 def get_pylint_results(
     project_dir: str,
-    disable_codes: Optional[List[str]] = None,
+    extra_args: Optional[List[str]] = None,
     python_executable: Optional[str] = None,
     target_directories: Optional[List[str]] = None,
 ) -> PylintResult:
@@ -34,15 +32,8 @@ def get_pylint_results(
 
     Args:
         project_dir: The path to the project directory.
-        disable_codes: List of pylint codes to disable during analysis. Common codes include:
-            - C0114: Missing module docstring
-            - C0116: Missing function docstring
-            - C0301: Line too long
-            - C0303: Trailing whitespace
-            - C0305: Trailing newlines
-            - W0311: Bad indentation
-            - W0611: Unused import
-            - W1514: Unspecified encoding
+        extra_args: Optional list of extra pylint arguments to pass directly.
+            Examples: ["--disable=C0114,C0116"], ["--enable=W0613", "--disable=C"]
         python_executable: Path to Python executable to use for running pylint. Defaults to sys.executable if None.
         target_directories: List of directories to analyze relative to project_dir.
             Defaults to ["src"] and conditionally "tests" if it exists.
@@ -95,7 +86,7 @@ def get_pylint_results(
     structured_logger.info(
         "Starting pylint analysis",
         project_dir=project_dir,
-        disable_codes=disable_codes,
+        extra_args=extra_args,
         target_directories=valid_directories,
     )
 
@@ -110,8 +101,8 @@ def get_pylint_results(
         "--output-format=json",
     ]
 
-    if disable_codes and len(disable_codes) > 0:
-        pylint_command.append(f"--disable={','.join(disable_codes)}")
+    if extra_args:
+        pylint_command.extend(extra_args)
 
     # Add all valid target directories
     pylint_command.extend(valid_directories)
@@ -176,87 +167,5 @@ def get_pylint_results(
         messages_count=len(messages),
         unique_codes=len(result.get_message_ids()),
     )
-
-    return result
-
-
-@log_function_call
-def run_pylint_check(
-    project_dir: str,
-    categories: Optional[Set[PylintMessageType]] = None,
-    disable_codes: Optional[List[str]] = None,
-    python_executable: Optional[str] = None,
-    target_directories: Optional[List[str]] = None,
-) -> PylintResult:
-    """
-    Run pylint check on a project directory and returns the result.
-
-    Args:
-        project_dir: The path to the project directory to analyze.
-        categories: Set of specific pylint categories to filter by. Available categories are:
-            - PylintMessageType.CONVENTION: Style conventions (C)
-            - PylintMessageType.REFACTOR: Refactoring suggestions (R)
-            - PylintMessageType.WARNING: Python-specific warnings (W)
-            - PylintMessageType.ERROR: Probable bugs in the code (E)
-            - PylintMessageType.FATAL: Critical errors that prevent pylint from working (F)
-            Defaults to {ERROR, FATAL} if None.
-        disable_codes: Optional list of pylint codes to disable during analysis. Common codes include:
-            - C0114: Missing module docstring
-            - C0116: Missing function docstring
-            - C0301: Line too long
-            - C0303: Trailing whitespace
-            - C0305: Trailing newlines
-            - W0311: Bad indentation
-            - W0611: Unused import
-            - W1514: Unspecified encoding
-        python_executable: Optional path to Python interpreter to use for running tests. If None, defaults to sys.executable.
-        target_directories: Optional list of directories to analyze relative to project_dir.
-            Defaults to ["src"] and conditionally "tests" if it exists.
-            Examples: ["src"], ["src", "tests"], ["mypackage", "tests"], ["."]
-
-    Returns:
-        PylintResult with the analysis outcome.
-    """
-    # Default disable codes if none provided
-    if disable_codes is None:
-        disable_codes = [
-            # not required for now
-            "C0114",  # doc missing
-            "C0116",  # doc missing
-            #
-            # can be solved with formatting / black
-            "C0301",  # line-too-long
-            "C0303",  # trailing-whitespace
-            "C0305",  # trailing-newlines
-            "W0311",  # bad-indentation   - instruction available
-            #
-            # can be solved with iSort
-            "W0611",  # unused-import
-            "W1514",  # unspecified-encoding
-        ]
-
-    # Get pylint results
-    result = get_pylint_results(
-        project_dir,
-        disable_codes=disable_codes,
-        python_executable=python_executable,
-        target_directories=target_directories,
-    )
-
-    # Apply category filtering if specified
-    if categories is not None:
-        # Convert categories to their string values for comparison
-        category_values = {cat.value for cat in categories}
-        filtered_messages = [
-            msg for msg in result.messages if msg.type in category_values
-        ]
-        # Return a new result with filtered messages
-        filtered_result: PylintResult = PylintResult(
-            return_code=result.return_code,
-            messages=filtered_messages,
-            error=result.error,
-            raw_output=result.raw_output,
-        )
-        return filtered_result
 
     return result
