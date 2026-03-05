@@ -12,7 +12,8 @@ from mcp_code_checker.code_checker_pytest import (
     parse_pytest_report,
 )
 from mcp_code_checker.code_checker_pytest.models import PytestReport, Summary
-from tests.test_code_checker.test_code_checker_pytest_common import SAMPLE_JSON
+
+from .test_code_checker_pytest_common import SAMPLE_JSON
 
 
 def test_create_prompt_no_failed_tests() -> None:
