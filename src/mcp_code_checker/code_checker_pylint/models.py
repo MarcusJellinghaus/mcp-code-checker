@@ -16,13 +16,6 @@ class PylintMessageType(Enum):
     FATAL = "fatal"
 
 
-# Default categories for pylint checks - used when no categories are specified
-DEFAULT_CATEGORIES: Set[PylintMessageType] = {
-    PylintMessageType.ERROR,
-    PylintMessageType.FATAL,
-}
-
-
 class PylintMessage(NamedTuple):
     """Represents a single Pylint message."""
 
