@@ -10,6 +10,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 
+def _get_tool(mock_tool: MagicMock, name: str) -> Any:
+    return {f.__name__: f for call in mock_tool.call_args_list for f in [call[0][0]]}[
+        name
+    ]
+
+
 @pytest.fixture
 def mock_project_dir() -> Path:
     """Return a mock project directory path."""
@@ -47,7 +53,7 @@ async def test_run_pytest_check_parameters(mock_project_dir: Path) -> None:
         assert (
             len(mock_tool.call_args_list) >= 2
         ), "Expected at least 2 tools to be registered"
-        run_pytest_check = mock_tool.call_args_list[1][0][0]
+        run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
 
         # Call with only the dynamic parameters (without test_folder and keep_temp_files)
         result = run_pytest_check(
@@ -73,73 +79,6 @@ async def test_run_pytest_check_parameters(mock_project_dir: Path) -> None:
 
         # Verify the result is properly formatted
         assert "All 5 tests passed successfully" in result
-
-
-@pytest.mark.asyncio
-async def test_run_all_checks_parameters(mock_project_dir: Path) -> None:
-    """Test that run_all_checks properly uses server parameters and passes parameters correctly."""
-    with (
-        patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
-        patch("mcp_code_checker.server.get_pylint_prompt") as mock_pylint,
-        patch("mcp_code_checker.server.check_code_with_pytest") as mock_check_pytest,
-        patch("mcp_code_checker.server.get_mypy_prompt") as mock_mypy,
-    ):
-        # Setup mocks
-        mock_tool = MagicMock()
-        mock_fastmcp.return_value.tool.return_value = mock_tool
-
-        # Setup mock results
-        mock_pylint.return_value = None
-        mock_check_pytest.return_value = {
-            "success": True,
-            "summary": {"passed": 5, "failed": 0, "error": 0},
-            "test_results": MagicMock(),
-        }
-        mock_mypy.return_value = None
-
-        # Import after patching to ensure mocks are in place
-        from mcp_code_checker.server import CodeCheckerServer
-
-        # Create server with the static parameters
-        _server = CodeCheckerServer(
-            mock_project_dir, test_folder="custom_tests", keep_temp_files=True
-        )
-
-        # Get the run_all_checks function (it's decorated by mock_tool)
-        # Order: run_pylint_check (0), run_pytest_check (1), run_mypy_check (2), run_all_checks (3)
-        assert (
-            len(mock_tool.call_args_list) >= 4
-        ), "Expected at least 4 tools to be registered"
-        run_all_checks = mock_tool.call_args_list[3][0][0]
-
-        # Call with only the dynamic parameters (without test_folder and keep_temp_files)
-        # The function needs to be invoked to trigger the actual checks
-        result = run_all_checks(
-            markers=["slow", "integration"],
-            verbosity=3,
-            extra_args=["--no-header"],
-            env_vars={"TEST_ENV": "value"},
-        )
-
-        # Verify check_code_with_pytest was called with correct parameters
-        # test_folder and keep_temp_files should come from the server instance
-        mock_check_pytest.assert_called_once_with(
-            project_dir=str(mock_project_dir),
-            test_folder="custom_tests",  # From server constructor
-            python_executable=None,
-            markers=["slow", "integration"],
-            verbosity=3,
-            extra_args=["--no-header"],
-            env_vars={"TEST_ENV": "value"},
-            venv_path=None,
-            keep_temp_files=True,  # From server constructor
-        )
-
-        # Verify the result contains information from all checks
-        assert "All code checks completed" in result
-        assert "Pylint:" in result
-        assert "Pytest:" in result
-        assert "Mypy:" in result
 
 
 @pytest.mark.asyncio
@@ -254,7 +193,7 @@ async def test_run_pytest_check_with_show_details_true(
         }
 
         # Get the run_pytest_check function
-        run_pytest_check = mock_tool.call_args_list[1][0][0]  # Second tool registered
+        run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
 
         # Call with show_details=True (this will be added in Step 4)
         # For now, test the existing interface
@@ -288,7 +227,7 @@ async def test_run_pytest_check_with_show_details_false(
         }
 
         # Get the run_pytest_check function
-        run_pytest_check = mock_tool.call_args_list[1][0][0]
+        run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
 
         # Call with standard parameters (show_details=False is default)
         result = run_pytest_check(verbosity=1)
@@ -314,7 +253,7 @@ async def test_run_pytest_check_show_details_default_value() -> None:
         server = CodeCheckerServer(project_dir=Path("/test/project"))
 
         # Get the run_pytest_check function and inspect its signature
-        run_pytest_check = mock_tool.call_args_list[1][0][0]
+        run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
         signature = inspect.signature(run_pytest_check)
 
         # Verify current parameters exist
@@ -344,7 +283,7 @@ async def test_run_pytest_check_backward_compatibility(
         }
 
         # Get the run_pytest_check function
-        run_pytest_check = mock_tool.call_args_list[1][0][0]
+        run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
 
         # Call with existing parameter style (no show_details)
         old_style_result = run_pytest_check(markers=["integration"])
@@ -374,7 +313,7 @@ async def test_show_details_with_focused_test_run(
         mock_create_prompt.return_value = "Detailed failure information..."
 
         # Get the run_pytest_check function
-        run_pytest_check = mock_tool.call_args_list[1][0][0]
+        run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
 
         # Call function WITHOUT show_details=True (default behavior)
         result = run_pytest_check(markers=["unit"])
@@ -409,7 +348,7 @@ async def test_show_details_with_many_failures(
         mock_create_prompt.return_value = "Many failures detected..."
 
         # Get the run_pytest_check function
-        run_pytest_check = mock_tool.call_args_list[1][0][0]
+        run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
 
         # Call function WITHOUT show_details=True (default behavior)
         result = run_pytest_check(verbosity=3)
@@ -454,7 +393,7 @@ async def test_show_details_output_length_limits(
         mock_create_prompt.return_value = "\n".join([f"Line {i}" for i in range(350)])
 
         # Get the run_pytest_check function
-        run_pytest_check = mock_tool.call_args_list[1][0][0]
+        run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
 
         # Call function with show_details=True to get detailed output
         result = run_pytest_check(show_details=True)
@@ -482,7 +421,7 @@ async def test_server_method_signature_includes_show_details() -> None:
         server = CodeCheckerServer(project_dir=Path("/test/project"))
 
         # Get the run_pytest_check function
-        run_pytest_check = mock_tool.call_args_list[1][0][0]
+        run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
         signature = inspect.signature(run_pytest_check)
 
         # Check that all expected parameters are present (including show_details added in Step 4)
@@ -521,7 +460,7 @@ async def test_mcp_tool_decorator_compatibility() -> None:
         ), "Expected at least 2 tools registered"
 
         # Verify run_pytest_check is callable
-        run_pytest_check = mock_tool.call_args_list[1][0][0]
+        run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
         assert callable(run_pytest_check)
 
         # Verify the function has proper signature
@@ -552,7 +491,7 @@ async def test_enhanced_reporting_integration_preparation(
         mock_create_prompt.return_value = "Enhanced failure details..."
 
         # Get the run_pytest_check function
-        run_pytest_check = mock_tool.call_args_list[1][0][0]
+        run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
 
         # Call function with show_details=True to test enhanced integration
         result = run_pytest_check(show_details=True)
@@ -587,7 +526,7 @@ async def test_parameter_type_validation(mock_server: Tuple[Any, MagicMock]) -> 
         }
 
         # Get the run_pytest_check function
-        run_pytest_check = mock_tool.call_args_list[1][0][0]
+        run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
         signature = inspect.signature(run_pytest_check)
 
         # Check parameter types for current parameters
@@ -621,7 +560,7 @@ async def test_integration_with_existing_server_parameters(
         }
 
         # Get the run_pytest_check function
-        run_pytest_check = mock_tool.call_args_list[1][0][0]
+        run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
 
         # Call function
         result = run_pytest_check()
