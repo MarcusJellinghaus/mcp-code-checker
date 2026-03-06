@@ -153,8 +153,11 @@ async def test_run_pylint_check_signature() -> None:
 
         _server = CodeCheckerServer(project_dir=Path("/test/project"))
 
-        # run_pylint_check is the first tool registered (index 0)
-        run_pylint_check = mock_tool.call_args_list[0][0][0]
+        # Look up run_pylint_check by name to avoid fragile index assumptions
+        tools = {
+            f.__name__: f for call in mock_tool.call_args_list for f in [call[0][0]]
+        }
+        run_pylint_check = tools["run_pylint_check"]
         signature = inspect.signature(run_pylint_check)
         params = signature.parameters
 
