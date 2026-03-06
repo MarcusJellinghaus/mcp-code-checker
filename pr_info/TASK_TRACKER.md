@@ -24,6 +24,6 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] [Step 1: Update and remove tests](./steps/step_1.md)
 - [x] [Step 2: Remove tools and dead code from server.py](./steps/step_2.md)
 - [x] [Step 3: Delete dead files](./steps/step_3.md)
-- [ ] [Step 4: Update configuration and supporting files](./steps/step_4.md)
+- [x] [Step 4: Update configuration and supporting files](./steps/step_4.md)
 
 ## Pull Request

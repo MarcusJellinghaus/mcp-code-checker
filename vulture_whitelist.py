@@ -10,9 +10,6 @@ _.call_tool       # MCP server method
 _.run_pytest_check     # FastMCP tool handler
 _.run_pylint_check     # FastMCP tool handler  
 _.run_mypy_check       # FastMCP tool handler
-_.run_all_checks       # FastMCP tool handler
-_.second_sleep         # FastMCP tool handler - used by MCP
-
 # CLI entry points
 _.main  # Entry point function
 
