@@ -1,7 +1,6 @@
 """MCP server implementation for code checking functionality."""
 
 import logging
-import os
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Protocol, TypeVar
 
@@ -19,8 +18,6 @@ from mcp_code_checker.code_checker_pytest.reporting import (
 )
 from mcp_code_checker.code_checker_pytest.runners import check_code_with_pytest
 from mcp_code_checker.log_utils import log_function_call
-from mcp_code_checker.utils.data_files import find_data_file
-from mcp_code_checker.utils.subprocess_runner import execute_command
 
 # Type definitions for FastMCP
 T = TypeVar("T")
@@ -79,12 +76,6 @@ class CodeCheckerServer:
             return "Pylint check completed. No issues found that require attention."
         return f"Pylint found issues that need attention:\n\n{pylint_prompt}"
 
-    def _format_pytest_result(self, test_results: dict[str, Any]) -> str:
-        """Format pytest check result."""
-        # This method is kept for backward compatibility
-        # It uses the new _format_pytest_result_with_details with show_details=False
-        return self._format_pytest_result_with_details(test_results, show_details=False)
-
     def _format_pytest_result_with_details(
         self, test_results: dict[str, Any], show_details: bool
     ) -> str:
@@ -142,22 +133,6 @@ class CodeCheckerServer:
         if mypy_prompt is None:
             return "Mypy check completed. No type errors found."
         return f"Mypy found type issues that need attention:\n\n{mypy_prompt}"
-
-    def _find_sleep_script(self) -> Path:
-        """
-        Find the sleep script location, supporting both development and installed environments.
-
-        Returns:
-            Path to the sleep_script.py file
-
-        Raises:
-            FileNotFoundError: If the script cannot be found in any expected location
-        """
-        return find_data_file(
-            package_name="mcp_code_checker.resources",
-            relative_path="sleep_script.py",
-            development_base_dir=self.project_dir,
-        )
 
     def _register_tools(self) -> None:
         """Register all tools with the MCP server."""
@@ -435,182 +410,6 @@ class CodeCheckerServer:
                     project_dir=str(self.project_dir),
                 )
                 raise
-
-        @self.mcp.tool()
-        @log_function_call
-        def run_all_checks(
-            markers: Optional[List[str]] = None,
-            verbosity: int = 2,
-            extra_args: Optional[List[str]] = None,
-            env_vars: Optional[Dict[str, str]] = None,
-            target_directories: Optional[List[str]] = None,
-            mypy_strict: bool = True,
-            mypy_disable_codes: list[str] | None = None,
-        ) -> str:
-            """
-            Run all code checks (pylint, pytest, and mypy) and generate combined results.
-
-            Args:
-                markers: Optional list of pytest markers to filter tests. Examples: ['slow', 'integration']
-                verbosity: Integer for pytest verbosity level (0-3), default 2. Higher values provide more detailed output.
-                extra_args: Optional list of additional pytest arguments. Examples: ['-xvs', '--no-header']
-                env_vars: Optional dictionary of environment variables for the subprocess. Example: {'DEBUG': '1', 'PYTHONPATH': '/custom/path'}
-                target_directories: Optional list of directories to analyze relative to project_dir.
-                    Defaults to ["src"] and conditionally "tests" if it exists.
-                    Examples:
-                    - ["src"] - Analyze only source code
-                    - ["src", "tests"] - Analyze both source and tests (default)
-                    - ["mypackage", "tests"] - Custom package structure
-                    - ["."] - Analyze entire project (may be slow)
-                mypy_strict: Use strict mode for mypy (default: True)
-                mypy_disable_codes: Optional list of mypy error codes to disable
-
-            Returns:
-                A string containing results from all checks and/or LLM prompts
-            """
-            try:
-                logger.info(
-                    f"Running all code checks on project directory: {self.project_dir}"
-                )
-                structured_logger.info(
-                    "Starting all code checks",
-                    project_dir=str(self.project_dir),
-                    test_folder=self.test_folder,
-                )
-
-                # Run pylint
-                pylint_prompt = get_pylint_prompt(
-                    str(self.project_dir),
-                    python_executable=self.python_executable,
-                    target_directories=target_directories,
-                )
-
-                # Run pytest
-                test_results = check_code_with_pytest(
-                    project_dir=str(self.project_dir),
-                    test_folder=self.test_folder,
-                    python_executable=self.python_executable,
-                    markers=markers,
-                    verbosity=verbosity,
-                    extra_args=extra_args,
-                    env_vars=env_vars,
-                    venv_path=self.venv_path,
-                    keep_temp_files=self.keep_temp_files,
-                )
-
-                # Run mypy
-                mypy_prompt = get_mypy_prompt(
-                    str(self.project_dir),
-                    strict=mypy_strict,
-                    disable_error_codes=mypy_disable_codes,
-                    python_executable=self.python_executable,
-                    target_directories=target_directories,
-                )
-
-                # Format results
-                pylint_result = self._format_pylint_result(pylint_prompt)
-                pytest_result = self._format_pytest_result(test_results)
-                mypy_result = self._format_mypy_result(mypy_prompt)
-
-                # Combine results
-                result = "All code checks completed:\n\n"
-                result += f"1. Pylint: {pylint_result}\n\n"
-                result += f"2. Pytest: {pytest_result}\n\n"
-                result += f"3. Mypy: {mypy_result}"
-
-                structured_logger.info(
-                    "All code checks completed",
-                    pylint_issues_found=pylint_prompt is not None,
-                    pytest_success=test_results.get("success", False),
-                    mypy_issues_found=mypy_prompt is not None,
-                )
-
-                return result
-
-            except Exception as e:
-                logger.error(f"Error running all code checks: {str(e)}")
-                structured_logger.error(
-                    "All code checks failed",
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    project_dir=str(self.project_dir),
-                )
-                raise
-
-        @self.mcp.tool()
-        @log_function_call
-        def second_sleep(sleep_seconds: float = 5.0) -> str:
-            """
-            Sleep for specified seconds using Python script.
-
-            Args:
-                sleep_seconds: Number of seconds to sleep (default: 5.0, max: 300 for safety)
-
-            Returns:
-                A string indicating the sleep operation result
-            """
-            # Validate input
-            if not 0 <= sleep_seconds <= 300:
-                raise ValueError("Sleep seconds must be between 0 and 300")
-
-            try:
-                # Find sleep script (supports both development and installed environments)
-                sleep_script = self._find_sleep_script()
-
-                structured_logger.info(
-                    "Sleep script found successfully",
-                    sleep_script=str(sleep_script),
-                    exists=sleep_script.exists(),
-                )
-            except FileNotFoundError as e:
-                structured_logger.error(
-                    "Sleep script not found - detailed search failure",
-                    error=str(e),
-                    package_name="mcp_code_checker.resources",
-                    relative_path="sleep_script.py",
-                    project_dir=str(self.project_dir),
-                )
-                raise FileNotFoundError(f"Sleep script not found: {str(e)}") from e
-
-            # Build command
-            python_exe = self.python_executable or "python"
-            command = [python_exe, "-u", str(sleep_script), str(sleep_seconds)]
-
-            # Execute with timeout buffer
-            env = os.environ.copy()
-            env["PYTHONUNBUFFERED"] = "1"
-
-            result = execute_command(
-                command,
-                cwd=str(self.project_dir),
-                timeout_seconds=int(sleep_seconds) + 30,
-                env=env,
-            )
-
-            # Always show the actual stdout to help with debugging
-            if result.return_code == 0:
-                stdout_content = result.stdout.strip()
-                structured_logger.info(
-                    "Sleep operation completed successfully",
-                    sleep_seconds=sleep_seconds,
-                    return_code=result.return_code,
-                    stdout_length=len(result.stdout),
-                    stderr_length=len(result.stderr),
-                    timed_out=result.timed_out,
-                    execution_error=result.execution_error,
-                )
-                return f"Sleep operation stdout: {stdout_content}"
-            else:
-                structured_logger.error(
-                    "Sleep operation failed",
-                    sleep_seconds=sleep_seconds,
-                    return_code=result.return_code,
-                    stdout_length=len(result.stdout),
-                    stderr_length=len(result.stderr),
-                    timed_out=result.timed_out,
-                    execution_error=result.execution_error,
-                )
-                return f"Sleep failed (code {result.return_code}): stdout='{result.stdout}', stderr='{result.stderr}'"
 
     @log_function_call
     def run(self) -> None:

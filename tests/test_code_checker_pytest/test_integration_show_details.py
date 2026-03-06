@@ -393,58 +393,6 @@ def test_string_pass():
         assert result.count("\n") < 5  # Compact output
         assert "Pytest completed with failures" in result
 
-    def test_backward_compatibility_full_flow(
-        self, temp_project_dir: Path, server: CodeCheckerServer
-    ) -> None:
-        """Test backward compatibility - existing behavior unchanged."""
-        self._create_focused_project(temp_project_dir)
-
-        json_report = {
-            "created": 1518371686.7981803,
-            "duration": 0.1,
-            "exitcode": 1,
-            "root": str(temp_project_dir),
-            "environment": {},
-            "summary": {"collected": 2, "passed": 1, "failed": 1, "total": 2},
-            "collectors": [],
-            "tests": [
-                {
-                    "nodeid": "tests/test_simple.py::test_failing_with_prints",
-                    "lineno": 10,
-                    "keywords": ["test_failing_with_prints"],
-                    "outcome": "failed",
-                    "call": {
-                        "duration": 0.001,
-                        "outcome": "failed",
-                        "longrepr": "AssertionError: assert 1 == 5",
-                        "stdout": "Debug: processing value\n",
-                        "stderr": "",
-                        "crash": {
-                            "path": str(temp_project_dir / "tests" / "test_simple.py"),
-                            "lineno": 15,
-                            "message": "AssertionError: assert 1 == 5",
-                        },
-                    },
-                }
-            ],
-            "warnings": [],
-        }
-
-        pytest_report = parse_pytest_report(json.dumps(json_report))
-
-        test_results = {
-            "success": True,
-            "summary": json_report["summary"],
-            "test_results": pytest_report,
-        }
-
-        # Test using the legacy _format_pytest_result method
-        result = server._format_pytest_result(test_results)
-
-        # Should behave like show_details=False
-        assert "Pytest completed with failures" in result
-        assert result.count("\n") < 5  # Compact output
-
     def test_specific_test_with_prints(self, temp_project_dir: Path) -> None:
         """Test specific test execution with prints (extra_args + show_details)."""
         self._create_focused_project(temp_project_dir)
