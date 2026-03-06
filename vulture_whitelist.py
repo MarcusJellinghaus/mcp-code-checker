@@ -51,6 +51,7 @@ _.asctime
 # Test model fields that may be parsed from JSON
 _.teardown
 _.when
+_.category
 
 # Utility functions that may be used conditionally
 _.get_detailed_test_summary  # Used conditionally in reporting
