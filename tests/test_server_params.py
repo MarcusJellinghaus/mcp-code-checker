@@ -119,7 +119,6 @@ async def test_run_all_checks_parameters(mock_project_dir: Path) -> None:
             verbosity=3,
             extra_args=["--no-header"],
             env_vars={"TEST_ENV": "value"},
-            categories=["error"],  # Pass as list of strings
         )
 
         # Verify check_code_with_pytest was called with correct parameters
@@ -141,6 +140,34 @@ async def test_run_all_checks_parameters(mock_project_dir: Path) -> None:
         assert "Pylint:" in result
         assert "Pytest:" in result
         assert "Mypy:" in result
+
+
+@pytest.mark.asyncio
+async def test_run_pylint_check_signature() -> None:
+    """Test that run_pylint_check has extra_args and no categories or disable_codes."""
+    with patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp:
+        mock_tool = MagicMock()
+        mock_fastmcp.return_value.tool.return_value = mock_tool
+
+        from mcp_code_checker.server import CodeCheckerServer
+
+        _server = CodeCheckerServer(project_dir=Path("/test/project"))
+
+        # Look up run_pylint_check by name to avoid fragile index assumptions
+        tools = {
+            f.__name__: f for call in mock_tool.call_args_list for f in [call[0][0]]
+        }
+        run_pylint_check = tools["run_pylint_check"]
+        signature = inspect.signature(run_pylint_check)
+        params = signature.parameters
+
+        assert "extra_args" in params, "run_pylint_check must have extra_args parameter"
+        assert (
+            "categories" not in params
+        ), "run_pylint_check must NOT have categories parameter"
+        assert (
+            "disable_codes" not in params
+        ), "run_pylint_check must NOT have disable_codes parameter"
 
 
 # Step 3: Tests for Server Interface Enhancement with show_details Parameter

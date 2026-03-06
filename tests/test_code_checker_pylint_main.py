@@ -2,16 +2,12 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Generator, Set
+from typing import Generator
 
 import pytest
 
 from mcp_code_checker.code_checker_pylint import (
-    DEFAULT_CATEGORIES,
-    PylintCategory,
-    filter_pylint_codes_by_category,
     get_pylint_results,
-    run_pylint_check,
 )
 
 
@@ -60,7 +56,9 @@ def test_get_pylint_results_no_issues(temp_project_dir: Path) -> None:
     )
 
     result = get_pylint_results(
-        str(temp_project_dir), disable_codes=["C0114", "C0116"], python_executable=None
+        str(temp_project_dir),
+        extra_args=["--disable=C0114,C0116"],
+        python_executable=None,
     )
     assert result.return_code == 0
     assert not result.messages
@@ -107,90 +105,3 @@ def test_get_pylint_results_empty_file(temp_project_dir: Path) -> None:
     assert result.return_code == 0
     assert len(result.messages) == 0
     assert result.error is None
-
-
-def test_run_pylint_check(temp_project_dir: Path) -> None:
-    """Tests the new run_pylint_check function."""
-    write_file(
-        os.path.join(temp_project_dir, "src", "test_module.py"),
-        "def hello():\n    print('hello')\n",
-    )
-
-    # Test with default parameters
-    result = run_pylint_check(str(temp_project_dir))
-    assert isinstance(result.return_code, int)
-    assert isinstance(result.messages, list)
-
-    # Test with categories parameter
-    result = run_pylint_check(
-        str(temp_project_dir), categories={PylintCategory.ERROR, PylintCategory.FATAL}
-    )
-    assert isinstance(result.return_code, int)
-
-    # Test with disable_codes parameter
-    result = run_pylint_check(str(temp_project_dir), disable_codes=["C0114", "C0116"])
-    assert isinstance(result.return_code, int)
-
-
-def test_default_categories_from_init() -> None:
-    """Tests that DEFAULT_CATEGORIES is correctly exposed via __init__."""
-    assert DEFAULT_CATEGORIES is not None
-    assert isinstance(DEFAULT_CATEGORIES, set)
-    assert PylintCategory.ERROR in DEFAULT_CATEGORIES
-    assert PylintCategory.FATAL in DEFAULT_CATEGORIES
-
-
-class TestFilterPylintCodesByCategory:
-    def test_filter_by_single_category(self) -> None:
-        pylint_codes: Set[str] = {"C0301", "R0201", "W0613", "E0602", "F0001"}
-        categories: Set[PylintCategory] = {PylintCategory.ERROR}
-        expected_codes: Set[str] = {"E0602"}
-        assert (
-            filter_pylint_codes_by_category(pylint_codes, categories) == expected_codes
-        )
-
-    def test_filter_by_multiple_categories(self) -> None:
-        pylint_codes: Set[str] = {"C0301", "R0201", "W0613", "E0602", "F0001"}
-        categories: Set[PylintCategory] = {PylintCategory.ERROR, PylintCategory.FATAL}
-        expected_codes: Set[str] = {"E0602", "F0001"}
-        assert (
-            filter_pylint_codes_by_category(pylint_codes, categories) == expected_codes
-        )
-
-    def test_filter_with_no_matching_category(self) -> None:
-        pylint_codes: Set[str] = {"C0301", "R0201", "W0613", "E0602", "F0001"}
-        categories: Set[PylintCategory] = {PylintCategory.CONVENTION}
-        expected_codes: Set[str] = {"C0301"}
-        assert (
-            filter_pylint_codes_by_category(pylint_codes, categories) == expected_codes
-        )
-
-    def test_filter_with_empty_pylint_codes(self) -> None:
-        pylint_codes: Set[str] = set()
-        categories: Set[PylintCategory] = {PylintCategory.ERROR, PylintCategory.FATAL}
-        expected_codes: Set[str] = set()
-        assert (
-            filter_pylint_codes_by_category(pylint_codes, categories) == expected_codes
-        )
-
-    def test_filter_with_empty_categories(self) -> None:
-        pylint_codes: Set[str] = {"C0301", "R0201", "W0613", "E0602", "F0001"}
-        categories: Set[PylintCategory] = set()
-        expected_codes: Set[str] = set()
-        assert (
-            filter_pylint_codes_by_category(pylint_codes, categories) == expected_codes
-        )
-
-    def test_filter_with_all_categories(self) -> None:
-        pylint_codes: Set[str] = {"C0301", "R0201", "W0613", "E0602", "F0001"}
-        categories: Set[PylintCategory] = {
-            PylintCategory.CONVENTION,
-            PylintCategory.REFACTOR,
-            PylintCategory.WARNING,
-            PylintCategory.ERROR,
-            PylintCategory.FATAL,
-        }
-        expected_codes: Set[str] = {"C0301", "R0201", "W0613", "E0602", "F0001"}
-        assert (
-            filter_pylint_codes_by_category(pylint_codes, categories) == expected_codes
-        )

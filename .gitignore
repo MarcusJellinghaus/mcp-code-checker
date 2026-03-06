@@ -26,16 +26,11 @@ venv/
 .mypy_cache/
 .ruff_cache/
 
-# MCP configuration files (may contain sensitive paths)
-# Keep .mcp.json but ignore platform-specific variants
-.mcp.linux.json
-.mcp.macos.json
-.mcp.windows.json
-
 # MCP coder session files
 .mcp-coder/
 
 uv.lock
+
 # VSCodeClaude session files (auto-generated)
 .vscodeclaude_status.txt
 .vscodeclaude_analysis.json

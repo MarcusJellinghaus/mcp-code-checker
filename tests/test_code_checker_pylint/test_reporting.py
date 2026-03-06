@@ -1,10 +1,13 @@
 """Unit tests for pylint reporting module."""
 
+from unittest.mock import patch
+
 from mcp_code_checker.code_checker_pylint.models import PylintMessage, PylintResult
 from mcp_code_checker.code_checker_pylint.reporting import (
     get_direct_instruction_for_pylint_code,
     get_prompt_for_known_pylint_code,
     get_prompt_for_unknown_pylint_code,
+    get_pylint_prompt,
 )
 
 
@@ -201,3 +204,33 @@ class TestGetPromptForUnknownPylintCode:
             path in prompt
             for path in ["src/file2.py", "src\\\\file2.py", "src\\file2.py"]
         )
+
+
+class TestGetPylintPrompt:
+    """Test cases for get_pylint_prompt function."""
+
+    def test_get_pylint_prompt_includes_warning_codes(self) -> None:
+        """Warning-level codes are included in output (no category filtering)."""
+        messages = [
+            PylintMessage(
+                type="warning",
+                module="test_module",
+                obj="my_function",
+                line=5,
+                column=0,
+                path="/project/src/test.py",
+                symbol="unused-argument",
+                message="Unused argument 'arg'",
+                message_id="W0613",
+            ),
+        ]
+        mock_result = PylintResult(return_code=4, messages=messages)
+
+        with patch(
+            "mcp_code_checker.code_checker_pylint.reporting.get_pylint_results",
+            return_value=mock_result,
+        ):
+            prompt = get_pylint_prompt("/project")
+
+        assert prompt is not None
+        assert "W0613" in prompt

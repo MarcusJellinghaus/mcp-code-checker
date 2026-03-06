@@ -7,8 +7,6 @@ and process the analysis results.
 
 # Re-export public models
 from mcp_code_checker.code_checker_pylint.models import (
-    DEFAULT_CATEGORIES,
-    PylintCategory,
     PylintMessage,
     PylintMessageType,
     PylintResult,
@@ -21,29 +19,23 @@ from mcp_code_checker.code_checker_pylint.reporting import (
 )
 from mcp_code_checker.code_checker_pylint.runners import (
     get_pylint_results,
-    run_pylint_check,
 )
 
 # Re-export utilities
 from mcp_code_checker.code_checker_pylint.utils import (
-    filter_pylint_codes_by_category,
     normalize_path,
 )
 
 # Define the public API explicitly
 __all__ = [
     # Models
-    "DEFAULT_CATEGORIES",
-    "PylintCategory",
     "PylintMessage",
     "PylintMessageType",
     "PylintResult",
     # Main functionality
     "get_pylint_results",
-    "run_pylint_check",
     "get_pylint_prompt",
     "get_direct_instruction_for_pylint_code",
     # Utilities
-    "filter_pylint_codes_by_category",
     "normalize_path",
 ]

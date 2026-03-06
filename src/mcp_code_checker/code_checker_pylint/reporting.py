@@ -4,18 +4,15 @@ Functions for generating reports and prompts from pylint analysis results.
 
 import json
 import logging
-from typing import Optional, Set
+from typing import Optional
 
 import structlog
 
 from mcp_code_checker.code_checker_pylint.models import (
-    DEFAULT_CATEGORIES,
-    PylintMessageType,
     PylintResult,
 )
 from mcp_code_checker.code_checker_pylint.runners import get_pylint_results
 from mcp_code_checker.code_checker_pylint.utils import (
-    filter_pylint_codes_by_category,
     normalize_path,
 )
 from mcp_code_checker.log_utils import log_function_call
@@ -157,8 +154,7 @@ def get_prompt_for_unknown_pylint_code(
 @log_function_call
 def get_pylint_prompt(
     project_dir: str,
-    categories: Optional[Set[PylintMessageType]] = None,
-    disable_codes: Optional[list[str]] = None,
+    extra_args: Optional[list[str]] = None,
     python_executable: Optional[str] = None,
     target_directories: Optional[list[str]] = None,
 ) -> Optional[str]:
@@ -167,22 +163,7 @@ def get_pylint_prompt(
 
     Args:
         project_dir: The path to the project directory to analyze.
-        categories: Set of specific pylint categories to filter by. Available categories are:
-            - PylintMessageType.CONVENTION: Style conventions (C)
-            - PylintMessageType.REFACTOR: Refactoring suggestions (R)
-            - PylintMessageType.WARNING: Python-specific warnings (W)
-            - PylintMessageType.ERROR: Probable bugs in the code (E)
-            - PylintMessageType.FATAL: Critical errors that prevent pylint from working (F)
-            Defaults to {ERROR, FATAL} if None.
-        disable_codes: Optional list of pylint codes to disable during analysis. Common codes include:
-            - C0114: Missing module docstring
-            - C0116: Missing function docstring
-            - C0301: Line too long
-            - C0303: Trailing whitespace
-            - C0305: Trailing newlines
-            - W0311: Bad indentation
-            - W0611: Unused import
-            - W1514: Unspecified encoding
+        extra_args: Optional list of extra arguments to pass to pylint.
         python_executable: Optional path to Python interpreter to use for running tests. If None, defaults to sys.executable.
         target_directories: Optional list of directories to analyze relative to project_dir.
             Defaults to ["src"] and conditionally "tests" if it exists.
@@ -192,38 +173,15 @@ def get_pylint_prompt(
         A prompt string with issue details and instructions, or None if no issues were found.
         Returns the error message as a prompt if pylint execution failed (e.g., timeout).
     """
-    # Use default categories if none provided
-    if categories is None:
-        categories = DEFAULT_CATEGORIES
-
     structured_logger.info(
         "Starting pylint prompt generation",
         project_dir=project_dir,
-        categories=[cat.value for cat in categories],
-        disable_codes=disable_codes,
+        extra_args=extra_args,
     )
-
-    # Default disable codes if none provided
-    if disable_codes is None:
-        disable_codes = [
-            # not required for now
-            "C0114",  # doc missing
-            "C0116",  # doc missing
-            #
-            # can be solved with formatting / black
-            "C0301",  # line-too-long
-            "C0303",  # trailing-whitespace
-            "C0305",  # trailing-newlines
-            "W0311",  # bad-indentation   - instruction available
-            #
-            # can be solved with iSort
-            "W0611",  # unused-import
-            "W1514",  # unspecified-encoding
-        ]
 
     pylint_results = get_pylint_results(
         project_dir,
-        disable_codes=disable_codes,
+        extra_args=extra_args,
         python_executable=python_executable,
         target_directories=target_directories,
     )
@@ -239,8 +197,6 @@ def get_pylint_prompt(
         return f"Pylint analysis failed: {pylint_results.error}"
 
     codes = pylint_results.get_message_ids()
-    if len(categories) > 0:
-        codes = filter_pylint_codes_by_category(codes, categories=categories)
 
     if len(codes) > 0:
         code = list(codes)[0]

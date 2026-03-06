@@ -16,13 +16,6 @@ class PylintMessageType(Enum):
     FATAL = "fatal"
 
 
-# Default categories for pylint checks - used when no categories are specified
-DEFAULT_CATEGORIES: Set[PylintMessageType] = {
-    PylintMessageType.ERROR,
-    PylintMessageType.FATAL,
-}
-
-
 class PylintMessage(NamedTuple):
     """Represents a single Pylint message."""
 
@@ -57,7 +50,3 @@ class PylintResult(NamedTuple):
         return [
             message for message in self.messages if message.message_id == message_id
         ]
-
-
-# For backward compatibility
-PylintCategory = PylintMessageType

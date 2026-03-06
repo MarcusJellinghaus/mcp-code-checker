@@ -1,7 +1,6 @@
 """Unit tests for pylint models module."""
 
 from mcp_code_checker.code_checker_pylint.models import (
-    DEFAULT_CATEGORIES,
     PylintMessage,
     PylintMessageType,
     PylintResult,
@@ -15,11 +14,6 @@ def test_pylint_message_type_enum() -> None:
     assert PylintMessageType.WARNING.value == "warning"
     assert PylintMessageType.ERROR.value == "error"
     assert PylintMessageType.FATAL.value == "fatal"
-
-
-def test_default_categories() -> None:
-    """Test default categories."""
-    assert DEFAULT_CATEGORIES == {PylintMessageType.ERROR, PylintMessageType.FATAL}
 
 
 def test_pylint_message_creation() -> None:

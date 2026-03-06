@@ -9,7 +9,7 @@ import structlog
 
 # Import all code checking modules at the top
 from mcp_code_checker.code_checker_mypy import MypyResult, get_mypy_prompt
-from mcp_code_checker.code_checker_pylint import PylintMessageType, get_pylint_prompt
+from mcp_code_checker.code_checker_pylint import get_pylint_prompt
 from mcp_code_checker.code_checker_pytest.reporting import (
     MAX_FAILURES,
     MAX_OUTPUT_LINES,
@@ -143,22 +143,6 @@ class CodeCheckerServer:
             return "Mypy check completed. No type errors found."
         return f"Mypy found type issues that need attention:\n\n{mypy_prompt}"
 
-    def _parse_pylint_categories(
-        self, categories: Optional[List[str]]
-    ) -> Optional[set[PylintMessageType]]:
-        """Parse string categories into PylintMessageType enum values."""
-        if not categories:
-            return None
-
-        pylint_categories = set()
-        for category in categories:
-            try:
-                pylint_categories.add(PylintMessageType(category.lower()))
-            except ValueError:
-                logger.warning(f"Unknown pylint category: {category}")
-
-        return pylint_categories if pylint_categories else None
-
     def _find_sleep_script(self) -> Path:
         """
         Find the sleep script location, supporting both development and installed environments.
@@ -181,29 +165,17 @@ class CodeCheckerServer:
         @self.mcp.tool()
         @log_function_call
         def run_pylint_check(
-            categories: Optional[List[str]] = None,
-            disable_codes: Optional[List[str]] = None,
+            extra_args: Optional[List[str]] = None,
             target_directories: Optional[List[str]] = None,
         ) -> str:
             """
             Run pylint on the project code and generate smart prompts for LLMs.
 
             Args:
-                categories: Optional list of pylint message categories to include.
-                    Available categories: 'convention', 'refactor', 'warning', 'error', 'fatal'
-                    Defaults to ['error', 'fatal'] if not specified.
+                extra_args: Optional list of additional pylint arguments.
                     Examples:
-                    - ['error', 'fatal'] - Only critical issues (default)
-                    - ['error', 'fatal', 'warning'] - Include warnings
-                    - ['convention', 'refactor'] - Only style and refactoring suggestions
-                    - ['convention', 'refactor', 'warning', 'error', 'fatal'] - All categories
-                disable_codes: Optional list of pylint error codes to disable during analysis.
-                    Common codes to disable include:
-                    - C0114: Missing module docstring
-                    - C0116: Missing function docstring
-                    - C0301: Line too long
-                    - W0611: Unused import
-                    - W1514: Using open without explicitly specifying an encoding
+                    - ['--disable=C0114,C0116'] - Disable specific codes
+                    - ['--enable=W'] - Enable warning-level codes
                 target_directories: Optional list of directories to analyze relative to project_dir.
                     Defaults to ["src"] and conditionally "tests" if it exists.
                     Examples:
@@ -222,17 +194,13 @@ class CodeCheckerServer:
                 structured_logger.info(
                     "Starting pylint check",
                     project_dir=str(self.project_dir),
-                    categories=categories,
-                    disable_codes=disable_codes,
+                    extra_args=extra_args,
                     target_directories=target_directories,
                 )
 
-                # Convert categories and run pylint
-                pylint_categories = self._parse_pylint_categories(categories)
                 pylint_prompt = get_pylint_prompt(
                     str(self.project_dir),
-                    categories=pylint_categories,
-                    disable_codes=disable_codes,
+                    extra_args=extra_args,
                     python_executable=self.python_executable,
                     target_directories=target_directories,
                 )
@@ -475,7 +443,6 @@ class CodeCheckerServer:
             verbosity: int = 2,
             extra_args: Optional[List[str]] = None,
             env_vars: Optional[Dict[str, str]] = None,
-            categories: Optional[List[str]] = None,
             target_directories: Optional[List[str]] = None,
             mypy_strict: bool = True,
             mypy_disable_codes: list[str] | None = None,
@@ -488,9 +455,6 @@ class CodeCheckerServer:
                 verbosity: Integer for pytest verbosity level (0-3), default 2. Higher values provide more detailed output.
                 extra_args: Optional list of additional pytest arguments. Examples: ['-xvs', '--no-header']
                 env_vars: Optional dictionary of environment variables for the subprocess. Example: {'DEBUG': '1', 'PYTHONPATH': '/custom/path'}
-                categories: Optional list of pylint message categories to include.
-                    Available categories: 'convention', 'refactor', 'warning', 'error', 'fatal'
-                    Defaults to ['error', 'fatal'] if not specified.
                 target_directories: Optional list of directories to analyze relative to project_dir.
                     Defaults to ["src"] and conditionally "tests" if it exists.
                     Examples:
@@ -515,10 +479,8 @@ class CodeCheckerServer:
                 )
 
                 # Run pylint
-                pylint_categories = self._parse_pylint_categories(categories)
                 pylint_prompt = get_pylint_prompt(
                     str(self.project_dir),
-                    categories=pylint_categories,
                     python_executable=self.python_executable,
                     target_directories=target_directories,
                 )
