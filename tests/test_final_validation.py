@@ -391,20 +391,15 @@ class TestDocumentationAccuracy:
                 assert len(result) > 0, "Result should not be empty"
 
 
-class TestBackwardCompatibility:
-    """Test that changes maintain backward compatibility."""
+def test_parameter_combinations_backward_compatible() -> None:
+    """Test that new parameters don't break existing usage."""
+    server = CodeCheckerServer(Path("/tmp"))
 
-    def test_parameter_combinations_backward_compatible(self) -> None:
-        """Test that new parameters don't break existing usage."""
-        server = CodeCheckerServer(Path("/tmp"))
+    # Should work with minimal parameters (existing usage)
+    test_result = {"success": True, "summary": {"passed": 1, "collected": 1}}
 
-        # Should work with minimal parameters (existing usage)
-        test_result = {"success": True, "summary": {"passed": 1, "collected": 1}}
-
-        result = server._format_pytest_result_with_details(
-            test_result, show_details=False
-        )
-        assert isinstance(result, str)
+    result = server._format_pytest_result_with_details(test_result, show_details=False)
+    assert isinstance(result, str)
 
 
 class TestEdgeCases:

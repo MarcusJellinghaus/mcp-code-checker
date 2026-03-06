@@ -48,8 +48,6 @@ async def test_run_pytest_check_parameters(mock_project_dir: Path) -> None:
             mock_project_dir, test_folder="custom_tests", keep_temp_files=True
         )
 
-        # Get the run_pytest_check function (it's the second tool registered)
-        # Order: run_pylint_check (0), run_pytest_check (1)
         assert (
             len(mock_tool.call_args_list) >= 2
         ), "Expected at least 2 tools to be registered"
