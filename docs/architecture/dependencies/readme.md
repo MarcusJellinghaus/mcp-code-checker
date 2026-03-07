@@ -39,7 +39,7 @@ Use both — tach for high-level layers with explicit dependencies, import-linte
 
 ## Visualization
 
-Regenerate after config changes:
+The files `dependency_graph.html`, `pydeps_graph.dot`, and `pydeps_graph.svg` in this directory are generated — do not edit them manually. Regenerate after config changes:
 
 ```bash
 tools/tach_docs.bat          # Mermaid graph → dependency_graph.html
