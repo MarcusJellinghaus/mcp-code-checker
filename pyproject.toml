@@ -43,6 +43,7 @@ dev = [
     "tach>=0.15.0",
     "pycycle>=0.0.8",
     "vulture>=2.13",
+    "pydeps>=1.12.0",
     ]
 
 [project.scripts]
