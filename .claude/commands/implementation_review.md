@@ -34,7 +34,7 @@ No need to run all checks; do not use pylint warnings. Feel free to further anal
 - Tests for `__main__` functions should be removed (not needed)
 - Unnecessary debug code or print statements
 - Code that could break existing functionality
-- Compliance with existing architecture principles, see `docs/architecture/ARCHITECTURE.md`
+- Compliance with existing architecture principles, see `docs/architecture/architecture.md`
 
 ### Output Format:
 1. **Summary** - What changed (1-2 sentences)
