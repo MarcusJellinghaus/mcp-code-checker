@@ -36,6 +36,7 @@ _.model_dump
 _.model_validate
 
 # LogRecord fields used by pytest JSON parsing - appear unused but needed for parsing
+_.exc_info
 _.exc_text
 _.stack_info
 _.msecs
