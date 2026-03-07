@@ -391,47 +391,15 @@ class TestDocumentationAccuracy:
                 assert len(result) > 0, "Result should not be empty"
 
 
-class TestBackwardCompatibility:
-    """Test that changes maintain backward compatibility."""
+def test_parameter_combinations_backward_compatible() -> None:
+    """Test that new parameters don't break existing usage."""
+    server = CodeCheckerServer(Path("/tmp"))
 
-    def test_old_format_method_still_works(self) -> None:
-        """Test that the old _format_pytest_result method still works."""
-        server = CodeCheckerServer(Path("/tmp"))
+    # Should work with minimal parameters (existing usage)
+    test_result = {"success": True, "summary": {"passed": 1, "collected": 1}}
 
-        test_result = {
-            "success": True,
-            "summary": {"passed": 5, "collected": 5, "failed": 0},
-        }
-
-        # Old method should still work
-        result = server._format_pytest_result(test_result)
-        assert isinstance(result, str)
-        assert "completed" in result
-
-    def test_missing_show_details_defaults_correctly(self) -> None:
-        """Test that missing show_details parameter defaults correctly."""
-        server = CodeCheckerServer(Path("/tmp"))
-
-        test_result = {
-            "success": True,
-            "summary": {"passed": 1, "collected": 1, "failed": 0},
-        }
-
-        # Should work without show_details parameter (backward compatibility)
-        result = server._format_pytest_result(test_result)
-        assert isinstance(result, str)
-
-    def test_parameter_combinations_backward_compatible(self) -> None:
-        """Test that new parameters don't break existing usage."""
-        server = CodeCheckerServer(Path("/tmp"))
-
-        # Should work with minimal parameters (existing usage)
-        test_result = {"success": True, "summary": {"passed": 1, "collected": 1}}
-
-        result = server._format_pytest_result_with_details(
-            test_result, show_details=False
-        )
-        assert isinstance(result, str)
+    result = server._format_pytest_result_with_details(test_result, show_details=False)
+    assert isinstance(result, str)
 
 
 class TestEdgeCases:

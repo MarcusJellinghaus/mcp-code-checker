@@ -22,21 +22,6 @@ def test_mypy_tool_registration() -> None:
     assert hasattr(server, "_register_tools")
 
 
-def test_mypy_in_all_checks() -> None:
-    """Test that mypy is included in run_all_checks."""
-    # Rather than testing through the server directly, we test the functionality
-    # by importing and calling the functions that would be called
-    from mcp_code_checker.code_checker_mypy import get_mypy_prompt
-
-    # Test that mypy functionality works
-    result = get_mypy_prompt(
-        project_dir=".", strict=True, target_directories=["src/code_checker_mypy"]
-    )
-
-    # Result should be either None (no issues) or a string with issues
-    assert result is None or isinstance(result, str)
-
-
 def test_mypy_with_test_files() -> None:
     """Test running mypy on test files with known type issues."""
     # Create a temporary directory with test files

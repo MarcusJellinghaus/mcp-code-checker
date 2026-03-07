@@ -10,9 +10,6 @@ _.call_tool       # MCP server method
 _.run_pytest_check     # FastMCP tool handler
 _.run_pylint_check     # FastMCP tool handler  
 _.run_mypy_check       # FastMCP tool handler
-_.run_all_checks       # FastMCP tool handler
-_.second_sleep         # FastMCP tool handler - used by MCP
-
 # CLI entry points
 _.main  # Entry point function
 
@@ -39,6 +36,7 @@ _.model_dump
 _.model_validate
 
 # LogRecord fields used by pytest JSON parsing - appear unused but needed for parsing
+_.exc_info
 _.exc_text
 _.stack_info
 _.msecs
