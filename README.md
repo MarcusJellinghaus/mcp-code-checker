@@ -4,24 +4,27 @@ A Model Context Protocol (MCP) server providing code quality checking operations
 
 ## Overview
 
-This MCP server enables AI assistants like Claude (via Claude Desktop), VSCode with GitHub Copilot, or other MCP-compatible systems to perform quality checks on your code. With these capabilities, AI assistants can:
+This MCP server enables AI assistants like Claude (via Claude Desktop), VSCode with GitHub Copilot, or other MCP-compatible clients to run code quality checks on Python projects. The tools provided are:
 
 - Run pylint checks to identify code quality issues
 - Execute pytest to identify failing tests
 - Run mypy for type checking
-- Generate smart prompts for LLMs to explain issues and suggest fixes
-- Combine multiple checks for comprehensive code quality analysis
 
-All operations are securely contained within your specified project directory, giving you control while enabling powerful AI collaboration for code quality improvement.
+**Scope:** This server covers Python projects only. Further Python-specific extensions are planned, including architecture and layering checks (vulture, tach, import-linter) and refactoring tools. Support for other languages can be provided through separate, dedicated MCP servers with similar functionality.
 
-By connecting your AI assistant to your code checking tools, you can transform your debugging workflow - describe what you need in natural language and let the AI identify and fix issues directly in your project files.
+**Why a dedicated MCP server instead of bash access?**
+
+A general-purpose bash MCP tool allows more flexibility, but at the expense of less control. This server takes a more focused approach:
+
+- **Security**: Only a defined set of tools (pylint, pytest, mypy) can be executed. All operations run within the specified `project_dir` — no directory traversal is possible.
+- **Context management**: Results are formatted and size-limited to reduce context load on the AI assistant. Output is structured as actionable prompts rather than raw tool output.
+- **Transparency**: The server is open source, and detailed structured logging records every tool call with parameters, timing, and results.
 
 ## Features
 
 - `run_pylint_check`: Run pylint on the project code and generate smart prompts for LLMs
 - `run_pytest_check`: Run pytest on the project code and generate smart prompts for LLMs
 - `run_mypy_check`: Run mypy type checking on the project code
-- `run_all_checks`: Run all code checks (pylint, pytest, and mypy) and generate combined results
 
 ### Pylint Parameters
 
@@ -48,7 +51,7 @@ and migration guidance.
 
 ### Pytest Parameters
 
-Both `run_pytest_check` and `run_all_checks` expose the following parameters for customization:
+`run_pytest_check` exposes the following parameters for customization:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -373,19 +376,6 @@ The server exposes the following MCP tools:
 - Returns: A string containing mypy results or a prompt for an LLM to interpret
 - Identifies type errors and provides suggestions for better type safety
 - Customizable with parameters for strict mode, error code filtering, and target directories
-
-### Run All Checks
-- Runs all code checks (pylint, pytest, and mypy) and generates combined results
-- Returns: A string containing results from all checks and/or LLM prompts
-- Provides a comprehensive analysis of code quality in a single operation
-- Supports customization parameters for all three tools, including target directories
-
-## Security Features
-
-- All checks are performed within the specified project directory
-- Code execution is limited to the Python test files within the project
-- Results are formatted for easy interpretation by both humans and LLMs
-- Directory traversal protection through validation of target directories
 
 ## Development
 
