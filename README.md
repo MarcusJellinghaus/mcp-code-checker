@@ -16,7 +16,7 @@ This MCP server enables AI assistants like Claude (via Claude Desktop), VSCode w
 
 A general-purpose bash MCP tool allows more flexibility, but at the expense of less control. This server takes a more focused approach:
 
-- **Security**: Only a defined set of tools (pylint, pytest, mypy) can be executed. All operations run within the specified `project_dir` — no directory traversal is possible.
+- **Security**: Only a defined set of tools (pylint, pytest, mypy) can be executed. All operations are scoped to the specified `project_dir`.
 - **Context management**: Results are formatted and size-limited to reduce context load on the AI assistant. Output is structured as actionable prompts rather than raw tool output.
 - **Transparency**: The server is open source, and detailed structured logging records every tool call with parameters, timing, and results.
 
