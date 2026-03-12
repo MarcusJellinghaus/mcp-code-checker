@@ -10,6 +10,10 @@
 ### System Purpose
 MCP server providing automated code quality checking (pylint, pytest, mypy) for Python projects, with LLM-optimized output designed for AI-assisted development workflows.
 
+**Scope:** This server covers Python projects only. Further Python-specific extensions are planned, including architecture and layering checks (vulture, tach, import-linter) and refactoring tools. Support for other languages can be provided through separate, dedicated MCP servers with similar functionality.
+
+Compared to a general-purpose bash MCP tool, this server offers a more controlled approach: only a defined set of tools can be executed, all operations are sandboxed within `project_dir`, output is size-limited to reduce context load, and behavior is transparent via open source code and detailed structured logging.
+
 ### Key Features
 - **Pylint Integration**: Static analysis with configurable rules and LLM-friendly prompts
 - **Pytest Integration**: Test execution with JSON report parsing, failure analysis, and smart detail control
