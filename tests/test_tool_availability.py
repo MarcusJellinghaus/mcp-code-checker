@@ -197,32 +197,24 @@ class TestCheckToolAvailability:
 # ---------------------------------------------------------------------------
 
 
-def _get_tool(mock_tool: MagicMock, name: str) -> Any:
-    """Extract a registered tool function by name."""
-    return {f.__name__: f for call in mock_tool.call_args_list for f in [call[0][0]]}[
-        name
-    ]
+def _capture_tools(mock_fastmcp: MagicMock) -> dict[str, Any]:
+    """Set up tool capture on a mocked FastMCP instance.
+
+    Returns a dict that will be populated with {func_name: func} as tools
+    are registered during server construction.
+    """
+    registered_tools: dict[str, Any] = {}
+
+    def capture_tool(func: Any) -> Any:
+        registered_tools[func.__name__] = func
+        return func
+
+    mock_fastmcp.return_value.tool.return_value = capture_tool
+    return registered_tools
 
 
 class TestToolHandlerShortCircuit:
     """Test that tool handlers return immediate error when tool unavailable."""
-
-    def _make_server_with_availability(
-        self, availability: dict[str, bool]
-    ) -> tuple[Any, MagicMock]:
-        """Create a server and override _tool_availability."""
-        with (
-            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
-            patch("mcp_code_checker.server.execute_command") as mock_exec,
-        ):
-            mock_tool = MagicMock()
-            mock_fastmcp.return_value.tool.return_value = mock_tool
-            mock_exec.return_value = make_command_result(return_code=0, stdout="ok")
-
-            server = _create_server(project_dir=Path("/project"))
-            server._tool_availability = availability
-
-            return server, mock_tool
 
     def test_pytest_unavailable_returns_error(self) -> None:
         """When pytest is unavailable, tool handler returns error string."""
@@ -230,8 +222,7 @@ class TestToolHandlerShortCircuit:
             patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
             patch("mcp_code_checker.server.execute_command") as mock_exec,
         ):
-            mock_tool = MagicMock()
-            mock_fastmcp.return_value.tool.return_value = mock_tool
+            registered_tools = _capture_tools(mock_fastmcp)
             mock_exec.return_value = make_command_result(return_code=0, stdout="ok")
 
             server = _create_server(project_dir=Path("/project"))
@@ -241,8 +232,7 @@ class TestToolHandlerShortCircuit:
                 "mypy": True,
             }
 
-            run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
-            result = run_pytest_check()
+            result = registered_tools["run_pytest_check"]()
 
             assert "pytest is not available" in result
             assert "Restart the server" in result
@@ -253,8 +243,7 @@ class TestToolHandlerShortCircuit:
             patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
             patch("mcp_code_checker.server.execute_command") as mock_exec,
         ):
-            mock_tool = MagicMock()
-            mock_fastmcp.return_value.tool.return_value = mock_tool
+            registered_tools = _capture_tools(mock_fastmcp)
             mock_exec.return_value = make_command_result(return_code=0, stdout="ok")
 
             server = _create_server(project_dir=Path("/project"))
@@ -264,8 +253,7 @@ class TestToolHandlerShortCircuit:
                 "mypy": True,
             }
 
-            run_pylint_check = _get_tool(mock_tool, "run_pylint_check")
-            result = run_pylint_check()
+            result = registered_tools["run_pylint_check"]()
 
             assert "pylint is not available" in result
             assert "Restart the server" in result
@@ -276,8 +264,7 @@ class TestToolHandlerShortCircuit:
             patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
             patch("mcp_code_checker.server.execute_command") as mock_exec,
         ):
-            mock_tool = MagicMock()
-            mock_fastmcp.return_value.tool.return_value = mock_tool
+            registered_tools = _capture_tools(mock_fastmcp)
             mock_exec.return_value = make_command_result(return_code=0, stdout="ok")
 
             server = _create_server(project_dir=Path("/project"))
@@ -287,8 +274,7 @@ class TestToolHandlerShortCircuit:
                 "mypy": False,
             }
 
-            run_mypy_check = _get_tool(mock_tool, "run_mypy_check")
-            result = run_mypy_check()
+            result = registered_tools["run_mypy_check"]()
 
             assert "mypy is not available" in result
             assert "Restart the server" in result
@@ -300,8 +286,7 @@ class TestToolHandlerShortCircuit:
             patch("mcp_code_checker.server.execute_command") as mock_exec,
             patch("mcp_code_checker.server.check_code_with_pytest") as mock_check,
         ):
-            mock_tool = MagicMock()
-            mock_fastmcp.return_value.tool.return_value = mock_tool
+            registered_tools = _capture_tools(mock_fastmcp)
             mock_exec.return_value = make_command_result(return_code=0, stdout="ok")
 
             mock_check.return_value = {
@@ -317,8 +302,7 @@ class TestToolHandlerShortCircuit:
                 "mypy": True,
             }
 
-            run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
-            result = run_pytest_check()
+            result = registered_tools["run_pytest_check"]()
 
             assert "not available" not in result
             assert "All 5 tests passed" in result
@@ -330,8 +314,7 @@ class TestToolHandlerShortCircuit:
             patch("mcp_code_checker.server.execute_command") as mock_exec,
             patch("mcp_code_checker.server.check_code_with_pytest") as mock_check,
         ):
-            mock_tool = MagicMock()
-            mock_fastmcp.return_value.tool.return_value = mock_tool
+            registered_tools = _capture_tools(mock_fastmcp)
             mock_exec.return_value = make_command_result(return_code=0, stdout="ok")
 
             mock_check.return_value = {
@@ -350,8 +333,7 @@ class TestToolHandlerShortCircuit:
                 "mypy": True,
             }
 
-            run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
-            run_pytest_check()
+            registered_tools["run_pytest_check"]()
 
             # Verify check_code_with_pytest was called with _resolved_python
             mock_check.assert_called_once()

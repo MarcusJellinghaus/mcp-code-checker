@@ -52,9 +52,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Prepare git commit message for Step 6
 
 ### Step 7: Refactor Fragile `_get_tool` Test Helper — [step_7.md](./steps/step_7.md)
-- [ ] Replace `_get_tool` mock-inspection pattern with explicit tool capture dict in `test_tool_availability.py`; remove `_get_tool` function; update all `TestToolHandlerShortCircuit` tests
-- [ ] Run quality checks (pylint, pytest, mypy) and fix all issues found
-- [ ] Prepare git commit message for Step 7
+- [x] Replace `_get_tool` mock-inspection pattern with explicit tool capture dict in `test_tool_availability.py`; remove `_get_tool` function; update all `TestToolHandlerShortCircuit` tests
+- [x] Run quality checks (pylint, pytest, mypy) and fix all issues found
+- [x] Prepare git commit message for Step 7
 
 ## Pull Request
 - [ ] Review all changes across steps for consistency and completeness
