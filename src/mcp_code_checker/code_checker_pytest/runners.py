@@ -18,7 +18,6 @@ from mcp_code_checker.code_checker_pytest.reporting import (
     get_test_summary,
 )
 from mcp_code_checker.code_checker_pytest.utils import (
-    collect_environment_info,
     create_error_context,
     read_file,
 )
@@ -94,7 +93,6 @@ def run_tests(
         PytestReport: An object containing the results of the test session with the following attributes:
         - summary: Summary statistics of the test run (passed, failed, skipped counts)
         - test_results: List of individual test results with detailed information
-        - environment_context: Information about the test environment
         - error_context: Information about any errors that occurred during execution
 
     Raises:
@@ -209,9 +207,6 @@ def run_tests(
                 venv_bin = os.path.join(venv_path, "bin")
 
             env["PATH"] = f"{venv_bin}{os.pathsep}{env.get('PATH', '')}"
-
-        # Collect environment info before running the tests
-        environment_context = collect_environment_info(command)
 
         try:
             # Print command for debugging
@@ -380,8 +375,7 @@ def run_tests(
             file_contents = read_file(temp_report_file)
             parsed_results = parse_pytest_report(file_contents)
 
-            # Add environment and error context to the results
-            parsed_results.environment_context = environment_context
+            # Add error context to the results
             parsed_results.error_context = error_context
 
             structured_logger.info(
@@ -456,7 +450,6 @@ def check_code_with_pytest(
         - summary: Summary of test results as a formatted string
         - failed_tests_prompt: Formatted prompt for failed tests (if any)
         - test_results: Complete PytestReport object with detailed test information
-        - environment_info: Information about the test environment (Python version, pytest version, etc.)
         - error_info: Details about any errors that occurred during test execution
     """
     structured_logger.info(
@@ -509,20 +502,6 @@ def check_code_with_pytest(
         if failed_count > 0 or error_count > 0:
             failed_tests_prompt = create_prompt_for_failed_tests(test_results)
 
-        environment_info = None
-        if test_results.environment_context:
-            environment_info = {
-                "python_version": test_results.environment_context.python_version,
-                "pytest_version": test_results.environment_context.pytest_version,
-                "platform": test_results.environment_context.platform_info,
-                "plugins": test_results.environment_context.loaded_plugins,
-                "working_directory": test_results.environment_context.working_directory,
-                "system_info": {
-                    "cpu": test_results.environment_context.cpu_info,
-                    "memory": test_results.environment_context.memory_info,
-                },
-            }
-
         error_info = None
         if test_results.error_context:
             error_info = {
@@ -539,7 +518,6 @@ def check_code_with_pytest(
             "summary_text": summary_text,  # Formatted string for display
             "failed_tests_prompt": failed_tests_prompt,
             "test_results": test_results,
-            "environment_info": environment_info,
             "error_info": error_info,
         }
 

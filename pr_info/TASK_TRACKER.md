@@ -22,9 +22,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ## Tasks
 
 ### Step 1: Remove `collect_environment_info()` Dead Code — [step_1.md](./steps/step_1.md)
-- [ ] Remove `EnvironmentContext` dataclass and `environment_context` field from `models.py`, delete `collect_environment_info()` from `utils.py`, remove call and `environment_info` logic from `runners.py`, update test assertions
-- [ ] Run quality checks (pylint, pytest, mypy) and fix all issues found
-- [ ] Prepare git commit message for Step 1
+- [x] Remove `EnvironmentContext` dataclass and `environment_context` field from `models.py`, delete `collect_environment_info()` from `utils.py`, remove call and `environment_info` logic from `runners.py`, update test assertions
+- [x] Run quality checks (pylint, pytest, mypy) and fix all issues found
+- [x] Prepare git commit message for Step 1
 
 ### Step 2: Add Stderr Surfacing and "No Module Named" Detection — [step_2.md](./steps/step_2.md)
 - [ ] Add `MAX_STDERR_IN_ERROR` constant, `check_tool_missing_error()` and `truncate_stderr()` helpers to `subprocess_runner.py`; improve error messages in pytest, pylint, and mypy runners; create `tests/test_error_transparency.py` with TDD tests

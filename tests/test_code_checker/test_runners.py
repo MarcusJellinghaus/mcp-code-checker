@@ -99,8 +99,6 @@ def test_slow():
             assert result.summary.total == 1
             assert result.summary.passed == 1
 
-            # Check environment context was captured
-            assert result.environment_context is not None
         finally:
             _cleanup_test_project(test_dir)
 
