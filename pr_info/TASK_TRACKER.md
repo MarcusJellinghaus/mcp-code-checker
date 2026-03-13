@@ -32,9 +32,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Prepare git commit message for Step 2
 
 ### Step 3: Add Startup Tool Validation in Server — [step_3.md](./steps/step_3.md)
-- [ ] Add `_resolve_python_executable()`, `_check_tool_availability()` to `CodeCheckerServer`, add short-circuit checks in tool handlers, remove internal venv resolution from pytest `run_tests()`; create `tests/test_tool_availability.py` with TDD tests
-- [ ] Run quality checks (pylint, pytest, mypy) and fix all issues found
-- [ ] Prepare git commit message for Step 3
+- [x] Add `_resolve_python_executable()`, `_check_tool_availability()` to `CodeCheckerServer`, add short-circuit checks in tool handlers, remove internal venv resolution from pytest `run_tests()`; create `tests/test_tool_availability.py` with TDD tests
+- [x] Run quality checks (pylint, pytest, mypy) and fix all issues found
+- [x] Prepare git commit message for Step 3
 
 ### Step 4: Update Documentation (CLI Help + README) — [step_4.md](./steps/step_4.md)
 - [ ] Update `--python-executable` and `--venv-path` help strings in `main.py`; add Environment Configuration / Troubleshooting section to `README.md`

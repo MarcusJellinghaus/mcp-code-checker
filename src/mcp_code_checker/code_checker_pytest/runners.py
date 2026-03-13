@@ -128,32 +128,11 @@ def run_tests(
         # raise RuntimeError("Recursive pytest execution detected! This usually indicates a test configuration problem.")
 
     try:
-        # Determine Python executable
-        py_executable = python_executable
-
-        # Handle virtual environment activation
-        if venv_path:
-            if not os.path.exists(venv_path):
-                raise FileNotFoundError(
-                    f"Virtual environment path does not exist: {venv_path}"
-                )
-
-            # Locate the Python executable in the virtual environment
-            if os.name == "nt":  # Windows
-                venv_python = os.path.join(venv_path, "Scripts", "python.exe")
-            else:  # Unix-like systems
-                venv_python = os.path.join(venv_path, "bin", "python")
-
-            if not os.path.exists(venv_python):
-                raise FileNotFoundError(
-                    f"Python executable not found in virtual environment: {venv_python}"
-                )
-
-            py_executable = venv_python
-
-        # If no executable is specified (either directly or via venv), use the current one
-        if not py_executable:
-            py_executable = sys.executable
+        # Use provided python_executable, or fall back to sys.executable.
+        # NOTE: venv→python resolution is now handled by the server layer
+        # (CodeCheckerServer._resolve_python_executable). The venv_path
+        # parameter is still accepted here for PATH adjustment below.
+        py_executable = python_executable or sys.executable
 
         # Construct the pytest command
         command = [

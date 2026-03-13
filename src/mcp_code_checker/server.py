@@ -1,6 +1,8 @@
 """MCP server implementation for code checking functionality."""
 
 import logging
+import os
+import sys
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Protocol, TypeVar
 
@@ -18,6 +20,7 @@ from mcp_code_checker.code_checker_pytest.reporting import (
 )
 from mcp_code_checker.code_checker_pytest.runners import check_code_with_pytest
 from mcp_code_checker.log_utils import log_function_call
+from mcp_code_checker.utils.subprocess_runner import execute_command
 
 # Type definitions for FastMCP
 T = TypeVar("T")
@@ -69,6 +72,48 @@ class CodeCheckerServer:
 
         self.mcp: FastMCPProtocol = FastMCP("Code Checker Service")
         self._register_tools()
+        self._resolved_python = self._resolve_python_executable()
+        self._tool_availability = self._check_tool_availability()
+        structured_logger.debug(
+            "Tool environment resolved",
+            python_executable=self._resolved_python,
+            tool_availability=self._tool_availability,
+        )
+
+    def _resolve_python_executable(self) -> str:
+        """Centralize venv -> python_executable -> sys.executable resolution."""
+        if self.venv_path:
+            if os.name == "nt":
+                python = os.path.join(self.venv_path, "Scripts", "python.exe")
+            else:
+                python = os.path.join(self.venv_path, "bin", "python")
+            if not os.path.exists(python):
+                raise FileNotFoundError(
+                    f"Python executable not found in virtual environment: {python}"
+                )
+            return python
+        elif self.python_executable:
+            return self.python_executable
+        else:
+            return sys.executable
+
+    def _check_tool_availability(self) -> dict[str, bool]:
+        """Check availability of pytest, pylint, and mypy in the resolved Python environment."""
+        availability: dict[str, bool] = {}
+        for tool in ["pytest", "pylint", "mypy"]:
+            result = execute_command(
+                [self._resolved_python, "-m", tool, "--version"],
+                timeout_seconds=10,
+            )
+            available = result.return_code == 0 and not result.execution_error
+            availability[tool] = available
+            if not available:
+                logger.warning(
+                    f"{tool} not found in {self._resolved_python}. "
+                    f"Ensure --python-executable and --venv-path point to "
+                    f"the environment where {tool} is installed."
+                )
+        return availability
 
     def _format_pylint_result(self, pylint_prompt: Optional[str]) -> str:
         """Format pylint check result."""
@@ -162,6 +207,14 @@ class CodeCheckerServer:
             Returns:
                 A string containing either pylint results or a prompt for an LLM to interpret
             """
+            if not self._tool_availability.get("pylint", False):
+                return (
+                    f"pylint is not available in the configured Python environment "
+                    f"({self._resolved_python}). Ensure --python-executable and "
+                    f"--venv-path point to the environment where pylint is installed. "
+                    f"Restart the server after installing."
+                )
+
             try:
                 logger.info(
                     f"Running pylint check on project directory: {self.project_dir}"
@@ -262,6 +315,14 @@ class CodeCheckerServer:
                 # Get print statements with automatic -s flag
                 run_pytest_check(show_details=True)  # Automatically includes -s
             """
+            if not self._tool_availability.get("pytest", False):
+                return (
+                    f"pytest is not available in the configured Python environment "
+                    f"({self._resolved_python}). Ensure --python-executable and "
+                    f"--venv-path point to the environment where pytest is installed. "
+                    f"Restart the server after installing."
+                )
+
             try:
                 logger.info(
                     f"Running pytest check on project directory: {self.project_dir}"
@@ -367,6 +428,14 @@ class CodeCheckerServer:
             Returns:
                 A string containing mypy results or a prompt for an LLM to interpret
             """
+            if not self._tool_availability.get("mypy", False):
+                return (
+                    f"mypy is not available in the configured Python environment "
+                    f"({self._resolved_python}). Ensure --python-executable and "
+                    f"--venv-path point to the environment where mypy is installed. "
+                    f"Restart the server after installing."
+                )
+
             try:
                 logger.info(
                     f"Running mypy check on project directory: {self.project_dir}"

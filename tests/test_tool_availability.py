@@ -1,0 +1,339 @@
+"""Tests for startup tool validation: _resolve_python_executable and _check_tool_availability."""
+
+import os
+import sys
+from pathlib import Path
+from typing import Any
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from mcp_code_checker.utils.subprocess_runner import CommandResult
+
+
+def _make_command_result(
+    return_code: int = 0,
+    stdout: str = "",
+    stderr: str = "",
+    execution_error: str | None = None,
+    timed_out: bool = False,
+) -> CommandResult:
+    """Helper to build a CommandResult for mocking."""
+    return CommandResult(
+        return_code=return_code,
+        stdout=stdout,
+        stderr=stderr,
+        timed_out=timed_out,
+        execution_error=execution_error,
+    )
+
+
+def _create_server(**kwargs: Any) -> Any:
+    """Create a CodeCheckerServer with mocked FastMCP and execute_command."""
+    from mcp_code_checker.server import CodeCheckerServer
+
+    return CodeCheckerServer(**kwargs)
+
+
+# ---------------------------------------------------------------------------
+# _resolve_python_executable tests
+# ---------------------------------------------------------------------------
+
+
+class TestResolvePythonExecutable:
+    """Test _resolve_python_executable logic."""
+
+    def test_venv_path_windows(self) -> None:
+        """When venv_path is set and os.name=='nt', resolve to Scripts/python.exe."""
+        with (
+            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
+            patch("mcp_code_checker.server.execute_command") as mock_exec,
+            patch("mcp_code_checker.server.os.name", "nt"),
+            patch("mcp_code_checker.server.os.path.exists", return_value=True),
+        ):
+            mock_fastmcp.return_value.tool.return_value = MagicMock()
+            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+
+            server = _create_server(project_dir=Path("/project"), venv_path="/my/venv")
+
+            expected = os.path.join("/my/venv", "Scripts", "python.exe")
+            assert server._resolved_python == expected
+
+    def test_venv_path_unix(self) -> None:
+        """When venv_path is set and os.name!='nt', resolve to bin/python."""
+        with (
+            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
+            patch("mcp_code_checker.server.execute_command") as mock_exec,
+            patch("mcp_code_checker.server.os.name", "posix"),
+            patch("mcp_code_checker.server.os.path.exists", return_value=True),
+        ):
+            mock_fastmcp.return_value.tool.return_value = MagicMock()
+            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+
+            server = _create_server(project_dir=Path("/project"), venv_path="/my/venv")
+
+            expected = os.path.join("/my/venv", "bin", "python")
+            assert server._resolved_python == expected
+
+    def test_venv_path_not_found_raises(self) -> None:
+        """When venv python executable doesn't exist, raise FileNotFoundError."""
+        with (
+            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
+            patch("mcp_code_checker.server.os.name", "posix"),
+            patch("mcp_code_checker.server.os.path.exists", return_value=False),
+        ):
+            mock_fastmcp.return_value.tool.return_value = MagicMock()
+
+            with pytest.raises(FileNotFoundError):
+                _create_server(project_dir=Path("/project"), venv_path="/my/venv")
+
+    def test_python_executable_fallback(self) -> None:
+        """When no venv_path but python_executable is set, use it directly."""
+        with (
+            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
+            patch("mcp_code_checker.server.execute_command") as mock_exec,
+        ):
+            mock_fastmcp.return_value.tool.return_value = MagicMock()
+            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+
+            server = _create_server(
+                project_dir=Path("/project"),
+                python_executable="/usr/local/bin/python3.11",
+            )
+
+            assert server._resolved_python == "/usr/local/bin/python3.11"
+
+    def test_sys_executable_fallback(self) -> None:
+        """When neither venv_path nor python_executable is set, use sys.executable."""
+        with (
+            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
+            patch("mcp_code_checker.server.execute_command") as mock_exec,
+        ):
+            mock_fastmcp.return_value.tool.return_value = MagicMock()
+            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+
+            server = _create_server(project_dir=Path("/project"))
+
+            assert server._resolved_python == sys.executable
+
+
+# ---------------------------------------------------------------------------
+# _check_tool_availability tests
+# ---------------------------------------------------------------------------
+
+
+class TestCheckToolAvailability:
+    """Test _check_tool_availability caching."""
+
+    def test_all_tools_available(self) -> None:
+        """When all tools return success, all should be True."""
+        with (
+            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
+            patch("mcp_code_checker.server.execute_command") as mock_exec,
+        ):
+            mock_fastmcp.return_value.tool.return_value = MagicMock()
+            mock_exec.return_value = _make_command_result(
+                return_code=0, stdout="tool 1.0.0"
+            )
+
+            server = _create_server(project_dir=Path("/project"))
+
+            assert server._tool_availability == {
+                "pytest": True,
+                "pylint": True,
+                "mypy": True,
+            }
+
+    def test_one_tool_missing(self) -> None:
+        """When one tool fails, it should be False while others True."""
+
+        def side_effect(command: list[str], **kwargs: Any) -> CommandResult:
+            # pytest missing, others available
+            if "pytest" in command:
+                return _make_command_result(
+                    return_code=1,
+                    stderr="No module named pytest",
+                    execution_error="error",
+                )
+            return _make_command_result(return_code=0, stdout="tool 1.0.0")
+
+        with (
+            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
+            patch("mcp_code_checker.server.execute_command") as mock_exec,
+        ):
+            mock_fastmcp.return_value.tool.return_value = MagicMock()
+            mock_exec.side_effect = side_effect
+
+            server = _create_server(project_dir=Path("/project"))
+
+            assert server._tool_availability["pytest"] is False
+            assert server._tool_availability["pylint"] is True
+            assert server._tool_availability["mypy"] is True
+
+    def test_all_tools_missing(self) -> None:
+        """When all tools fail, all should be False."""
+        with (
+            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
+            patch("mcp_code_checker.server.execute_command") as mock_exec,
+        ):
+            mock_fastmcp.return_value.tool.return_value = MagicMock()
+            mock_exec.return_value = _make_command_result(
+                return_code=1, execution_error="not found"
+            )
+
+            server = _create_server(project_dir=Path("/project"))
+
+            assert server._tool_availability == {
+                "pytest": False,
+                "pylint": False,
+                "mypy": False,
+            }
+
+    def test_timed_out_tool_marked_unavailable(self) -> None:
+        """When a tool check times out, it should be marked as unavailable."""
+        with (
+            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
+            patch("mcp_code_checker.server.execute_command") as mock_exec,
+        ):
+            mock_fastmcp.return_value.tool.return_value = MagicMock()
+            mock_exec.return_value = _make_command_result(return_code=1, timed_out=True)
+
+            server = _create_server(project_dir=Path("/project"))
+
+            assert server._tool_availability == {
+                "pytest": False,
+                "pylint": False,
+                "mypy": False,
+            }
+
+
+# ---------------------------------------------------------------------------
+# Tool handler short-circuit tests
+# ---------------------------------------------------------------------------
+
+
+def _get_tool(mock_tool: MagicMock, name: str) -> Any:
+    """Extract a registered tool function by name."""
+    return {f.__name__: f for call in mock_tool.call_args_list for f in [call[0][0]]}[
+        name
+    ]
+
+
+class TestToolHandlerShortCircuit:
+    """Test that tool handlers return immediate error when tool unavailable."""
+
+    def _make_server_with_availability(
+        self, availability: dict[str, bool]
+    ) -> tuple[Any, MagicMock]:
+        """Create a server and override _tool_availability."""
+        with (
+            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
+            patch("mcp_code_checker.server.execute_command") as mock_exec,
+        ):
+            mock_tool = MagicMock()
+            mock_fastmcp.return_value.tool.return_value = mock_tool
+            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+
+            server = _create_server(project_dir=Path("/project"))
+            server._tool_availability = availability
+
+            return server, mock_tool
+
+    def test_pytest_unavailable_returns_error(self) -> None:
+        """When pytest is unavailable, tool handler returns error string."""
+        with (
+            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
+            patch("mcp_code_checker.server.execute_command") as mock_exec,
+        ):
+            mock_tool = MagicMock()
+            mock_fastmcp.return_value.tool.return_value = mock_tool
+            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+
+            server = _create_server(project_dir=Path("/project"))
+            server._tool_availability = {
+                "pytest": False,
+                "pylint": True,
+                "mypy": True,
+            }
+
+            run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
+            result = run_pytest_check()
+
+            assert "pytest is not available" in result
+            assert "Restart the server" in result
+
+    def test_pylint_unavailable_returns_error(self) -> None:
+        """When pylint is unavailable, tool handler returns error string."""
+        with (
+            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
+            patch("mcp_code_checker.server.execute_command") as mock_exec,
+        ):
+            mock_tool = MagicMock()
+            mock_fastmcp.return_value.tool.return_value = mock_tool
+            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+
+            server = _create_server(project_dir=Path("/project"))
+            server._tool_availability = {
+                "pytest": True,
+                "pylint": False,
+                "mypy": True,
+            }
+
+            run_pylint_check = _get_tool(mock_tool, "run_pylint_check")
+            result = run_pylint_check()
+
+            assert "pylint is not available" in result
+            assert "Restart the server" in result
+
+    def test_mypy_unavailable_returns_error(self) -> None:
+        """When mypy is unavailable, tool handler returns error string."""
+        with (
+            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
+            patch("mcp_code_checker.server.execute_command") as mock_exec,
+        ):
+            mock_tool = MagicMock()
+            mock_fastmcp.return_value.tool.return_value = mock_tool
+            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+
+            server = _create_server(project_dir=Path("/project"))
+            server._tool_availability = {
+                "pytest": True,
+                "pylint": True,
+                "mypy": False,
+            }
+
+            run_mypy_check = _get_tool(mock_tool, "run_mypy_check")
+            result = run_mypy_check()
+
+            assert "mypy is not available" in result
+            assert "Restart the server" in result
+
+    def test_available_tool_runs_normally(self) -> None:
+        """When tool is available, normal execution proceeds."""
+        with (
+            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
+            patch("mcp_code_checker.server.execute_command") as mock_exec,
+            patch("mcp_code_checker.server.check_code_with_pytest") as mock_check,
+        ):
+            mock_tool = MagicMock()
+            mock_fastmcp.return_value.tool.return_value = mock_tool
+            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+
+            mock_check.return_value = {
+                "success": True,
+                "summary": {"passed": 5, "failed": 0, "error": 0, "collected": 5},
+                "test_results": None,
+            }
+
+            server = _create_server(project_dir=Path("/project"))
+            server._tool_availability = {
+                "pytest": True,
+                "pylint": True,
+                "mypy": True,
+            }
+
+            run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
+            result = run_pytest_check()
+
+            assert "not available" not in result
+            assert "All 5 tests passed" in result
