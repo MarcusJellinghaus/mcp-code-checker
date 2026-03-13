@@ -21,6 +21,7 @@ When a tool subprocess fails with no usable output, surface stderr (truncated to
 
 ### In `subprocess_runner.py`:
 - **Add**: `MAX_STDERR_IN_ERROR: int = 500` module-level constant
+- **Add**: Shared helper function `check_tool_missing_error(stderr: str, tool_name: str, python_path: str) -> str | None` — checks stderr for `"No module named <tool>"`, returns a specific actionable error string or `None`. Also provides `truncate_stderr(stderr: str) -> str` for truncating stderr to `MAX_STDERR_IN_ERROR` chars.
 
 ### In pytest `runners.py` — `run_tests()`:
 
@@ -49,31 +50,41 @@ return PylintResult(return_code=..., messages=[], error=subprocess_result.execut
 
 ### In mypy `runners.py` — `run_mypy_check()`:
 
+**New logic**: Add "No module named mypy" check **early**, right after `execute_command()` returns, **before** any parsing or existing `return_code==2` handling. This gives tool-missing detection priority. The existing return_code==2 stderr handling for config errors remains unchanged and handles other cases.
+
 **Current code** (~line 107): When `result.execution_error` is set:
 ```python
 return MypyResult(return_code=..., messages=[], error=result.execution_error)
 ```
 
-**New logic**: Same pattern — check `result.stderr` for `"No module named mypy"`, return specific error or append stderr.
+**Additional**: For the `execution_error` case, append truncated stderr if available.
 
 ## HOW
 
-Import `MAX_STDERR_IN_ERROR` from `mcp_code_checker.utils.subprocess_runner` in each runner.
+Import `check_tool_missing_error`, `truncate_stderr`, and `MAX_STDERR_IN_ERROR` from `mcp_code_checker.utils.subprocess_runner` in each runner. Use the shared helper instead of duplicating detection logic.
 
 ## ALGORITHM (pseudocode for each runner)
 
 ```
-# Shared pattern applied in each runner's error path:
+# Shared helper in subprocess_runner.py:
+def check_tool_missing_error(stderr, tool_name, python_path) -> str | None:
+    if f"No module named {tool_name}" in stderr:
+        return f"{tool_name} is not installed in the configured Python environment ({python_path}). ..."
+    return None
+
+def truncate_stderr(stderr, max_len=MAX_STDERR_IN_ERROR) -> str:
+    return stderr[:max_len] + ("..." if len(stderr) > max_len else "")
+
+# Each runner calls the shared helper:
 stderr = subprocess_result.stderr or ""
-if "No module named <toolname>" in stderr:
-    raise/return specific error:
-        "<tool> is not installed in the configured Python environment (<path>). 
-         Ensure --python-executable and --venv-path point to the environment 
-         where <tool> is installed."
+tool_error = check_tool_missing_error(stderr, "<toolname>", python_path)
+if tool_error:
+    raise/return tool_error
 elif no_usable_output:
-    truncated = stderr[:MAX_STDERR_IN_ERROR]
-    append truncated to existing error message
+    append truncate_stderr(stderr) to existing error message
 ```
+
+**For mypy specifically**: The tool-missing check goes right after `execute_command()`, before the existing `return_code==2` block.
 
 ## DATA
 

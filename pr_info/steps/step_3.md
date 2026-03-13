@@ -12,6 +12,7 @@ On server startup, validate that pytest, pylint, and mypy are available in the c
 ## WHERE
 
 - `src/mcp_code_checker/server.py` — add `_resolve_python_executable()`, `_check_tool_availability()`, availability checks in tool handlers
+- `src/mcp_code_checker/code_checker_pytest/runners.py` — remove internal venv resolution logic from `run_tests()` (server now passes resolved executable)
 - `tests/test_tool_availability.py` — new test file
 
 ## WHAT
@@ -39,8 +40,20 @@ self._resolved_python = self._resolve_python_executable()
 self._tool_availability = self._check_tool_availability()
 ```
 
+Log resolved path and availability at **DEBUG** level:
+```python
+structured_logger.debug(
+    "Tool environment resolved",
+    python_executable=self._resolved_python,
+    tool_availability=self._tool_availability,
+)
+```
+
 ### Modified: tool handlers
 At the top of each tool handler (`run_pylint_check`, `run_pytest_check`, `run_mypy_check`), add an availability check that returns an immediate error string.
+
+### Modified: `run_tests()` in pytest `runners.py`
+Remove the internal venv→python resolution block (the `if venv_path: ... venv_python = ...` logic). The server layer now resolves the python executable and passes it as `python_executable`. This aligns pytest with how pylint and mypy runners already work — they receive a resolved `python_executable` and don't do their own venv resolution.
 
 ## HOW
 
@@ -62,6 +75,8 @@ elif self.python_executable:
 else:
     return sys.executable
 ```
+
+Note: This centralizes logic previously duplicated in `run_tests()`. After this change, the server resolves the executable once and passes it to all runners. The `venv_path` parameter is still accepted by `run_tests()` for PATH adjustment, but python executable resolution happens at the server layer.
 
 ### `_check_tool_availability`:
 ```
@@ -150,4 +165,6 @@ class TestToolHandlerShortCircuit:
 ## Verification
 - Run `tests/test_tool_availability.py` — all new tests pass
 - Run full test suite — no regressions
+- Verify that `run_tests()` no longer does venv→python resolution internally
 - Manual test: configure venv without pytest, start server, call tool — expect clear error
+- Verify DEBUG log shows resolved python path and tool availability on startup

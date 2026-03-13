@@ -14,6 +14,7 @@ Remove `collect_environment_info()` and all related dead code. This function mak
 - `src/mcp_code_checker/code_checker_pytest/utils.py` — delete `collect_environment_info()` function
 - `src/mcp_code_checker/code_checker_pytest/models.py` — delete `EnvironmentContext` dataclass, remove `environment_context` field from `PytestReport`
 - `src/mcp_code_checker/code_checker_pytest/runners.py` — remove call to `collect_environment_info()`, remove `environment_info` from result dict
+- `tests/test_code_checker/test_runners.py` — remove assertion `assert result.environment_context is not None` (line 103)
 
 ## WHAT
 
@@ -44,7 +45,8 @@ No new code — pure deletion. Verify that no other code references `Environment
 3. Delete collect_environment_info() from utils.py
 4. Remove unused imports from utils.py (json, platform, sys if unused)
 5. Remove collect_environment_info call + environment_info logic from runners.py
-6. Run tests to confirm nothing breaks
+6. Remove `assert result.environment_context is not None` from tests/test_code_checker/test_runners.py
+7. Run tests to confirm nothing breaks
 ```
 
 ## DATA
@@ -53,3 +55,4 @@ No new data structures. The `PytestReport` dataclass loses its `environment_cont
 ## Verification
 - Run `mcp__code-checker__run_pytest_check` — all existing tests should pass
 - Grep codebase for `environment_context`, `EnvironmentContext`, `collect_environment_info`, `environment_info` to confirm no remaining references
+- Verify `tests/test_code_checker/test_runners.py` no longer references `environment_context`
