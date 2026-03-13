@@ -21,7 +21,7 @@ Remove `collect_environment_info()` and all related dead code. This function mak
 ### In `utils.py`:
 - **Delete**: `collect_environment_info(command: List[str]) -> EnvironmentContext` (entire function, ~100 lines)
 - **Delete**: Import of `EnvironmentContext` from models
-- **Delete**: Imports only used by `collect_environment_info`: `json`, `platform`, `sys` (verify no other usage first)
+- **Delete**: Imports only used by `collect_environment_info`: `json`, `platform`, `sys`, `execute_command` (verify no other usage first)
 - **Keep**: `read_file()`, `get_pytest_exit_code_info()`, `create_error_context()`
 
 ### In `models.py`:
@@ -43,7 +43,7 @@ No new code — pure deletion. Verify that no other code references `Environment
 1. Delete EnvironmentContext from models.py
 2. Remove environment_context field from PytestReport  
 3. Delete collect_environment_info() from utils.py
-4. Remove unused imports from utils.py (json, platform, sys if unused)
+4. Remove unused imports from utils.py (json, platform, sys, execute_command if unused)
 5. Remove collect_environment_info call + environment_info logic from runners.py
 6. Remove `assert result.environment_context is not None` from tests/test_code_checker/test_runners.py
 7. Run tests to confirm nothing breaks

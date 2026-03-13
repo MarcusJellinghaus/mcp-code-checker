@@ -131,11 +131,13 @@ class TestMypyNoModuleDetection:
     def test_stderr_appended_to_execution_error(self):
         # Mock with generic stderr, assert it's included in error
 
-class TestMaxStderrTruncation:
+def test_long_stderr_truncated():
     """Test that stderr is truncated to MAX_STDERR_IN_ERROR chars."""
-    
-    def test_long_stderr_truncated(self):
-        # Provide stderr > 500 chars, assert output is truncated
+    # Provide stderr > 500 chars, assert output is truncated with "..."
+
+def test_short_stderr_not_truncated():
+    """Test that stderr shorter than MAX_STDERR_IN_ERROR is returned as-is."""
+    # Provide stderr < 500 chars, assert no truncation
 ```
 
 ## Verification

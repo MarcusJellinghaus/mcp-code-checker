@@ -31,3 +31,27 @@ Decisions made during plan review discussion.
 **Context:** The plan only logged warnings when tools are missing. Logging the resolved path when everything is fine aids debugging.
 
 **Decision:** Log the resolved Python executable path and tool availability at **DEBUG** level (not INFO). Keeps logs clean in normal operation but available when troubleshooting.
+
+## Decision 6: Add `execute_command` to Step 1 import cleanup
+
+**Context:** Step 1 listed `json`, `platform`, `sys` as imports to remove from `utils.py`, but `execute_command` is also only used by `collect_environment_info()` and should be removed.
+
+**Decision:** Add `execute_command` to the import cleanup list in Step 1.
+
+## Decision 7: Simplify TestMaxStderrTruncation tests
+
+**Context:** The plan had a dedicated test class for `truncate_stderr()`, but it's a pure function with trivial logic.
+
+**Decision:** Replace the `TestMaxStderrTruncation` class with 1-2 standalone test functions. Less boilerplate for trivial logic.
+
+## Decision 8: Add restart note to README troubleshooting
+
+**Context:** Tool availability is cached at startup. Users who install missing tools need to restart the server.
+
+**Decision:** Add a note to the README troubleshooting section: "After installing missing tools, restart the MCP server for changes to take effect."
+
+## Decision 9: Error message consistency between Steps 2 and 3
+
+**Context:** Runner-level errors (Step 2) and server short-circuit errors (Step 3) have slightly different messages. Server version includes "Restart the server after installing."
+
+**Decision:** Keep them different. Runner errors are runtime fallbacks; the server short-circuit is the primary path and is the only one that needs the restart hint.

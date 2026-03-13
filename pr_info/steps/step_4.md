@@ -53,6 +53,7 @@ Add a new section **"## Environment Configuration"** after the "## Command Line 
 - Correct `.mcp.json` example (using `VIRTUAL_ENV`)
 - Incorrect `.mcp.json` example (using project venv) with explanation of why it fails
 - Troubleshooting: "If you see errors like 'No module named pytest', check that your configuration points to the correct environment"
+- Restart note: "After installing missing tools, restart the MCP server for changes to take effect" (tool availability is cached at startup)
 
 ## HOW
 Pure text changes — no code logic, no imports.
