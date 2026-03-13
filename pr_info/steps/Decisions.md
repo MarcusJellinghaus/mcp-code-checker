@@ -55,3 +55,43 @@ Decisions made during plan review discussion.
 **Context:** Runner-level errors (Step 2) and server short-circuit errors (Step 3) have slightly different messages. Server version includes "Restart the server after installing."
 
 **Decision:** Keep them different. Runner errors are runtime fallbacks; the server short-circuit is the primary path and is the only one that needs the restart hint.
+
+---
+
+## Decisions from Code Review (Post-Implementation)
+
+## Decision 10: Pass `_resolved_python` to runners instead of raw `self.python_executable`
+
+**Context:** The server resolves the Python executable once in `_resolve_python_executable()`, but tool handlers still pass raw `self.python_executable` (which may be `None`) to runners. Each runner independently falls back to `sys.executable`. This duplicates resolution logic.
+
+**Decision:** Refactor now. Pass `self._resolved_python` to runners and remove the duplicate `python_executable or sys.executable` fallback from each runner. This eliminates the risk of resolution logic diverging between server and runners.
+
+## Decision 11: `print()` statements in pytest runners
+
+**Context:** ~15 `print()` calls remain in `code_checker_pytest/runners.py`. These are pre-existing debug artifacts, not introduced by this branch.
+
+**Decision:** Created separate cleanup issue [#93](https://github.com/MarcusJellinghaus/mcp-code-checker/issues/93). Out of scope for this branch.
+
+## Decision 12: Duplicate `_make_command_result` test helper
+
+**Context:** Both `test_tool_availability.py` and `test_error_transparency.py` define identical `_make_command_result()` helper functions.
+
+**Decision:** Extract to `tests/conftest.py` as a shared fixture. Remove duplicates from both test files.
+
+## Decision 13: Fragile `_get_tool` test helper
+
+**Context:** `_get_tool()` in `test_tool_availability.py` extracts registered tool functions by inspecting `mock_tool.call_args_list`. This relies on internal mock recording and is brittle.
+
+**Decision:** Refactor to a more robust approach — call server methods directly instead of extracting from mock internals.
+
+## Decision 14: Runtime "No module named" edge case
+
+**Context:** If a tool is uninstalled after server startup, the generic error path doesn't include the same actionable guidance as the startup short-circuit.
+
+**Decision:** Accept as-is. Tools being uninstalled mid-session is an edge case; runner-level `check_tool_missing_error()` detection is sufficient.
+
+## Decision 15: Architecture docs update
+
+**Context:** `architecture.md` doesn't mention the new startup validation pattern.
+
+**Decision:** Skip. The startup check is an implementation detail, not an architectural pattern. Too granular for the architecture doc.

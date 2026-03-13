@@ -67,3 +67,6 @@ CLI `--help` strings and README are updated to clarify that `--python-executable
 | 2 | Add stderr surfacing and "No module named" detection to all runners | `subprocess_runner.py`, pytest/pylint/mypy `runners.py`, `test_error_transparency.py` |
 | 3 | Add startup tool validation in server | `server.py`, `test_tool_availability.py` |
 | 4 | Update documentation (CLI help + README) | `main.py`, `README.md` |
+| 5 | Pass `_resolved_python` to runners, remove duplicate fallback | `server.py`, pytest/pylint/mypy `runners.py` |
+| 6 | Extract shared `_make_command_result` to `conftest.py` | `tests/conftest.py`, `test_tool_availability.py`, `test_error_transparency.py` |
+| 7 | Refactor fragile `_get_tool` test helper | `tests/test_tool_availability.py` |

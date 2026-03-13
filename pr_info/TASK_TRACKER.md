@@ -41,6 +41,21 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Run quality checks (pylint, pytest, mypy) and fix all issues found
 - [x] Prepare git commit message for Step 4
 
+### Step 5: Pass `_resolved_python` to Runners — [step_5.md](./steps/step_5.md)
+- [ ] Update server tool handlers to pass `self._resolved_python` instead of `self.python_executable`; remove `python_executable or sys.executable` fallback from all three runners; update runner function signatures to require `python_executable: str`; update tests that call runners directly
+- [ ] Run quality checks (pylint, pytest, mypy) and fix all issues found
+- [ ] Prepare git commit message for Step 5
+
+### Step 6: Extract Shared Test Helper to `conftest.py` — [step_6.md](./steps/step_6.md)
+- [ ] Create `tests/conftest.py` with `make_command_result()` helper; remove duplicate `_make_command_result` from `test_tool_availability.py` and `test_error_transparency.py`; update all call sites
+- [ ] Run quality checks (pylint, pytest, mypy) and fix all issues found
+- [ ] Prepare git commit message for Step 6
+
+### Step 7: Refactor Fragile `_get_tool` Test Helper — [step_7.md](./steps/step_7.md)
+- [ ] Replace `_get_tool` mock-inspection pattern with explicit tool capture dict in `test_tool_availability.py`; remove `_get_tool` function; update all `TestToolHandlerShortCircuit` tests
+- [ ] Run quality checks (pylint, pytest, mypy) and fix all issues found
+- [ ] Prepare git commit message for Step 7
+
 ## Pull Request
 - [ ] Review all changes across steps for consistency and completeness
 - [ ] Prepare PR title, summary, and description
