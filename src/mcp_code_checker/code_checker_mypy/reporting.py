@@ -81,9 +81,9 @@ def create_mypy_prompt(result: MypyResult) -> str | None:
 
 def get_mypy_prompt(
     project_dir: str,
+    python_executable: str,
     strict: bool = True,
     disable_error_codes: list[str] | None = None,
-    python_executable: str | None = None,
     target_directories: list[str] | None = None,
     follow_imports: str | None = None,
     cache_dir: str | None = None,
@@ -109,10 +109,10 @@ def get_mypy_prompt(
 
     result = run_mypy_check(
         project_dir=project_dir,
+        python_executable=python_executable,
         strict=strict,
         disable_error_codes=disable_error_codes,
         target_directories=target_directories,
-        python_executable=python_executable,
         follow_imports=follow_imports or "normal",
         cache_dir=cache_dir,
     )

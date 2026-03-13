@@ -5,7 +5,6 @@ Functions for running pytest tests and processing results.
 import logging
 import os
 import shutil
-import sys
 import tempfile
 from typing import Any, Dict, List, Optional
 
@@ -68,7 +67,7 @@ class ProcessResult:
 def run_tests(
     project_dir: str,
     test_folder: str,
-    python_executable: Optional[str] = None,
+    python_executable: str,
     markers: Optional[List[str]] = None,
     verbosity: int = 2,
     extra_args: Optional[List[str]] = None,
@@ -128,11 +127,9 @@ def run_tests(
         # raise RuntimeError("Recursive pytest execution detected! This usually indicates a test configuration problem.")
 
     try:
-        # Use provided python_executable, or fall back to sys.executable.
-        # NOTE: venv→python resolution is now handled by the server layer
-        # (CodeCheckerServer._resolve_python_executable). The venv_path
-        # parameter is still accepted here for PATH adjustment below.
-        py_executable = python_executable or sys.executable
+        # Already resolved by server — no fallback needed.
+        # NOTE: venv_path parameter is still accepted for PATH adjustment below.
+        py_executable = python_executable
 
         # Construct the pytest command
         command = [
@@ -412,8 +409,8 @@ def run_tests(
 
 def check_code_with_pytest(
     project_dir: str,
+    python_executable: str,
     test_folder: str = "tests",
-    python_executable: Optional[str] = None,
     markers: Optional[List[str]] = None,
     verbosity: int = 2,
     extra_args: Optional[List[str]] = None,

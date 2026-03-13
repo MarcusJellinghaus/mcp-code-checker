@@ -2,7 +2,6 @@
 
 import logging
 import os
-import sys
 
 import structlog
 
@@ -39,11 +38,11 @@ STRICT_FLAGS = [
 @log_function_call
 def run_mypy_check(
     project_dir: str,
+    python_executable: str,
     strict: bool = True,
     disable_error_codes: list[str] | None = None,
     target_directories: list[str] | None = None,
     follow_imports: str = "normal",
-    python_executable: str | None = None,
     cache_dir: str | None = None,
     config_file: str | None = None,
 ) -> MypyResult:
@@ -94,8 +93,8 @@ def run_mypy_check(
             return_code=1, messages=[], error="No valid target directories found"
         )
 
-    # Build command
-    python_exe = python_executable or sys.executable
+    # Build command — already resolved by server
+    python_exe = python_executable
     command = [
         python_exe,
         "-m",

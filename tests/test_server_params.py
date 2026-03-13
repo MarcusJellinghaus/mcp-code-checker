@@ -66,7 +66,7 @@ async def test_run_pytest_check_parameters(mock_project_dir: Path) -> None:
         mock_check_pytest.assert_called_once_with(
             project_dir=str(mock_project_dir),
             test_folder="custom_tests",  # From server constructor
-            python_executable=None,
+            python_executable=_server._resolved_python,  # Resolved by server
             markers=["slow", "integration"],
             verbosity=3,
             extra_args=["--no-header"],

@@ -229,7 +229,7 @@ class CodeCheckerServer:
                 pylint_prompt = get_pylint_prompt(
                     str(self.project_dir),
                     extra_args=extra_args,
-                    python_executable=self.python_executable,
+                    python_executable=self._resolved_python,
                     target_directories=target_directories,
                 )
 
@@ -345,7 +345,7 @@ class CodeCheckerServer:
                 test_results = check_code_with_pytest(
                     project_dir=str(self.project_dir),
                     test_folder=self.test_folder,
-                    python_executable=self.python_executable,
+                    python_executable=self._resolved_python,
                     markers=markers,
                     verbosity=verbosity,
                     extra_args=final_extra_args,
@@ -453,7 +453,7 @@ class CodeCheckerServer:
                     str(self.project_dir),
                     strict=strict,
                     disable_error_codes=disable_error_codes,
-                    python_executable=self.python_executable,
+                    python_executable=self._resolved_python,
                     target_directories=target_directories,
                     follow_imports=follow_imports,
                     cache_dir=cache_dir,

@@ -95,7 +95,9 @@ class TestPytestNoModuleDetection:
             stderr="No module named pytest",
         )
         with pytest.raises(RuntimeError, match="pytest is not installed"):
-            run_tests(project_dir=".", test_folder="tests")
+            run_tests(
+                project_dir=".", test_folder="tests", python_executable=sys.executable
+            )
 
     @patch("mcp_code_checker.code_checker_pytest.runners.execute_command")
     def test_stderr_surfaced_on_generic_failure(self, mock_exec: Any) -> None:
@@ -104,7 +106,9 @@ class TestPytestNoModuleDetection:
             stderr="some unexpected error from subprocess",
         )
         with pytest.raises(RuntimeError, match="some unexpected error"):
-            run_tests(project_dir=".", test_folder="tests")
+            run_tests(
+                project_dir=".", test_folder="tests", python_executable=sys.executable
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -122,7 +126,7 @@ class TestPylintNoModuleDetection:
             stderr="No module named pylint",
             execution_error="ModuleNotFoundError: No module named 'pylint'",
         )
-        result = get_pylint_results(project_dir=".")
+        result = get_pylint_results(project_dir=".", python_executable=sys.executable)
         assert result.error is not None
         assert "pylint is not installed" in result.error
 
@@ -133,7 +137,7 @@ class TestPylintNoModuleDetection:
             stderr="some pylint subprocess error",
             execution_error="Command failed",
         )
-        result = get_pylint_results(project_dir=".")
+        result = get_pylint_results(project_dir=".", python_executable=sys.executable)
         assert result.error is not None
         assert "Command failed" in result.error
         assert "some pylint subprocess error" in result.error
@@ -154,7 +158,7 @@ class TestMypyNoModuleDetection:
             stderr="No module named mypy",
             execution_error="ModuleNotFoundError: No module named 'mypy'",
         )
-        result = run_mypy_check(project_dir=".")
+        result = run_mypy_check(project_dir=".", python_executable=sys.executable)
         assert result.error is not None
         assert "mypy is not installed" in result.error
 
@@ -165,7 +169,7 @@ class TestMypyNoModuleDetection:
             stderr="some mypy subprocess error",
             execution_error="Command failed",
         )
-        result = run_mypy_check(project_dir=".")
+        result = run_mypy_check(project_dir=".", python_executable=sys.executable)
         assert result.error is not None
         assert "Command failed" in result.error
         assert "some mypy subprocess error" in result.error

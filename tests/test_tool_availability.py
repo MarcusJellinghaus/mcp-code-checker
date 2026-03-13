@@ -338,3 +338,39 @@ class TestToolHandlerShortCircuit:
 
             assert "not available" not in result
             assert "All 5 tests passed" in result
+
+    def test_resolved_python_passed_to_pytest_runner(self) -> None:
+        """Verify that _resolved_python (not python_executable) is passed to the runner."""
+        with (
+            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
+            patch("mcp_code_checker.server.execute_command") as mock_exec,
+            patch("mcp_code_checker.server.check_code_with_pytest") as mock_check,
+        ):
+            mock_tool = MagicMock()
+            mock_fastmcp.return_value.tool.return_value = mock_tool
+            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+
+            mock_check.return_value = {
+                "success": True,
+                "summary": {"passed": 1, "failed": 0, "error": 0, "collected": 1},
+                "test_results": None,
+            }
+
+            server = _create_server(
+                project_dir=Path("/project"),
+                python_executable="/custom/python",
+            )
+            server._tool_availability = {
+                "pytest": True,
+                "pylint": True,
+                "mypy": True,
+            }
+
+            run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
+            run_pytest_check()
+
+            # Verify check_code_with_pytest was called with _resolved_python
+            mock_check.assert_called_once()
+            call_kwargs = mock_check.call_args
+            assert call_kwargs.kwargs["python_executable"] == server._resolved_python
+            assert call_kwargs.kwargs["python_executable"] == "/custom/python"

@@ -42,9 +42,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Prepare git commit message for Step 4
 
 ### Step 5: Pass `_resolved_python` to Runners — [step_5.md](./steps/step_5.md)
-- [ ] Update server tool handlers to pass `self._resolved_python` instead of `self.python_executable`; remove `python_executable or sys.executable` fallback from all three runners; update runner function signatures to require `python_executable: str`; update tests that call runners directly
-- [ ] Run quality checks (pylint, pytest, mypy) and fix all issues found
-- [ ] Prepare git commit message for Step 5
+- [x] Update server tool handlers to pass `self._resolved_python` instead of `self.python_executable`; remove `python_executable or sys.executable` fallback from all three runners; update runner function signatures to require `python_executable: str`; update tests that call runners directly
+- [x] Run quality checks (pylint, pytest, mypy) and fix all issues found
+- [x] Prepare git commit message for Step 5
 
 ### Step 6: Extract Shared Test Helper to `conftest.py` — [step_6.md](./steps/step_6.md)
 - [ ] Create `tests/conftest.py` with `make_command_result()` helper; remove duplicate `_make_command_result` from `test_tool_availability.py` and `test_error_transparency.py`; update all call sites
