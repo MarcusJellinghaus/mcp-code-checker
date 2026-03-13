@@ -9,7 +9,11 @@ import structlog
 from mcp_code_checker.code_checker_mypy.models import MypyResult
 from mcp_code_checker.code_checker_mypy.parsers import parse_mypy_json_output
 from mcp_code_checker.log_utils import log_function_call
-from mcp_code_checker.utils.subprocess_runner import execute_command
+from mcp_code_checker.utils.subprocess_runner import (
+    check_tool_missing_error,
+    execute_command,
+    truncate_stderr,
+)
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
@@ -145,11 +149,18 @@ def run_mypy_check(
         command=command, cwd=project_dir, timeout_seconds=120, env=env
     )
 
+    # Check for missing mypy module early (before other error handling)
+    stderr = result.stderr or ""
+    tool_error = check_tool_missing_error(stderr, "mypy", python_exe)
+    if tool_error:
+        return MypyResult(return_code=result.return_code, messages=[], error=tool_error)
+
     # Handle execution errors
     if result.execution_error:
-        return MypyResult(
-            return_code=result.return_code, messages=[], error=result.execution_error
-        )
+        error_msg = result.execution_error
+        if stderr.strip():
+            error_msg += f" stderr: {truncate_stderr(stderr.strip())}"
+        return MypyResult(return_code=result.return_code, messages=[], error=error_msg)
 
     if result.timed_out:
         return MypyResult(

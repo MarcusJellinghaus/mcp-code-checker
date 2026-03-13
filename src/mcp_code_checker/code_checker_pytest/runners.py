@@ -22,7 +22,11 @@ from mcp_code_checker.code_checker_pytest.utils import (
     read_file,
 )
 from mcp_code_checker.log_utils import log_function_call
-from mcp_code_checker.utils.subprocess_runner import execute_command
+from mcp_code_checker.utils.subprocess_runner import (
+    check_tool_missing_error,
+    execute_command,
+    truncate_stderr,
+)
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
@@ -367,10 +371,21 @@ def run_tests(
                         "No Tests Found: Pytest did not find any tests to run."
                     )
                 else:
-                    raise RuntimeError(
+                    # Check for missing pytest module
+                    stderr = error_output or ""
+                    tool_error = check_tool_missing_error(
+                        stderr, "pytest", py_executable
+                    )
+                    if tool_error:
+                        raise RuntimeError(tool_error)
+
+                    base_msg = (
                         "Test execution completed but no report file was generated. "
                         "Check for configuration errors in pytest.ini or pytest plugins."
                     )
+                    if stderr.strip():
+                        base_msg += f" stderr: {truncate_stderr(stderr.strip())}"
+                    raise RuntimeError(base_msg)
 
             file_contents = read_file(temp_report_file)
             parsed_results = parse_pytest_report(file_contents)

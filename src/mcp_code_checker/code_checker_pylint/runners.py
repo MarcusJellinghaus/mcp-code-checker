@@ -14,7 +14,11 @@ from mcp_code_checker.code_checker_pylint.models import (
 )
 from mcp_code_checker.code_checker_pylint.parsers import parse_pylint_json_output
 from mcp_code_checker.log_utils import log_function_call
-from mcp_code_checker.utils.subprocess_runner import execute_command
+from mcp_code_checker.utils.subprocess_runner import (
+    check_tool_missing_error,
+    execute_command,
+    truncate_stderr,
+)
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
@@ -114,10 +118,22 @@ def get_pylint_results(
 
     # Handle subprocess execution errors
     if subprocess_result.execution_error:
+        stderr = subprocess_result.stderr or ""
+        tool_error = check_tool_missing_error(stderr, "pylint", python_exe)
+        if tool_error:
+            return PylintResult(
+                return_code=subprocess_result.return_code,
+                messages=[],
+                error=tool_error,
+                raw_output=None,
+            )
+        error_msg = subprocess_result.execution_error
+        if stderr.strip():
+            error_msg += f" stderr: {truncate_stderr(stderr.strip())}"
         return PylintResult(
             return_code=subprocess_result.return_code,
             messages=[],
-            error=subprocess_result.execution_error,
+            error=error_msg,
             raw_output=None,
         )
 
