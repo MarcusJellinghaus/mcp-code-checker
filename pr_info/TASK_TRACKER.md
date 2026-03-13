@@ -37,9 +37,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Prepare git commit message for Step 3
 
 ### Step 4: Update Documentation (CLI Help + README) — [step_4.md](./steps/step_4.md)
-- [ ] Update `--python-executable` and `--venv-path` help strings in `main.py`; add Environment Configuration / Troubleshooting section to `README.md`
-- [ ] Run quality checks (pylint, pytest, mypy) and fix all issues found
-- [ ] Prepare git commit message for Step 4
+- [x] Update `--python-executable` and `--venv-path` help strings in `main.py`; add Environment Configuration / Troubleshooting section to `README.md`
+- [x] Run quality checks (pylint, pytest, mypy) and fix all issues found
+- [x] Prepare git commit message for Step 4
 
 ## Pull Request
 - [ ] Review all changes across steps for consistency and completeness
