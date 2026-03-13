@@ -45,6 +45,7 @@ class TestResolvePythonExecutable:
 
     def test_venv_path_windows(self) -> None:
         """When venv_path is set and os.name=='nt', resolve to Scripts/python.exe."""
+        project_dir = Path("/project")
         with (
             patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
             patch("mcp_code_checker.server.execute_command") as mock_exec,
@@ -54,7 +55,7 @@ class TestResolvePythonExecutable:
             mock_fastmcp.return_value.tool.return_value = MagicMock()
             mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
 
-            server = _create_server(project_dir=Path("/project"), venv_path="/my/venv")
+            server = _create_server(project_dir=project_dir, venv_path="/my/venv")
 
             expected = os.path.join("/my/venv", "Scripts", "python.exe")
             assert server._resolved_python == expected
