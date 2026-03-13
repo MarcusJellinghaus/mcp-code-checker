@@ -93,12 +93,9 @@ def get_pylint_results(
         target_directories=valid_directories,
     )
 
-    # Already resolved by server — no fallback needed
-    python_exe = python_executable
-
     # Construct the pylint command
     pylint_command = [
-        python_exe,
+        python_executable,
         "-m",
         "pylint",
         "--output-format=json",
@@ -118,7 +115,7 @@ def get_pylint_results(
     # Handle subprocess execution errors
     if subprocess_result.execution_error:
         stderr = subprocess_result.stderr or ""
-        tool_error = check_tool_missing_error(stderr, "pylint", python_exe)
+        tool_error = check_tool_missing_error(stderr, "pylint", python_executable)
         if tool_error:
             return PylintResult(
                 return_code=subprocess_result.return_code,

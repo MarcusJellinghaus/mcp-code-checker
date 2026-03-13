@@ -95,9 +95,9 @@ def get_mypy_prompt(
 
     Args:
         project_dir: Path to project directory
+        python_executable: Python interpreter to use
         strict: Use strict mode (default: True)
         disable_error_codes: Error codes to ignore
-        python_executable: Python interpreter to use
         target_directories: Directories to check
         follow_imports: How to handle imports ('normal', 'silent', 'skip', 'error')
         cache_dir: Custom cache directory for incremental checking

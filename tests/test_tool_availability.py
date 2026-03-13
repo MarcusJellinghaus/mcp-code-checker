@@ -44,6 +44,7 @@ class TestResolvePythonExecutable:
             expected = os.path.join("/my/venv", "Scripts", "python.exe")
             assert server._resolved_python == expected
 
+    @pytest.mark.skipif(os.name == "nt", reason="PosixPath unsupported on Windows")
     def test_venv_path_unix(self) -> None:
         """When venv_path is set and os.name!='nt', resolve to bin/python."""
         with (
@@ -64,13 +65,13 @@ class TestResolvePythonExecutable:
         """When venv python executable doesn't exist, raise FileNotFoundError."""
         with (
             patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
-            patch("mcp_code_checker.server.os.name", "posix"),
+            patch("mcp_code_checker.server.os.name", "nt"),
             patch("mcp_code_checker.server.os.path.exists", return_value=False),
         ):
             mock_fastmcp.return_value.tool.return_value = MagicMock()
 
             with pytest.raises(FileNotFoundError):
-                _create_server(project_dir=Path("/project"), venv_path="/my/venv")
+                _create_server(project_dir=Path("C:/project"), venv_path="C:/my/venv")
 
     def test_python_executable_fallback(self) -> None:
         """When no venv_path but python_executable is set, use it directly."""

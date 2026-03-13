@@ -127,13 +127,10 @@ def run_tests(
         # raise RuntimeError("Recursive pytest execution detected! This usually indicates a test configuration problem.")
 
     try:
-        # Already resolved by server — no fallback needed.
-        # NOTE: venv_path parameter is still accepted for PATH adjustment below.
-        py_executable = python_executable
-
         # Construct the pytest command
+        # NOTE: venv_path parameter is still accepted for PATH adjustment below.
         command = [
-            py_executable,
+            python_executable,
             "-m",
             "pytest",
         ]
@@ -236,7 +233,7 @@ def run_tests(
                 try:
                     install_result = execute_command(
                         command=[
-                            py_executable,
+                            python_executable,
                             "-m",
                             "pip",
                             "install",
@@ -350,7 +347,7 @@ def run_tests(
                     # Check for missing pytest module
                     stderr = error_output or ""
                     tool_error = check_tool_missing_error(
-                        stderr, "pytest", py_executable
+                        stderr, "pytest", python_executable
                     )
                     if tool_error:
                         raise RuntimeError(tool_error)

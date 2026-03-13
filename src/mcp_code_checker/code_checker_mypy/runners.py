@@ -93,10 +93,9 @@ def run_mypy_check(
             return_code=1, messages=[], error="No valid target directories found"
         )
 
-    # Build command — already resolved by server
-    python_exe = python_executable
+    # Build command
     command = [
-        python_exe,
+        python_executable,
         "-m",
         "mypy",
         "--output",
@@ -150,7 +149,7 @@ def run_mypy_check(
 
     # Check for missing mypy module early (before other error handling)
     stderr = result.stderr or ""
-    tool_error = check_tool_missing_error(stderr, "mypy", python_exe)
+    tool_error = check_tool_missing_error(stderr, "mypy", python_executable)
     if tool_error:
         return MypyResult(return_code=result.return_code, messages=[], error=tool_error)
 

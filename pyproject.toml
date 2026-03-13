@@ -98,7 +98,10 @@ module = ["mcp.server.fastmcp"]
 ignore_missing_imports = true
 
 [tool.pylint.messages_control]
-disable = ["W", "C", "R"]
+# W, C, R: disabled by design (warnings, conventions, refactoring)
+# W1203: logging-fstring-interpolation — f-strings in logging calls are acceptable
+#        for readability; the performance cost of eager evaluation is negligible here
+disable = ["W", "C", "R", "W1203"]
 
 # Include tools directory in the distribution
 [tool.setuptools]
