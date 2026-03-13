@@ -11,10 +11,10 @@ from mcp_code_checker.code_checker_pylint.runners import get_pylint_results
 from mcp_code_checker.code_checker_pytest.runners import run_tests
 from mcp_code_checker.utils.subprocess_runner import (
     MAX_STDERR_IN_ERROR,
-    CommandResult,
     check_tool_missing_error,
     truncate_stderr,
 )
+from tests.conftest import make_command_result
 
 # ---------------------------------------------------------------------------
 # Unit tests for shared helpers
@@ -68,29 +68,12 @@ class TestTruncateStderr:
 # ---------------------------------------------------------------------------
 
 
-def _make_command_result(
-    return_code: int = 0,
-    stdout: str = "",
-    stderr: str = "",
-    execution_error: str | None = None,
-    timed_out: bool = False,
-) -> CommandResult:
-    """Helper to build a CommandResult for mocking."""
-    return CommandResult(
-        return_code=return_code,
-        stdout=stdout,
-        stderr=stderr,
-        timed_out=timed_out,
-        execution_error=execution_error,
-    )
-
-
 class TestPytestNoModuleDetection:
     """Test that 'No module named pytest' in stderr produces actionable error."""
 
     @patch("mcp_code_checker.code_checker_pytest.runners.execute_command")
     def test_no_module_pytest_detected(self, mock_exec: Any) -> None:
-        mock_exec.return_value = _make_command_result(
+        mock_exec.return_value = make_command_result(
             return_code=1,
             stderr="No module named pytest",
         )
@@ -101,7 +84,7 @@ class TestPytestNoModuleDetection:
 
     @patch("mcp_code_checker.code_checker_pytest.runners.execute_command")
     def test_stderr_surfaced_on_generic_failure(self, mock_exec: Any) -> None:
-        mock_exec.return_value = _make_command_result(
+        mock_exec.return_value = make_command_result(
             return_code=1,
             stderr="some unexpected error from subprocess",
         )
@@ -121,7 +104,7 @@ class TestPylintNoModuleDetection:
 
     @patch("mcp_code_checker.code_checker_pylint.runners.execute_command")
     def test_no_module_pylint_detected(self, mock_exec: Any) -> None:
-        mock_exec.return_value = _make_command_result(
+        mock_exec.return_value = make_command_result(
             return_code=1,
             stderr="No module named pylint",
             execution_error="ModuleNotFoundError: No module named 'pylint'",
@@ -132,7 +115,7 @@ class TestPylintNoModuleDetection:
 
     @patch("mcp_code_checker.code_checker_pylint.runners.execute_command")
     def test_stderr_appended_to_execution_error(self, mock_exec: Any) -> None:
-        mock_exec.return_value = _make_command_result(
+        mock_exec.return_value = make_command_result(
             return_code=1,
             stderr="some pylint subprocess error",
             execution_error="Command failed",
@@ -153,7 +136,7 @@ class TestMypyNoModuleDetection:
 
     @patch("mcp_code_checker.code_checker_mypy.runners.execute_command")
     def test_no_module_mypy_detected(self, mock_exec: Any) -> None:
-        mock_exec.return_value = _make_command_result(
+        mock_exec.return_value = make_command_result(
             return_code=1,
             stderr="No module named mypy",
             execution_error="ModuleNotFoundError: No module named 'mypy'",
@@ -164,7 +147,7 @@ class TestMypyNoModuleDetection:
 
     @patch("mcp_code_checker.code_checker_mypy.runners.execute_command")
     def test_stderr_appended_to_execution_error(self, mock_exec: Any) -> None:
-        mock_exec.return_value = _make_command_result(
+        mock_exec.return_value = make_command_result(
             return_code=1,
             stderr="some mypy subprocess error",
             execution_error="Command failed",

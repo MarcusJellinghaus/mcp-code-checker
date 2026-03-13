@@ -47,9 +47,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Prepare git commit message for Step 5
 
 ### Step 6: Extract Shared Test Helper to `conftest.py` — [step_6.md](./steps/step_6.md)
-- [ ] Create `tests/conftest.py` with `make_command_result()` helper; remove duplicate `_make_command_result` from `test_tool_availability.py` and `test_error_transparency.py`; update all call sites
-- [ ] Run quality checks (pylint, pytest, mypy) and fix all issues found
-- [ ] Prepare git commit message for Step 6
+- [x] Create `tests/conftest.py` with `make_command_result()` helper; remove duplicate `_make_command_result` from `test_tool_availability.py` and `test_error_transparency.py`; update all call sites
+- [x] Run quality checks (pylint, pytest, mypy) and fix all issues found
+- [x] Prepare git commit message for Step 6
 
 ### Step 7: Refactor Fragile `_get_tool` Test Helper — [step_7.md](./steps/step_7.md)
 - [ ] Replace `_get_tool` mock-inspection pattern with explicit tool capture dict in `test_tool_availability.py`; remove `_get_tool` function; update all `TestToolHandlerShortCircuit` tests

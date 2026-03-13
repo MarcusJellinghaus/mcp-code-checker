@@ -9,23 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from mcp_code_checker.utils.subprocess_runner import CommandResult
-
-
-def _make_command_result(
-    return_code: int = 0,
-    stdout: str = "",
-    stderr: str = "",
-    execution_error: str | None = None,
-    timed_out: bool = False,
-) -> CommandResult:
-    """Helper to build a CommandResult for mocking."""
-    return CommandResult(
-        return_code=return_code,
-        stdout=stdout,
-        stderr=stderr,
-        timed_out=timed_out,
-        execution_error=execution_error,
-    )
+from tests.conftest import make_command_result
 
 
 def _create_server(**kwargs: Any) -> Any:
@@ -53,7 +37,7 @@ class TestResolvePythonExecutable:
             patch("mcp_code_checker.server.os.path.exists", return_value=True),
         ):
             mock_fastmcp.return_value.tool.return_value = MagicMock()
-            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+            mock_exec.return_value = make_command_result(return_code=0, stdout="ok")
 
             server = _create_server(project_dir=project_dir, venv_path="/my/venv")
 
@@ -69,7 +53,7 @@ class TestResolvePythonExecutable:
             patch("mcp_code_checker.server.os.path.exists", return_value=True),
         ):
             mock_fastmcp.return_value.tool.return_value = MagicMock()
-            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+            mock_exec.return_value = make_command_result(return_code=0, stdout="ok")
 
             server = _create_server(project_dir=Path("/project"), venv_path="/my/venv")
 
@@ -95,7 +79,7 @@ class TestResolvePythonExecutable:
             patch("mcp_code_checker.server.execute_command") as mock_exec,
         ):
             mock_fastmcp.return_value.tool.return_value = MagicMock()
-            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+            mock_exec.return_value = make_command_result(return_code=0, stdout="ok")
 
             server = _create_server(
                 project_dir=Path("/project"),
@@ -111,7 +95,7 @@ class TestResolvePythonExecutable:
             patch("mcp_code_checker.server.execute_command") as mock_exec,
         ):
             mock_fastmcp.return_value.tool.return_value = MagicMock()
-            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+            mock_exec.return_value = make_command_result(return_code=0, stdout="ok")
 
             server = _create_server(project_dir=Path("/project"))
 
@@ -133,7 +117,7 @@ class TestCheckToolAvailability:
             patch("mcp_code_checker.server.execute_command") as mock_exec,
         ):
             mock_fastmcp.return_value.tool.return_value = MagicMock()
-            mock_exec.return_value = _make_command_result(
+            mock_exec.return_value = make_command_result(
                 return_code=0, stdout="tool 1.0.0"
             )
 
@@ -151,12 +135,12 @@ class TestCheckToolAvailability:
         def side_effect(command: list[str], **kwargs: Any) -> CommandResult:
             # pytest missing, others available
             if "pytest" in command:
-                return _make_command_result(
+                return make_command_result(
                     return_code=1,
                     stderr="No module named pytest",
                     execution_error="error",
                 )
-            return _make_command_result(return_code=0, stdout="tool 1.0.0")
+            return make_command_result(return_code=0, stdout="tool 1.0.0")
 
         with (
             patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
@@ -178,7 +162,7 @@ class TestCheckToolAvailability:
             patch("mcp_code_checker.server.execute_command") as mock_exec,
         ):
             mock_fastmcp.return_value.tool.return_value = MagicMock()
-            mock_exec.return_value = _make_command_result(
+            mock_exec.return_value = make_command_result(
                 return_code=1, execution_error="not found"
             )
 
@@ -197,7 +181,7 @@ class TestCheckToolAvailability:
             patch("mcp_code_checker.server.execute_command") as mock_exec,
         ):
             mock_fastmcp.return_value.tool.return_value = MagicMock()
-            mock_exec.return_value = _make_command_result(return_code=1, timed_out=True)
+            mock_exec.return_value = make_command_result(return_code=1, timed_out=True)
 
             server = _create_server(project_dir=Path("/project"))
 
@@ -233,7 +217,7 @@ class TestToolHandlerShortCircuit:
         ):
             mock_tool = MagicMock()
             mock_fastmcp.return_value.tool.return_value = mock_tool
-            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+            mock_exec.return_value = make_command_result(return_code=0, stdout="ok")
 
             server = _create_server(project_dir=Path("/project"))
             server._tool_availability = availability
@@ -248,7 +232,7 @@ class TestToolHandlerShortCircuit:
         ):
             mock_tool = MagicMock()
             mock_fastmcp.return_value.tool.return_value = mock_tool
-            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+            mock_exec.return_value = make_command_result(return_code=0, stdout="ok")
 
             server = _create_server(project_dir=Path("/project"))
             server._tool_availability = {
@@ -271,7 +255,7 @@ class TestToolHandlerShortCircuit:
         ):
             mock_tool = MagicMock()
             mock_fastmcp.return_value.tool.return_value = mock_tool
-            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+            mock_exec.return_value = make_command_result(return_code=0, stdout="ok")
 
             server = _create_server(project_dir=Path("/project"))
             server._tool_availability = {
@@ -294,7 +278,7 @@ class TestToolHandlerShortCircuit:
         ):
             mock_tool = MagicMock()
             mock_fastmcp.return_value.tool.return_value = mock_tool
-            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+            mock_exec.return_value = make_command_result(return_code=0, stdout="ok")
 
             server = _create_server(project_dir=Path("/project"))
             server._tool_availability = {
@@ -318,7 +302,7 @@ class TestToolHandlerShortCircuit:
         ):
             mock_tool = MagicMock()
             mock_fastmcp.return_value.tool.return_value = mock_tool
-            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+            mock_exec.return_value = make_command_result(return_code=0, stdout="ok")
 
             mock_check.return_value = {
                 "success": True,
@@ -348,7 +332,7 @@ class TestToolHandlerShortCircuit:
         ):
             mock_tool = MagicMock()
             mock_fastmcp.return_value.tool.return_value = mock_tool
-            mock_exec.return_value = _make_command_result(return_code=0, stdout="ok")
+            mock_exec.return_value = make_command_result(return_code=0, stdout="ok")
 
             mock_check.return_value = {
                 "success": True,
