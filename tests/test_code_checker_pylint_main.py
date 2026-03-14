@@ -1,14 +1,13 @@
 import os
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from typing import Generator
 
 import pytest
 
-from mcp_code_checker.code_checker_pylint import (
-    get_pylint_results,
-)
+from mcp_code_checker.code_checker_pylint import get_pylint_results
 
 
 # Helper functions needed for tests
@@ -57,8 +56,8 @@ def test_get_pylint_results_no_issues(temp_project_dir: Path) -> None:
 
     result = get_pylint_results(
         str(temp_project_dir),
+        python_executable=sys.executable,
         extra_args=["--disable=C0114,C0116"],
-        python_executable=None,
     )
     assert result.return_code == 0
     assert not result.messages
@@ -71,7 +70,7 @@ def test_get_pylint_results_with_issues(temp_project_dir: Path) -> None:
         os.path.join(temp_project_dir, "src", "test_module.py"),
         "def hello():\n    print('hello')\n",
     )
-    result = get_pylint_results(str(temp_project_dir), python_executable=None)
+    result = get_pylint_results(str(temp_project_dir), python_executable=sys.executable)
     # assert result.return_code == 0
     assert len(result.messages) > 0
     assert result.error is None
@@ -81,7 +80,7 @@ def test_get_pylint_results_with_issues(temp_project_dir: Path) -> None:
 def test_get_pylint_results_invalid_project_dir() -> None:
     """Tests get_pylint_results with an invalid project directory."""
     with pytest.raises(FileNotFoundError):
-        get_pylint_results("invalid_dir")
+        get_pylint_results("invalid_dir", python_executable=sys.executable)
 
 
 def test_get_pylint_results_pylint_error(temp_project_dir: Path) -> None:
@@ -90,7 +89,7 @@ def test_get_pylint_results_pylint_error(temp_project_dir: Path) -> None:
         os.path.join(temp_project_dir, "src", "test_module.py"),
         "def hello()\n    print('hello')\n",
     )  # missing colon
-    result = get_pylint_results(str(temp_project_dir), python_executable=None)
+    result = get_pylint_results(str(temp_project_dir), python_executable=sys.executable)
 
     assert result.return_code != 0
     # assert result.messages == []
@@ -101,7 +100,7 @@ def test_get_pylint_results_empty_file(temp_project_dir: Path) -> None:
     """Tests get_pylint_results with an empty python file"""
     write_file(os.path.join(temp_project_dir, "src", "empty_file.py"), "")
 
-    result = get_pylint_results(str(temp_project_dir), python_executable=None)
+    result = get_pylint_results(str(temp_project_dir), python_executable=sys.executable)
     assert result.return_code == 0
     assert len(result.messages) == 0
     assert result.error is None

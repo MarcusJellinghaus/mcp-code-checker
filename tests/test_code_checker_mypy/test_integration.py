@@ -1,5 +1,6 @@
 """Integration tests for mypy in the MCP server."""
 
+import sys
 import tempfile
 from pathlib import Path
 
@@ -42,7 +43,10 @@ greet(123)  # Type error: expected str, got int
 """)
 
         result = run_mypy_check(
-            project_dir=tmpdir, strict=True, target_directories=["."]
+            project_dir=tmpdir,
+            python_executable=sys.executable,
+            strict=True,
+            target_directories=["."],
         )
 
         # Should find type errors
@@ -77,7 +81,10 @@ first_item: Optional[str] = process_list(["hello", "world"])
 """)
 
         result = run_mypy_check(
-            project_dir=tmpdir, strict=True, target_directories=["."]
+            project_dir=tmpdir,
+            python_executable=sys.executable,
+            strict=True,
+            target_directories=["."],
         )
 
         # Should find no errors
@@ -97,7 +104,10 @@ def process_data() -> None:
 """)
 
         result = run_mypy_check(
-            project_dir=tmpdir, strict=True, target_directories=["."]
+            project_dir=tmpdir,
+            python_executable=sys.executable,
+            strict=True,
+            target_directories=["."],
         )
 
         # Should find import error
@@ -131,7 +141,10 @@ result: int = func1(42)
 """)
 
         result = run_mypy_check(
-            project_dir=tmpdir, strict=True, target_directories=["."]
+            project_dir=tmpdir,
+            python_executable=sys.executable,
+            strict=True,
+            target_directories=["."],
         )
 
         # Should find type error in module2
@@ -152,7 +165,10 @@ def func(x: int) -> int:
 
         # Run without disabling
         result1 = run_mypy_check(
-            project_dir=tmpdir, strict=True, target_directories=["."]
+            project_dir=tmpdir,
+            python_executable=sys.executable,
+            strict=True,
+            target_directories=["."],
         )
         assert result1.return_code == 1
         original_errors = len(result1.messages)
@@ -160,6 +176,7 @@ def func(x: int) -> int:
         # Run with import errors disabled
         result2 = run_mypy_check(
             project_dir=tmpdir,
+            python_executable=sys.executable,
             strict=True,
             target_directories=["."],
             disable_error_codes=["import"],
@@ -186,12 +203,18 @@ result = func("string", 123)
 
         # Run in strict mode
         strict_result = run_mypy_check(
-            project_dir=tmpdir, strict=True, target_directories=["."]
+            project_dir=tmpdir,
+            python_executable=sys.executable,
+            strict=True,
+            target_directories=["."],
         )
 
         # Run in non-strict mode
         non_strict_result = run_mypy_check(
-            project_dir=tmpdir, strict=False, target_directories=["."]
+            project_dir=tmpdir,
+            python_executable=sys.executable,
+            strict=False,
+            target_directories=["."],
         )
 
         # Strict mode should find more issues

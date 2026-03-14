@@ -7,7 +7,7 @@ REM Assumes mcp-code-checker is installed in currently active virtual environmen
 REM Check if local .venv exists
 if not exist ".venv\Scripts\activate.bat" (
     echo ERROR: Local virtual environment not found at .venv
-    echo Please run: tools\reinstall.bat
+    echo Please run: call tools\reinstall_local.bat
     exit /b 1
 )
 
@@ -41,7 +41,7 @@ python -c "import mcp_code_checker" 2>nul
 if !errorlevel! neq 0 (
     echo ERROR: mcp-code-checker not found in local virtual environment
     echo Local environment: !VIRTUAL_ENV!
-    echo Please run: tools\reinstall.bat
+    echo Please run: call tools\reinstall_local.bat
     exit /b 1
 )
 

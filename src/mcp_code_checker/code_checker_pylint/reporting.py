@@ -8,13 +8,9 @@ from typing import Optional
 
 import structlog
 
-from mcp_code_checker.code_checker_pylint.models import (
-    PylintResult,
-)
+from mcp_code_checker.code_checker_pylint.models import PylintResult
 from mcp_code_checker.code_checker_pylint.runners import get_pylint_results
-from mcp_code_checker.code_checker_pylint.utils import (
-    normalize_path,
-)
+from mcp_code_checker.code_checker_pylint.utils import normalize_path
 from mcp_code_checker.log_utils import log_function_call
 
 logger = logging.getLogger(__name__)
@@ -154,8 +150,8 @@ def get_prompt_for_unknown_pylint_code(
 @log_function_call
 def get_pylint_prompt(
     project_dir: str,
+    python_executable: str,
     extra_args: Optional[list[str]] = None,
-    python_executable: Optional[str] = None,
     target_directories: Optional[list[str]] = None,
 ) -> Optional[str]:
     """
@@ -164,7 +160,7 @@ def get_pylint_prompt(
     Args:
         project_dir: The path to the project directory to analyze.
         extra_args: Optional list of extra arguments to pass to pylint.
-        python_executable: Optional path to Python interpreter to use for running tests. If None, defaults to sys.executable.
+        python_executable: Path to Python interpreter to use for running pylint. Already resolved by server.
         target_directories: Optional list of directories to analyze relative to project_dir.
             Defaults to ["src"] and conditionally "tests" if it exists.
             Examples: ["src"], ["src", "tests"], ["mypackage", "tests"], ["."]
@@ -181,8 +177,8 @@ def get_pylint_prompt(
 
     pylint_results = get_pylint_results(
         project_dir,
-        extra_args=extra_args,
         python_executable=python_executable,
+        extra_args=extra_args,
         target_directories=target_directories,
     )
 

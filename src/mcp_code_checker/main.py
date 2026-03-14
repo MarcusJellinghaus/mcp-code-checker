@@ -50,17 +50,20 @@ Examples:
         "--python-executable",
         type=str,
         help=(
-            "Path to Python interpreter to use for running tests. "
-            "If not specified, defaults to the current Python interpreter (sys.executable)"
+            "Path to Python interpreter for running pytest, pylint, and mypy. "
+            "Should point to the environment where these tools are installed "
+            "(the tool's own venv), not the project's runtime venv. "
+            "Defaults to the current Python interpreter (sys.executable)"
         ),
     )
     parser.add_argument(
         "--venv-path",
         type=str,
         help=(
-            "Path to virtual environment to activate for running tests. "
+            "Path to the virtual environment where pytest, pylint, and mypy are installed. "
             "When specified, the Python executable from this venv will be used "
-            "instead of python-executable"
+            "instead of --python-executable. This should be the tool's own venv, "
+            "not the project's runtime venv"
         ),
     )
     parser.add_argument(

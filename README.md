@@ -92,8 +92,8 @@ mcp-code-checker --project-dir /path/to/project [options]
 #### Python Configuration
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `--python-executable` | string | sys.executable | Path to Python interpreter to use for running tests |
-| `--venv-path` | string | None | Path to virtual environment to activate. When specified, this venv's Python will be used instead of `--python-executable` |
+| `--python-executable` | string | sys.executable | Path to Python interpreter for running pytest, pylint, and mypy. Should point to the environment where these tools are installed (the tool's own venv), not the project's runtime venv |
+| `--venv-path` | string | None | Path to the virtual environment where pytest, pylint, and mypy are installed. When specified, this venv's Python will be used instead of `--python-executable`. This should be the tool's own venv, not the project's runtime venv |
 
 #### Test Configuration
 | Parameter | Type | Default | Description |
@@ -114,6 +114,53 @@ mcp-code-checker --project-dir /path/to/project [options]
 - The `--console-only` flag is useful during development to avoid creating log files
 - Log files are created in JSON format for structured analysis
 - Temporary files are automatically cleaned up unless `--keep-temp-files` is specified
+
+## Environment Configuration
+
+The `--python-executable` and `--venv-path` options must point to the environment where **pytest, pylint, and mypy are installed** — this is typically the tool's own virtual environment, not your project's runtime venv.
+
+### Correct Configuration
+
+Point to the venv where mcp-code-checker and its tools are installed:
+
+```json
+{
+    "mcpServers": {
+        "code_checker": {
+            "command": "mcp-code-checker",
+            "args": [
+                "--project-dir", "/path/to/your/project",
+                "--venv-path", "${VIRTUAL_ENV}"
+            ]
+        }
+    }
+}
+```
+
+### Incorrect Configuration
+
+Do **not** point to your project's runtime venv if it doesn't have pytest/pylint/mypy installed:
+
+```json
+{
+    "mcpServers": {
+        "code_checker": {
+            "command": "mcp-code-checker",
+            "args": [
+                "--project-dir", "/path/to/your/project",
+                "--venv-path", "/path/to/your/project/.venv"
+            ]
+        }
+    }
+}
+```
+
+This will fail if your project's `.venv` doesn't have the required tools installed.
+
+### Troubleshooting
+
+- **"No module named pytest"** (or pylint/mypy): Your `--python-executable` or `--venv-path` points to an environment that doesn't have the required tools installed. Update the configuration to point to the correct environment.
+- **After installing missing tools**, restart the MCP server for changes to take effect. Tool availability is checked at startup and cached for the session.
 
 ## Installation
 

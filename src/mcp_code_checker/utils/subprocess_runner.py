@@ -23,6 +23,8 @@ from mcp_code_checker.log_utils import log_function_call
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
 
+MAX_STDERR_IN_ERROR: int = 500
+
 
 @dataclass
 class CommandResult:
@@ -588,6 +590,43 @@ def execute_subprocess(
             runner_type="subprocess",
             execution_time_ms=execution_time_ms,
         )
+
+
+def check_tool_missing_error(
+    stderr: str, tool_name: str, python_path: str
+) -> str | None:
+    """Check if stderr indicates the tool is not installed.
+
+    Args:
+        stderr: The stderr output from the subprocess.
+        tool_name: The name of the tool (e.g., 'pytest', 'pylint', 'mypy').
+        python_path: The path to the Python executable used.
+
+    Returns:
+        An actionable error message if the tool is missing, or None.
+    """
+    if f"No module named {tool_name}" in stderr:
+        return (
+            f"{tool_name} is not installed in the configured Python environment "
+            f"({python_path}). Ensure --python-executable and --venv-path point "
+            f"to the environment where {tool_name} is installed."
+        )
+    return None
+
+
+def truncate_stderr(stderr: str, max_len: int = MAX_STDERR_IN_ERROR) -> str:
+    """Truncate stderr to a maximum length.
+
+    Args:
+        stderr: The stderr string to truncate.
+        max_len: Maximum length before truncation.
+
+    Returns:
+        The stderr string, truncated with '...' if it exceeds max_len.
+    """
+    if len(stderr) > max_len:
+        return stderr[:max_len] + "..."
+    return stderr
 
 
 def execute_command(

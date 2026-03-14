@@ -4,17 +4,18 @@ Functions for running pylint analysis and processing results.
 
 import logging
 import os
-import sys
 from typing import List, Optional
 
 import structlog
 
-from mcp_code_checker.code_checker_pylint.models import (
-    PylintResult,
-)
+from mcp_code_checker.code_checker_pylint.models import PylintResult
 from mcp_code_checker.code_checker_pylint.parsers import parse_pylint_json_output
 from mcp_code_checker.log_utils import log_function_call
-from mcp_code_checker.utils.subprocess_runner import execute_command
+from mcp_code_checker.utils.subprocess_runner import (
+    check_tool_missing_error,
+    execute_command,
+    truncate_stderr,
+)
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
@@ -23,8 +24,8 @@ structured_logger = structlog.get_logger(__name__)
 @log_function_call
 def get_pylint_results(
     project_dir: str,
+    python_executable: str,
     extra_args: Optional[List[str]] = None,
-    python_executable: Optional[str] = None,
     target_directories: Optional[List[str]] = None,
 ) -> PylintResult:
     """
@@ -34,7 +35,7 @@ def get_pylint_results(
         project_dir: The path to the project directory.
         extra_args: Optional list of extra pylint arguments to pass directly.
             Examples: ["--disable=C0114,C0116"], ["--enable=W0613", "--disable=C"]
-        python_executable: Path to Python executable to use for running pylint. Defaults to sys.executable if None.
+        python_executable: Path to Python executable to use for running pylint. Already resolved by server.
         target_directories: List of directories to analyze relative to project_dir.
             Defaults to ["src"] and conditionally "tests" if it exists.
             Examples: ["src"], ["src", "tests"], ["mypackage", "tests"], ["."]
@@ -90,12 +91,9 @@ def get_pylint_results(
         target_directories=valid_directories,
     )
 
-    # Determine the Python executable from the parameter or fall back to sys.executable
-    python_exe = python_executable if python_executable is not None else sys.executable
-
     # Construct the pylint command
     pylint_command = [
-        python_exe,
+        python_executable,
         "-m",
         "pylint",
         "--output-format=json",
@@ -114,10 +112,22 @@ def get_pylint_results(
 
     # Handle subprocess execution errors
     if subprocess_result.execution_error:
+        stderr = subprocess_result.stderr or ""
+        tool_error = check_tool_missing_error(stderr, "pylint", python_executable)
+        if tool_error:
+            return PylintResult(
+                return_code=subprocess_result.return_code,
+                messages=[],
+                error=tool_error,
+                raw_output=None,
+            )
+        error_msg = subprocess_result.execution_error
+        if stderr.strip():
+            error_msg += f" stderr: {truncate_stderr(stderr.strip())}"
         return PylintResult(
             return_code=subprocess_result.return_code,
             messages=[],
-            error=subprocess_result.execution_error,
+            error=error_msg,
             raw_output=None,
         )
 

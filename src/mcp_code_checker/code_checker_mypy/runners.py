@@ -2,14 +2,17 @@
 
 import logging
 import os
-import sys
 
 import structlog
 
 from mcp_code_checker.code_checker_mypy.models import MypyResult
 from mcp_code_checker.code_checker_mypy.parsers import parse_mypy_json_output
 from mcp_code_checker.log_utils import log_function_call
-from mcp_code_checker.utils.subprocess_runner import execute_command
+from mcp_code_checker.utils.subprocess_runner import (
+    check_tool_missing_error,
+    execute_command,
+    truncate_stderr,
+)
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
@@ -35,11 +38,11 @@ STRICT_FLAGS = [
 @log_function_call
 def run_mypy_check(
     project_dir: str,
+    python_executable: str,
     strict: bool = True,
     disable_error_codes: list[str] | None = None,
     target_directories: list[str] | None = None,
     follow_imports: str = "normal",
-    python_executable: str | None = None,
     cache_dir: str | None = None,
     config_file: str | None = None,
 ) -> MypyResult:
@@ -91,9 +94,8 @@ def run_mypy_check(
         )
 
     # Build command
-    python_exe = python_executable or sys.executable
     command = [
-        python_exe,
+        python_executable,
         "-m",
         "mypy",
         "--output",
@@ -145,11 +147,18 @@ def run_mypy_check(
         command=command, cwd=project_dir, timeout_seconds=120, env=env
     )
 
+    # Check for missing mypy module early (before other error handling)
+    stderr = result.stderr or ""
+    tool_error = check_tool_missing_error(stderr, "mypy", python_executable)
+    if tool_error:
+        return MypyResult(return_code=result.return_code, messages=[], error=tool_error)
+
     # Handle execution errors
     if result.execution_error:
-        return MypyResult(
-            return_code=result.return_code, messages=[], error=result.execution_error
-        )
+        error_msg = result.execution_error
+        if stderr.strip():
+            error_msg += f" stderr: {truncate_stderr(stderr.strip())}"
+        return MypyResult(return_code=result.return_code, messages=[], error=error_msg)
 
     if result.timed_out:
         return MypyResult(

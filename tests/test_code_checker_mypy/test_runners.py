@@ -1,5 +1,7 @@
 """Test mypy runner functionality."""
 
+import sys
+
 import pytest
 
 from mcp_code_checker.code_checker_mypy import run_mypy_check
@@ -7,7 +9,12 @@ from mcp_code_checker.code_checker_mypy import run_mypy_check
 
 def test_run_mypy_check_on_project() -> None:
     """Test running mypy on the actual project."""
-    result = run_mypy_check(project_dir=".", strict=True, target_directories=["src"])
+    result = run_mypy_check(
+        project_dir=".",
+        python_executable=sys.executable,
+        strict=True,
+        target_directories=["src"],
+    )
 
     # 0=no errors, 1=errors found, 2=config error (should be fixed now)
     assert result.return_code in [
@@ -20,13 +27,16 @@ def test_run_mypy_check_on_project() -> None:
 def test_run_mypy_check_non_existent_directory() -> None:
     """Test running mypy on a non-existent directory."""
     with pytest.raises(FileNotFoundError, match="Project directory not found"):
-        run_mypy_check(project_dir="/non/existent/directory")
+        run_mypy_check(
+            project_dir="/non/existent/directory", python_executable=sys.executable
+        )
 
 
 def test_run_mypy_check_with_disabled_codes() -> None:
     """Test running mypy with disabled error codes."""
     result = run_mypy_check(
         project_dir=".",
+        python_executable=sys.executable,
         strict=True,
         disable_error_codes=["import", "arg-type"],
         target_directories=["src"],

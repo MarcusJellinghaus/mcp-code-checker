@@ -5,7 +5,6 @@ Functions for running pytest tests and processing results.
 import logging
 import os
 import shutil
-import sys
 import tempfile
 from typing import Any, Dict, List, Optional
 
@@ -17,13 +16,13 @@ from mcp_code_checker.code_checker_pytest.reporting import (
     create_prompt_for_failed_tests,
     get_test_summary,
 )
-from mcp_code_checker.code_checker_pytest.utils import (
-    collect_environment_info,
-    create_error_context,
-    read_file,
-)
+from mcp_code_checker.code_checker_pytest.utils import create_error_context, read_file
 from mcp_code_checker.log_utils import log_function_call
-from mcp_code_checker.utils.subprocess_runner import execute_command
+from mcp_code_checker.utils.subprocess_runner import (
+    check_tool_missing_error,
+    execute_command,
+    truncate_stderr,
+)
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
@@ -65,7 +64,7 @@ class ProcessResult:
 def run_tests(
     project_dir: str,
     test_folder: str,
-    python_executable: Optional[str] = None,
+    python_executable: str,
     markers: Optional[List[str]] = None,
     verbosity: int = 2,
     extra_args: Optional[List[str]] = None,
@@ -94,7 +93,6 @@ def run_tests(
         PytestReport: An object containing the results of the test session with the following attributes:
         - summary: Summary statistics of the test run (passed, failed, skipped counts)
         - test_results: List of individual test results with detailed information
-        - environment_context: Information about the test environment
         - error_context: Information about any errors that occurred during execution
 
     Raises:
@@ -126,36 +124,10 @@ def run_tests(
         # raise RuntimeError("Recursive pytest execution detected! This usually indicates a test configuration problem.")
 
     try:
-        # Determine Python executable
-        py_executable = python_executable
-
-        # Handle virtual environment activation
-        if venv_path:
-            if not os.path.exists(venv_path):
-                raise FileNotFoundError(
-                    f"Virtual environment path does not exist: {venv_path}"
-                )
-
-            # Locate the Python executable in the virtual environment
-            if os.name == "nt":  # Windows
-                venv_python = os.path.join(venv_path, "Scripts", "python.exe")
-            else:  # Unix-like systems
-                venv_python = os.path.join(venv_path, "bin", "python")
-
-            if not os.path.exists(venv_python):
-                raise FileNotFoundError(
-                    f"Python executable not found in virtual environment: {venv_python}"
-                )
-
-            py_executable = venv_python
-
-        # If no executable is specified (either directly or via venv), use the current one
-        if not py_executable:
-            py_executable = sys.executable
-
         # Construct the pytest command
+        # NOTE: venv_path parameter is still accepted for PATH adjustment below.
         command = [
-            py_executable,
+            python_executable,
             "-m",
             "pytest",
         ]
@@ -210,9 +182,6 @@ def run_tests(
 
             env["PATH"] = f"{venv_bin}{os.pathsep}{env.get('PATH', '')}"
 
-        # Collect environment info before running the tests
-        environment_context = collect_environment_info(command)
-
         try:
             # Print command for debugging
             print(f"Running command: {' '.join(command)}")
@@ -261,7 +230,7 @@ def run_tests(
                 try:
                     install_result = execute_command(
                         command=[
-                            py_executable,
+                            python_executable,
                             "-m",
                             "pip",
                             "install",
@@ -372,16 +341,26 @@ def run_tests(
                         "No Tests Found: Pytest did not find any tests to run."
                     )
                 else:
-                    raise RuntimeError(
+                    # Check for missing pytest module
+                    stderr = error_output or ""
+                    tool_error = check_tool_missing_error(
+                        stderr, "pytest", python_executable
+                    )
+                    if tool_error:
+                        raise RuntimeError(tool_error)
+
+                    base_msg = (
                         "Test execution completed but no report file was generated. "
                         "Check for configuration errors in pytest.ini or pytest plugins."
                     )
+                    if stderr.strip():
+                        base_msg += f" stderr: {truncate_stderr(stderr.strip())}"
+                    raise RuntimeError(base_msg)
 
             file_contents = read_file(temp_report_file)
             parsed_results = parse_pytest_report(file_contents)
 
-            # Add environment and error context to the results
-            parsed_results.environment_context = environment_context
+            # Add error context to the results
             parsed_results.error_context = error_context
 
             structured_logger.info(
@@ -424,8 +403,8 @@ def run_tests(
 
 def check_code_with_pytest(
     project_dir: str,
+    python_executable: str,
     test_folder: str = "tests",
-    python_executable: Optional[str] = None,
     markers: Optional[List[str]] = None,
     verbosity: int = 2,
     extra_args: Optional[List[str]] = None,
@@ -456,7 +435,6 @@ def check_code_with_pytest(
         - summary: Summary of test results as a formatted string
         - failed_tests_prompt: Formatted prompt for failed tests (if any)
         - test_results: Complete PytestReport object with detailed test information
-        - environment_info: Information about the test environment (Python version, pytest version, etc.)
         - error_info: Details about any errors that occurred during test execution
     """
     structured_logger.info(
@@ -509,20 +487,6 @@ def check_code_with_pytest(
         if failed_count > 0 or error_count > 0:
             failed_tests_prompt = create_prompt_for_failed_tests(test_results)
 
-        environment_info = None
-        if test_results.environment_context:
-            environment_info = {
-                "python_version": test_results.environment_context.python_version,
-                "pytest_version": test_results.environment_context.pytest_version,
-                "platform": test_results.environment_context.platform_info,
-                "plugins": test_results.environment_context.loaded_plugins,
-                "working_directory": test_results.environment_context.working_directory,
-                "system_info": {
-                    "cpu": test_results.environment_context.cpu_info,
-                    "memory": test_results.environment_context.memory_info,
-                },
-            }
-
         error_info = None
         if test_results.error_context:
             error_info = {
@@ -539,7 +503,6 @@ def check_code_with_pytest(
             "summary_text": summary_text,  # Formatted string for display
             "failed_tests_prompt": failed_tests_prompt,
             "test_results": test_results,
-            "environment_info": environment_info,
             "error_info": error_info,
         }
 

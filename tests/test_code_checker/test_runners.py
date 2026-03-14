@@ -2,6 +2,7 @@
 Tests for the code_checker_pytest runner functionality.
 """
 
+import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -14,10 +15,7 @@ from mcp_code_checker.code_checker_pytest import (
     run_tests,
 )
 
-from .test_code_checker_pytest_common import (
-    _cleanup_test_project,
-    _create_test_project,
-)
+from .test_code_checker_pytest_common import _cleanup_test_project, _create_test_project
 
 
 def test_run_tests() -> None:
@@ -28,7 +26,7 @@ def test_run_tests() -> None:
 
         try:
             # Run the tests and parse the report
-            result = run_tests(str(test_dir), "tests")
+            result = run_tests(str(test_dir), "tests", python_executable=sys.executable)
             assert isinstance(result, PytestReport)
 
             # Check the summary
@@ -86,6 +84,7 @@ def test_slow():
             result = run_tests(
                 str(test_dir),
                 "tests",
+                python_executable=sys.executable,
                 markers=["slow"],
                 verbosity=3,
                 keep_temp_files=True,
@@ -99,8 +98,6 @@ def test_slow():
             assert result.summary.total == 1
             assert result.summary.passed == 1
 
-            # Check environment context was captured
-            assert result.environment_context is not None
         finally:
             _cleanup_test_project(test_dir)
 
@@ -121,7 +118,7 @@ def test_run_tests_no_tests_found() -> None:
             with pytest.raises(
                 Exception, match="No Tests Found: Pytest did not find any tests to run."
             ):
-                run_tests(str(test_dir), "tests")
+                run_tests(str(test_dir), "tests", python_executable=sys.executable)
         finally:
             _cleanup_test_project(test_dir)
 
@@ -153,7 +150,7 @@ def test_check_code_with_pytest(mock_run_tests: MagicMock) -> None:
     mock_run_tests.return_value = mock_report
 
     # Call the function
-    result = check_code_with_pytest("/test/project")
+    result = check_code_with_pytest("/test/project", python_executable=sys.executable)
 
     # Verify the results
     assert result["success"] is True
@@ -209,6 +206,7 @@ def test_check_code_with_pytest_with_custom_parameters(
     # Call the function with custom parameters
     result = check_code_with_pytest(
         project_dir="/test/project",
+        python_executable=sys.executable,
         test_folder="custom_tests",
         markers=["slow"],
         verbosity=3,
@@ -221,7 +219,7 @@ def test_check_code_with_pytest_with_custom_parameters(
     mock_run_tests.assert_called_once_with(
         "/test/project",
         "custom_tests",
-        None,  # python_executable
+        sys.executable,  # python_executable
         ["slow"],  # markers
         3,  # verbosity
         extra_args,
@@ -279,7 +277,7 @@ def test_check_code_with_pytest_with_failed_tests(mock_run_tests: MagicMock) -> 
     mock_run_tests.return_value = mock_report
 
     # Call the function
-    result = check_code_with_pytest("/test/project")
+    result = check_code_with_pytest("/test/project", python_executable=sys.executable)
 
     # Verify the results
     assert result["success"] is True
@@ -305,7 +303,7 @@ def test_check_code_with_pytest_with_error(mock_run_tests: MagicMock) -> None:
     mock_run_tests.side_effect = Exception("Test execution error")
 
     # Call the function
-    result = check_code_with_pytest("/test/project")
+    result = check_code_with_pytest("/test/project", python_executable=sys.executable)
 
     # Verify the results
     assert result["success"] is False

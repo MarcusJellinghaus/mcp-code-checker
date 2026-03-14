@@ -1,5 +1,6 @@
 """Unit tests for pylint reporting module."""
 
+import sys
 from unittest.mock import patch
 
 from mcp_code_checker.code_checker_pylint.models import PylintMessage, PylintResult
@@ -230,7 +231,7 @@ class TestGetPylintPrompt:
             "mcp_code_checker.code_checker_pylint.reporting.get_pylint_results",
             return_value=mock_result,
         ):
-            prompt = get_pylint_prompt("/project")
+            prompt = get_pylint_prompt("/project", python_executable=sys.executable)
 
         assert prompt is not None
         assert "W0613" in prompt

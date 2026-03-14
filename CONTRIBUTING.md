@@ -64,7 +64,7 @@ Thank you for your interest in contributing to MCP Code Checker! This document p
 
 1. Run the reinstall script:
    ```bash
-   tools\reinstall.bat
+   call tools\reinstall_local.bat
    ```
 
 2. This is needed when you modify:
@@ -253,7 +253,7 @@ The `tools/` directory contains helpful scripts for development:
 
 ### Development Utilities
 
-- `reinstall.bat` - Reinstall package in development mode
+- `reinstall_local.bat` - Reinstall package in development mode (uses local .venv)
 - `git_status.bat` - Check git status
 - `commit_summary.bat` - Generate commit summaries
 - `pr_review.bat` - Generate PR review information
@@ -274,7 +274,7 @@ tools\checks2clipboard.bat
 tools\format_all.bat
 
 # Reinstall after pyproject.toml changes
-tools\reinstall.bat
+call tools\reinstall_local.bat
 
 # Check git status
 tools\git_status.bat
