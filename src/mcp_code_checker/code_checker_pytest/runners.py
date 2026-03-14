@@ -383,11 +383,9 @@ def run_tests(
                 project_dir=project_dir,
                 command=command_line,
             )
-            print(
-                f"""Error during pytest execution:
+            print(f"""Error during pytest execution:
 - folder {project_dir}
-- {command_line}"""
-            )
+- {command_line}""")
             raise e
 
     except Exception as e:

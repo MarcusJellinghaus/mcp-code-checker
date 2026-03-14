@@ -63,6 +63,7 @@ class TestResolvePythonExecutable:
 
     def test_venv_path_not_found_raises(self) -> None:
         """When venv python executable doesn't exist, raise FileNotFoundError."""
+        project_dir = Path("/project")
         with (
             patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
             patch("mcp_code_checker.server.os.name", "nt"),
@@ -71,7 +72,7 @@ class TestResolvePythonExecutable:
             mock_fastmcp.return_value.tool.return_value = MagicMock()
 
             with pytest.raises(FileNotFoundError):
-                _create_server(project_dir=Path("C:/project"), venv_path="C:/my/venv")
+                _create_server(project_dir=project_dir, venv_path="/my/venv")
 
     def test_python_executable_fallback(self) -> None:
         """When no venv_path but python_executable is set, use it directly."""

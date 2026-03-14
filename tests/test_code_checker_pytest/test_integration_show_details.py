@@ -40,20 +40,17 @@ class TestIntegrationShowDetails:
         (project_dir / "tests").mkdir(parents=True, exist_ok=True)
 
         # Create conftest.py
-        (project_dir / "tests" / "conftest.py").write_text(
-            """
+        (project_dir / "tests" / "conftest.py").write_text("""
 # Basic pytest configuration for focused testing
 import pytest
 
 @pytest.fixture
 def sample_data():
     return {"value": 42, "name": "test"}
-"""
-        )
+""")
 
         # Create test_simple.py with print statements
-        (project_dir / "tests" / "test_simple.py").write_text(
-            """
+        (project_dir / "tests" / "test_simple.py").write_text("""
 def test_passing():
     \"\"\"A simple passing test.\"\"\"
     print("Debug: test_passing started")
@@ -73,27 +70,23 @@ def test_failing_with_prints():
     print(f"Debug: data length is {result}")
     assert result == 5  # Intentionally wrong
     print("Debug: this line should not be reached")
-"""
-        )
+""")
 
     def _create_large_project(self, project_dir: Path) -> None:
         """Create a large project with multiple test files and many failures."""
         (project_dir / "tests").mkdir(parents=True, exist_ok=True)
 
         # Create conftest.py
-        (project_dir / "tests" / "conftest.py").write_text(
-            """
+        (project_dir / "tests" / "conftest.py").write_text("""
 import pytest
 
 @pytest.fixture
 def common_data():
     return list(range(10))
-"""
-        )
+""")
 
         # Create test_module_a.py - 5 tests: 3 pass, 2 fail
-        (project_dir / "tests" / "test_module_a.py").write_text(
-            """
+        (project_dir / "tests" / "test_module_a.py").write_text("""
 def test_a1_pass():
     assert 1 == 1
 
@@ -112,12 +105,10 @@ def test_a5_fail():
     data = [1, 2, 3]
     print(f"Debug: data is {data}")
     assert len(data) == 5  # Fail
-"""
-        )
+""")
 
         # Create test_module_b.py - 10 tests: 5 pass, 5 fail
-        (project_dir / "tests" / "test_module_b.py").write_text(
-            """
+        (project_dir / "tests" / "test_module_b.py").write_text("""
 def test_b1_pass():
     assert True
 
@@ -160,12 +151,10 @@ def test_b10_fail():
     data = {"x": 1, "y": 2}
     print(f"Data: {data}")
     assert data["z"] == 3  # Fail - KeyError
-"""
-        )
+""")
 
         # Create test_module_c.py - 8 tests: all pass
-        (project_dir / "tests" / "test_module_c.py").write_text(
-            """
+        (project_dir / "tests" / "test_module_c.py").write_text("""
 def test_c1_pass():
     assert 42 == 42
 
@@ -189,16 +178,14 @@ def test_c7_pass():
 
 def test_c8_pass():
     assert sorted([3, 1, 2]) == [1, 2, 3]
-"""
-        )
+""")
 
     def _create_edge_case_project(self, project_dir: Path) -> None:
         """Create project with edge cases: collection errors and all passing tests."""
         (project_dir / "tests").mkdir(parents=True, exist_ok=True)
 
         # Create test_no_assertions.py with collection errors
-        (project_dir / "tests" / "test_no_assertions.py").write_text(
-            """
+        (project_dir / "tests" / "test_no_assertions.py").write_text("""
 # This will cause collection errors
 import non_existent_module
 
@@ -210,12 +197,10 @@ def test_syntax_error():
     # Intentional syntax error
     if True
         assert True
-"""
-        )
+""")
 
         # Create test_all_pass.py with only passing tests
-        (project_dir / "tests" / "test_all_pass.py").write_text(
-            """
+        (project_dir / "tests" / "test_all_pass.py").write_text("""
 def test_simple_pass():
     print("Debug: simple test passing")
     assert True
@@ -227,8 +212,7 @@ def test_math_pass():
 def test_string_pass():
     print("Debug: string test")
     assert "hello".upper() == "HELLO"
-"""
-        )
+""")
 
     def test_focused_debugging_session(
         self, temp_project_dir: Path, server: CodeCheckerServer
@@ -468,8 +452,7 @@ def test_string_pass():
         (temp_project_dir / "tests").mkdir(parents=True, exist_ok=True)
 
         # Create test with markers
-        (temp_project_dir / "tests" / "test_markers.py").write_text(
-            """
+        (temp_project_dir / "tests" / "test_markers.py").write_text("""
 import pytest
 
 @pytest.mark.slow
@@ -481,8 +464,7 @@ def test_slow_operation():
 def test_fast_operation():
     print("Debug: fast operation")
     assert True
-"""
-        )
+""")
 
         server = CodeCheckerServer(project_dir=temp_project_dir)
 
