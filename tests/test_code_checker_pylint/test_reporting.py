@@ -403,7 +403,9 @@ class TestGetPylintPromptMaxIssues:
             "mcp_code_checker.code_checker_pylint.reporting.get_pylint_results",
             return_value=mock_result,
         ):
-            prompt = get_pylint_prompt("/project", python_executable=sys.executable, max_issues=0)
+            prompt = get_pylint_prompt(
+                "/project", python_executable=sys.executable, max_issues=0
+            )
 
         assert prompt is not None
         # Stats header
@@ -431,7 +433,9 @@ class TestGetPylintPromptMaxIssues:
             "mcp_code_checker.code_checker_pylint.reporting.get_pylint_results",
             return_value=mock_result,
         ):
-            prompt = get_pylint_prompt("/project", python_executable=sys.executable, max_issues=5)
+            prompt = get_pylint_prompt(
+                "/project", python_executable=sys.executable, max_issues=5
+            )
 
         assert prompt is not None
         # Both types should have detailed output
@@ -455,7 +459,9 @@ class TestGetPylintPromptMaxIssues:
             "mcp_code_checker.code_checker_pylint.reporting.get_pylint_results",
             return_value=mock_result,
         ):
-            prompt = get_pylint_prompt("/project", python_executable=sys.executable, max_issues=1)
+            prompt = get_pylint_prompt(
+                "/project", python_executable=sys.executable, max_issues=1
+            )
 
         assert prompt is not None
         assert "W0613" in prompt
