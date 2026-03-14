@@ -39,7 +39,7 @@ def get_pylint_prompt(
 ```
 1. Run pylint, handle errors (unchanged)
 2. groups = _group_and_sort_issues(pylint_results.messages)
-3. If no groups: return "Pylint passed. 0 issues found."
+3. If no groups: return None (caller handles zero-issues messaging)
 4. If max_issues == 0: return stats-only format (total + per-type counts)
 5. For each group in groups[:max_issues]:
      - Cap messages at MAX_LOCATIONS_PER_ISSUE
@@ -81,9 +81,7 @@ Use max_issues=4 to see details for all issue types.
 ```
 
 ### Zero issues:
-```
-Pylint passed. 0 issues found.
-```
+Returns `None` (unchanged behavior — `_format_pylint_result` handles messaging).
 
 ## Tests to Write FIRST
 
@@ -91,15 +89,12 @@ Add/modify in `test_reporting.py`. All tests mock `get_pylint_results` (same pat
 
 ### New test class `TestGetPylintPromptMaxIssues`:
 
-1. **`test_zero_issues_returns_passed_message`** — no messages → returns "Pylint passed. 0 issues found."
-2. **`test_max_issues_default_one_detail_plus_summary`** — 3 issue types, default max_issues=1 → first type detailed, other 2 in summary
+1. **`test_zero_issues_returns_none`** — no messages → returns None (unchanged behavior)
+2. **`test_max_issues_default_one_detail_plus_summary`** — 3 issue types, default max_issues=1 → first type detailed, other 2 in summary with correct format (`- {code} {symbol}: {count} occurrences`), includes "Use max_issues=" hint
 3. **`test_max_issues_zero_stats_only`** — max_issues=0 → no details, just counts per type
-4. **`test_max_issues_greater_than_types`** — max_issues=5 but only 2 types → both detailed, no summary section
+4. **`test_max_issues_greater_than_types`** — max_issues=5 but only 2 types → both detailed, no summary section, no hint
 5. **`test_location_cap_at_50`** — one issue type with 60 occurrences → only 50 shown in detail, "... and 10 more occurrences" appended
-6. **`test_summary_section_format`** — verify summary lines match `- {code} {symbol}: {count} occurrences`
-7. **`test_contextual_hint_when_remaining`** — remaining issues exist → output contains "Use max_issues=" hint
-8. **`test_no_hint_when_all_detailed`** — max_issues covers all types → no hint in output
-9. **`test_error_passthrough_unchanged`** — pylint error → still returns error string (unchanged behavior)
+6. **`test_error_passthrough_unchanged`** — pylint error → still returns error string (unchanged behavior)
 
 ### Update existing `TestGetPylintPrompt`:
 
@@ -126,5 +121,8 @@ TDD approach:
 
 Important: Do NOT modify get_prompt_for_known_pylint_code or 
 get_prompt_for_unknown_pylint_code. Handle the 50-location cap by 
-creating a truncated PylintResult before calling those functions.
+creating a truncated PylintResult (with sliced messages list) before 
+calling those functions.
+
+See pr_info/steps/Decisions.md for all design decisions.
 ```

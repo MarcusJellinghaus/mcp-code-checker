@@ -44,7 +44,7 @@ def _format_pylint_result(self, pylint_prompt: Optional[str]) -> str:
     return pylint_prompt  # Changed: prompt is now self-contained (includes "Pylint passed" or detailed output)
 ```
 
-Note: Previously this prefixed "Pylint found issues that need attention:\n\n" — but now `get_pylint_prompt` returns self-contained output (including the zero-issues case as a string, not None). The `None` path only triggers on the impossible case where `get_pylint_prompt` somehow returns None without errors. The prefix is removed because the detailed output already starts with `"pylint found some issues related to code..."`.
+Note: The prefix `"Pylint found issues that need attention:\n\n"` is removed because the detailed output already starts with `"pylint found some issues related to code..."`. The `None` path is preserved — `get_pylint_prompt` still returns `None` for zero issues (Decision 3).
 
 ## HOW — Integration Points
 
@@ -96,15 +96,11 @@ to:
 return pylint_prompt
 ```
 
-### Check `run_all_checks` tool:
-
-If it exists and calls pylint internally, verify it uses `run_pylint_check()` (which gets the new default) or `get_pylint_prompt()` directly. If the latter, it may need `max_issues` passthrough too.
-
 ## Tests
 
-Add to `tests/test_code_checker_pylint/test_reporting.py`:
+Add to `tests/test_server_params.py` (existing server test file — Decision 5):
 
-### `TestServerIntegration` (mock-based):
+### `TestServerPylintMaxIssues` (mock-based):
 
 1. **`test_run_pylint_check_passes_max_issues`** — mock `get_pylint_prompt`, call with `max_issues=3`, verify `get_pylint_prompt` was called with `max_issues=3`
 2. **`test_run_pylint_check_default_max_issues`** — call without `max_issues`, verify `get_pylint_prompt` was called with `max_issues=1`
@@ -123,9 +119,7 @@ Changes needed in server.py:
 2. Pass it through to get_pylint_prompt()
 3. Slim down the run_pylint_check docstring (see step_3.md for exact text)
 4. Simplify _format_pylint_result to return prompt directly (no prefix)
-5. Check if run_all_checks also needs max_issues passthrough
-
-Then add integration tests to test_reporting.py:
+Then add integration tests to test_server_params.py:
 1. test_run_pylint_check_passes_max_issues
 2. test_run_pylint_check_default_max_issues  
 3. test_format_pylint_result_returns_prompt_directly

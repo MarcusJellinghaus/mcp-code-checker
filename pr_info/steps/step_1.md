@@ -25,8 +25,12 @@ SEVERITY_PRIORITY: dict[str, int] = {
     "convention": 4,
 }
 
-IssueGroup = tuple[str, str, str, list[PylintMessage]]
-# Tuple of: (message_id, symbol, type, messages)
+class IssueGroup(NamedTuple):
+    """A group of pylint messages sharing the same message_id."""
+    message_id: str
+    symbol: str
+    type: str
+    messages: list[PylintMessage]
 
 def _group_and_sort_issues(messages: list[PylintMessage]) -> list[IssueGroup]:
     """Group messages by message_id, sort by severity then frequency (descending)."""
@@ -45,7 +49,7 @@ def _group_and_sort_issues(messages: list[PylintMessage]) -> list[IssueGroup]:
 1. Group messages into dict[message_id -> list[PylintMessage]]
 2. For each group, extract (message_id, symbol, type) from first message
 3. Sort groups by:
-   a. SEVERITY_PRIORITY[type] ascending (fatal first)
+   a. SEVERITY_PRIORITY.get(type, 99) ascending (fatal first, unknown last)
    b. len(messages) descending (most frequent first)  
 4. Return list of (message_id, symbol, type, messages) tuples
 ```
@@ -56,9 +60,9 @@ def _group_and_sort_issues(messages: list[PylintMessage]) -> list[IssueGroup]:
 # Input: list of PylintMessage objects (unsorted, mixed types)
 # Output example:
 [
-    ("E0602", "undefined-variable", "error", [msg1, msg2, msg3]),   # 3 errors
-    ("W0613", "unused-argument", "warning", [msg4, msg5]),           # 2 warnings
-    ("C0411", "wrong-import-order", "convention", [msg6]),           # 1 convention
+    IssueGroup("E0602", "undefined-variable", "error", [msg1, msg2, msg3]),   # 3 errors
+    IssueGroup("W0613", "unused-argument", "warning", [msg4, msg5]),           # 2 warnings
+    IssueGroup("C0411", "wrong-import-order", "convention", [msg6]),           # 1 convention
 ]
 ```
 

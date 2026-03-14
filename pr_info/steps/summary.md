@@ -17,11 +17,11 @@ Enhance `run_pylint_check` so it shows **full details for the top N issue types*
 - Top `max_issues` issue types get full detailed output (reusing existing known/unknown prompt functions), capped at **50 locations** per type
 - Remaining issue types appear as a flat summary: `- {code} {symbol}: {count} occurrences`
 - `max_issues=0` produces statistics-only output
-- Zero issues returns `"Pylint passed. 0 issues found."`
+- Zero issues returns `None` (unchanged — `_format_pylint_result` handles messaging)
 
 ### Key Design Decisions
 - **No changes to `models.py`** — grouping/sorting is a presentation concern, lives in `reporting.py`
-- **No new abstractions** — one ~15-line helper function, no new classes or data models
+- **Minimal new abstractions** — one `IssueGroup` NamedTuple, one ~15-line helper function
 - **Existing helper functions unchanged** — `get_prompt_for_known_pylint_code` and `get_prompt_for_unknown_pylint_code` stay as-is, called from a loop
 - **Backward compatible** — default `max_issues=1` gives enhanced version of current behavior (but now deterministically sorted instead of arbitrary)
 - **Slim docstring** in `server.py` to reduce token overhead on every MCP call
@@ -30,9 +30,10 @@ Enhance `run_pylint_check` so it shows **full details for the top N issue types*
 
 | File | Change |
 |------|--------|
-| `src/mcp_code_checker/code_checker_pylint/reporting.py` | Add `_group_and_sort_issues()` helper; refactor `get_pylint_prompt()` to use it with `max_issues` + location cap + summary |
+| `src/mcp_code_checker/code_checker_pylint/reporting.py` | Add `IssueGroup` NamedTuple, `_group_and_sort_issues()` helper; refactor `get_pylint_prompt()` to use it with `max_issues` + location cap + summary |
 | `src/mcp_code_checker/server.py` | Add `max_issues` param to `run_pylint_check`, pass through, slim docstring |
 | `tests/test_code_checker_pylint/test_reporting.py` | Tests for sorting, `max_issues=0/1/N`, location cap, zero-issues, summary format |
+| `tests/test_server_params.py` | Server integration tests for `max_issues` passthrough |
 
 ## Files NOT Modified
 
