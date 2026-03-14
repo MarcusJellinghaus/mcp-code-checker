@@ -44,7 +44,7 @@ def _format_pylint_result(self, pylint_prompt: Optional[str]) -> str:
     return pylint_prompt  # Changed: prompt is now self-contained (includes "Pylint passed" or detailed output)
 ```
 
-Note: The prefix `"Pylint found issues that need attention:\n\n"` is removed because the detailed output already starts with `"pylint found some issues related to code..."`. The `None` path is preserved — `get_pylint_prompt` still returns `None` for zero issues (Decision 3).
+Note: The prefix `"Pylint found issues that need attention:\n\n"` is removed (Decision 8) because the detailed output already starts with `"pylint found some issues related to code..."`. The `None` path is preserved — `get_pylint_prompt` still returns `None` for zero issues (Decision 3).
 
 ## HOW — Integration Points
 

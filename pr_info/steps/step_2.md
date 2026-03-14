@@ -38,17 +38,18 @@ def get_pylint_prompt(
 
 ```
 1. Run pylint, handle errors (unchanged)
-2. groups = _group_and_sort_issues(pylint_results.messages)
-3. If no groups: return None (caller handles zero-issues messaging)
-4. If max_issues == 0: return stats-only format (total + per-type counts)
-5. For each group in groups[:max_issues]:
+2. Clamp: max_issues = max(0, max_issues)  # Decision 9
+3. groups = _group_and_sort_issues(pylint_results.messages)
+4. If no groups: return None (caller handles zero-issues messaging)
+5. If max_issues == 0: return stats-only format (total + per-type counts)
+6. For each group in groups[:max_issues]:
      - Cap messages at MAX_LOCATIONS_PER_ISSUE
      - Generate detail via get_prompt_for_known/unknown (existing)
      - If capped, append "... and X more occurrences"
-6. For remaining groups[max_issues:]:
+7. For remaining groups[max_issues:]:
      - Append summary line: "- {code} {symbol}: {count} occurrences"
-7. Add contextual hint if remaining > 0: "Use max_issues=N to see more details"
-8. Return joined output
+8. Add contextual hint if remaining > 0: "Use max_issues=N to see more details"
+9. Return joined output
 ```
 
 ## DATA — Output Format

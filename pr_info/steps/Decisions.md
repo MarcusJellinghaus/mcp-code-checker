@@ -20,3 +20,9 @@ There is no `run_all_checks` tool in `server.py`. Remove the bullet to avoid con
 
 ## Decision 7: Location cap — truncated `PylintResult`
 Apply the 50-location cap by constructing a truncated `PylintResult` with sliced messages. Do not modify existing `get_prompt_for_known_pylint_code` or `get_prompt_for_unknown_pylint_code` functions.
+
+## Decision 8: Remove `_format_pylint_result` prefix
+Remove the `"Pylint found issues that need attention:\n\n"` prefix from `_format_pylint_result` in `server.py`. The detailed output already starts with `"pylint found some issues related to code..."`, making the prefix redundant. Return the prompt string directly.
+
+## Decision 9: Negative `max_issues` guard
+Add `max_issues = max(0, max_issues)` at the start of `get_pylint_prompt()` to handle negative values defensively rather than relying on caller behavior.
