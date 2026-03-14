@@ -23,9 +23,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ### Step 1: Add `_group_and_sort_issues()` helper + tests (TDD) — [step_1.md](./steps/step_1.md)
 
-- [ ] Implement `_group_and_sort_issues()` helper, `IssueGroup` NamedTuple, and `SEVERITY_PRIORITY` in `reporting.py`; write tests first (TDD)
-- [ ] Run quality checks (pylint, pytest, mypy) and fix all issues
-- [ ] Prepare git commit message
+- [x] Implement `_group_and_sort_issues()` helper, `IssueGroup` NamedTuple, and `SEVERITY_PRIORITY` in `reporting.py`; write tests first (TDD)
+- [x] Run quality checks (pylint, pytest, mypy) and fix all issues
+- [x] Prepare git commit message
 
 ### Step 2: Refactor `get_pylint_prompt()` with `max_issues` + location cap + summary — [step_2.md](./steps/step_2.md)
 

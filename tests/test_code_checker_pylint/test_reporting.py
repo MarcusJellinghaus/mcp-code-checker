@@ -4,12 +4,101 @@ import sys
 from unittest.mock import patch
 
 from mcp_code_checker.code_checker_pylint.models import PylintMessage, PylintResult
-from mcp_code_checker.code_checker_pylint.reporting import (
+from mcp_code_checker.code_checker_pylint.reporting import (  # pylint: disable=no-name-in-module
+    _group_and_sort_issues,
     get_direct_instruction_for_pylint_code,
     get_prompt_for_known_pylint_code,
     get_prompt_for_unknown_pylint_code,
     get_pylint_prompt,
 )
+
+
+def _make_message(
+    message_id: str = "W0612",
+    symbol: str = "unused-variable",
+    msg_type: str = "warning",
+    line: int = 1,
+) -> PylintMessage:
+    """Helper to create a PylintMessage with sensible defaults."""
+    return PylintMessage(
+        type=msg_type,
+        module="test_module",
+        obj="test_obj",
+        line=line,
+        column=0,
+        path="test.py",
+        symbol=symbol,
+        message="test message",
+        message_id=message_id,
+    )
+
+
+class TestGroupAndSortIssues:
+    """Test cases for _group_and_sort_issues helper."""
+
+    def test_empty_messages(self) -> None:
+        """Empty list returns empty list."""
+        result = _group_and_sort_issues([])
+        assert result == []
+
+    def test_single_issue_type(self) -> None:
+        """One message_id returns a single group."""
+        msgs = [_make_message("W0612", "unused-variable", "warning")]
+        result = _group_and_sort_issues(msgs)
+        assert len(result) == 1
+        assert result[0].message_id == "W0612"
+        assert result[0].symbol == "unused-variable"
+        assert result[0].type == "warning"
+        assert result[0].messages == msgs
+
+    def test_severity_ordering(self) -> None:
+        """Fatal before error before warning before refactor before convention."""
+        msgs = [
+            _make_message("C0411", "wrong-import-order", "convention"),
+            _make_message("E0602", "undefined-variable", "error"),
+            _make_message("F0001", "fatal-error", "fatal"),
+            _make_message("W0612", "unused-variable", "warning"),
+            _make_message("R0902", "too-many-instance-attributes", "refactor"),
+        ]
+        result = _group_and_sort_issues(msgs)
+        types = [g.type for g in result]
+        assert types == ["fatal", "error", "warning", "refactor", "convention"]
+
+    def test_frequency_ordering_within_same_severity(self) -> None:
+        """More occurrences first among same severity level."""
+        msgs = [
+            _make_message("W0612", "unused-variable", "warning", line=1),
+            _make_message("W0613", "unused-argument", "warning", line=2),
+            _make_message("W0613", "unused-argument", "warning", line=3),
+            _make_message("W0613", "unused-argument", "warning", line=4),
+        ]
+        result = _group_and_sort_issues(msgs)
+        assert len(result) == 2
+        assert result[0].message_id == "W0613"  # 3 occurrences
+        assert result[1].message_id == "W0612"  # 1 occurrence
+
+    def test_severity_takes_precedence_over_frequency(self) -> None:
+        """1 error sorts before 10 conventions."""
+        msgs = [_make_message("E0602", "undefined-variable", "error")]
+        msgs += [
+            _make_message("C0411", "wrong-import-order", "convention", line=i)
+            for i in range(10)
+        ]
+        result = _group_and_sort_issues(msgs)
+        assert result[0].message_id == "E0602"
+        assert result[1].message_id == "C0411"
+
+    def test_group_contains_all_messages(self) -> None:
+        """Each group has all messages for that message_id."""
+        msgs = [
+            _make_message("W0612", "unused-variable", "warning", line=1),
+            _make_message("W0612", "unused-variable", "warning", line=2),
+            _make_message("W0612", "unused-variable", "warning", line=3),
+        ]
+        result = _group_and_sort_issues(msgs)
+        assert len(result) == 1
+        assert len(result[0].messages) == 3
+        assert set(m.line for m in result[0].messages) == {1, 2, 3}
 
 
 class TestGetDirectInstructionForPylintCode:

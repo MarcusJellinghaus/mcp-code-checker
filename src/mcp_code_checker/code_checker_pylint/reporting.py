@@ -4,14 +4,60 @@ Functions for generating reports and prompts from pylint analysis results.
 
 import json
 import logging
-from typing import Optional
+from collections import defaultdict
+from typing import NamedTuple, Optional
 
 import structlog
 
-from mcp_code_checker.code_checker_pylint.models import PylintResult
+from mcp_code_checker.code_checker_pylint.models import (
+    PylintMessage,
+    PylintResult,
+)
 from mcp_code_checker.code_checker_pylint.runners import get_pylint_results
 from mcp_code_checker.code_checker_pylint.utils import normalize_path
 from mcp_code_checker.log_utils import log_function_call
+
+# Severity priority: lower = more severe
+SEVERITY_PRIORITY: dict[str, int] = {
+    "fatal": 0,
+    "error": 1,
+    "warning": 2,
+    "refactor": 3,
+    "convention": 4,
+}
+
+
+class IssueGroup(NamedTuple):
+    """A group of pylint messages sharing the same message_id."""
+
+    message_id: str
+    symbol: str
+    type: str
+    messages: list[PylintMessage]
+
+
+def _group_and_sort_issues(messages: list[PylintMessage]) -> list[IssueGroup]:
+    """Group messages by message_id, sort by severity then frequency (descending)."""
+    groups: dict[str, list[PylintMessage]] = defaultdict(list)
+    for msg in messages:
+        groups[msg.message_id].append(msg)
+
+    issue_groups = [
+        IssueGroup(
+            message_id=mid,
+            symbol=msgs[0].symbol,
+            type=msgs[0].type,
+            messages=msgs,
+        )
+        for mid, msgs in groups.items()
+    ]
+
+    issue_groups.sort(
+        key=lambda g: (SEVERITY_PRIORITY.get(g.type, 99), -len(g.messages))
+    )
+    return issue_groups
+
+
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
