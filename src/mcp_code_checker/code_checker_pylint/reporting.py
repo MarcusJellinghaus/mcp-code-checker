@@ -259,9 +259,7 @@ def get_pylint_prompt(
                 f"- {group.message_id} {group.symbol}: "
                 f"{len(group.messages)} occurrences"
             )
-        lines.append(
-            f"\nUse max_issues={total_types} to see details for all issue types."
-        )
+        lines.append("\nUse max_issues>=1 to see details for one or more issue types.")
         return "\n".join(lines)
 
     structured_logger.info(

@@ -4,7 +4,7 @@ import sys
 from unittest.mock import patch
 
 from mcp_code_checker.code_checker_pylint.models import PylintMessage, PylintResult
-from mcp_code_checker.code_checker_pylint.reporting import (  # pylint: disable=no-name-in-module
+from mcp_code_checker.code_checker_pylint.reporting import (
     MAX_LOCATIONS_PER_ISSUE,
     _group_and_sort_issues,
     get_direct_instruction_for_pylint_code,
@@ -413,7 +413,7 @@ class TestGetPylintPromptMaxIssues:
         assert "E0602 undefined-variable: 3 occurrences" in prompt
         assert "W0613 unused-argument: 4 occurrences" in prompt
         # Hint
-        assert "max_issues=" in prompt
+        assert "max_issues>=1 to see details" in prompt
         # No detailed location data (no JSON blocks)
         assert "locations in the source code" not in prompt
 

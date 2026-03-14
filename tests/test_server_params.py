@@ -544,8 +544,7 @@ async def test_enhanced_reporting_integration_preparation(
 class TestServerPylintMaxIssues:
     """Tests for max_issues parameter wiring in run_pylint_check."""
 
-    @pytest.mark.asyncio
-    async def test_run_pylint_check_passes_max_issues(self) -> None:
+    def test_run_pylint_check_passes_max_issues(self) -> None:
         """Verify max_issues=3 is forwarded to get_pylint_prompt."""
         with (
             patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
@@ -567,8 +566,7 @@ class TestServerPylintMaxIssues:
             mock_get_pylint_prompt.assert_called_once()
             assert mock_get_pylint_prompt.call_args[1]["max_issues"] == 3
 
-    @pytest.mark.asyncio
-    async def test_run_pylint_check_default_max_issues(self) -> None:
+    def test_run_pylint_check_default_max_issues(self) -> None:
         """Verify default max_issues=1 is forwarded to get_pylint_prompt."""
         with (
             patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
@@ -590,8 +588,7 @@ class TestServerPylintMaxIssues:
             mock_get_pylint_prompt.assert_called_once()
             assert mock_get_pylint_prompt.call_args[1]["max_issues"] == 1
 
-    @pytest.mark.asyncio
-    async def test_format_pylint_result_returns_prompt_directly(self) -> None:
+    def test_format_pylint_result_returns_prompt_directly(self) -> None:
         """Verify _format_pylint_result returns the prompt without extra prefix."""
         with patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp:
             mock_tool = MagicMock()
@@ -610,8 +607,7 @@ class TestServerPylintMaxIssues:
             result_none = server._format_pylint_result(None)
             assert "No issues found" in result_none
 
-    @pytest.mark.asyncio
-    async def test_run_pylint_check_has_max_issues_parameter(self) -> None:
+    def test_run_pylint_check_has_max_issues_parameter(self) -> None:
         """Verify run_pylint_check signature includes max_issues."""
         with patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp:
             mock_tool = MagicMock()
