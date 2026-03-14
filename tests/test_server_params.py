@@ -538,6 +538,92 @@ async def test_enhanced_reporting_integration_preparation(
         assert should_show_details(test_results, False) == False
 
 
+# Step 3: Tests for Pylint max_issues Parameter
+
+
+class TestServerPylintMaxIssues:
+    """Tests for max_issues parameter wiring in run_pylint_check."""
+
+    def test_run_pylint_check_passes_max_issues(self) -> None:
+        """Verify max_issues=3 is forwarded to get_pylint_prompt."""
+        with (
+            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
+            patch(
+                "mcp_code_checker.server.get_pylint_prompt"
+            ) as mock_get_pylint_prompt,
+        ):
+            mock_tool = MagicMock()
+            mock_fastmcp.return_value.tool.return_value = mock_tool
+            mock_get_pylint_prompt.return_value = "some issues"
+
+            from mcp_code_checker.server import CodeCheckerServer
+
+            _server = CodeCheckerServer(project_dir=Path("/test/project"))
+            run_pylint_check = _get_tool(mock_tool, "run_pylint_check")
+
+            run_pylint_check(max_issues=3)
+
+            mock_get_pylint_prompt.assert_called_once()
+            assert mock_get_pylint_prompt.call_args[1]["max_issues"] == 3
+
+    def test_run_pylint_check_default_max_issues(self) -> None:
+        """Verify default max_issues=1 is forwarded to get_pylint_prompt."""
+        with (
+            patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp,
+            patch(
+                "mcp_code_checker.server.get_pylint_prompt"
+            ) as mock_get_pylint_prompt,
+        ):
+            mock_tool = MagicMock()
+            mock_fastmcp.return_value.tool.return_value = mock_tool
+            mock_get_pylint_prompt.return_value = None
+
+            from mcp_code_checker.server import CodeCheckerServer
+
+            _server = CodeCheckerServer(project_dir=Path("/test/project"))
+            run_pylint_check = _get_tool(mock_tool, "run_pylint_check")
+
+            run_pylint_check()
+
+            mock_get_pylint_prompt.assert_called_once()
+            assert mock_get_pylint_prompt.call_args[1]["max_issues"] == 1
+
+    def test_format_pylint_result_returns_prompt_directly(self) -> None:
+        """Verify _format_pylint_result returns the prompt without extra prefix."""
+        with patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp:
+            mock_tool = MagicMock()
+            mock_fastmcp.return_value.tool.return_value = mock_tool
+
+            from mcp_code_checker.server import CodeCheckerServer
+
+            server = CodeCheckerServer(project_dir=Path("/test/project"))
+
+            prompt = "pylint found some issues related to code W0612."
+            result = server._format_pylint_result(prompt)
+            assert result == prompt
+            assert "Pylint found issues that need attention" not in result
+
+            # None case still works
+            result_none = server._format_pylint_result(None)
+            assert "No issues found" in result_none
+
+    def test_run_pylint_check_has_max_issues_parameter(self) -> None:
+        """Verify run_pylint_check signature includes max_issues."""
+        with patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp:
+            mock_tool = MagicMock()
+            mock_fastmcp.return_value.tool.return_value = mock_tool
+
+            from mcp_code_checker.server import CodeCheckerServer
+
+            _server = CodeCheckerServer(project_dir=Path("/test/project"))
+            run_pylint_check = _get_tool(mock_tool, "run_pylint_check")
+            signature = inspect.signature(run_pylint_check)
+
+            assert "max_issues" in signature.parameters
+            assert signature.parameters["max_issues"].default == 1
+            assert signature.parameters["max_issues"].annotation == int
+
+
 # Additional Parameter Validation Tests
 
 

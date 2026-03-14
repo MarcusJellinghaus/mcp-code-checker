@@ -119,7 +119,7 @@ class CodeCheckerServer:
         """Format pylint check result."""
         if pylint_prompt is None:
             return "Pylint check completed. No issues found that require attention."
-        return f"Pylint found issues that need attention:\n\n{pylint_prompt}"
+        return pylint_prompt
 
     def _format_pytest_result_with_details(
         self, test_results: dict[str, Any], show_details: bool
@@ -187,25 +187,15 @@ class CodeCheckerServer:
         def run_pylint_check(
             extra_args: Optional[List[str]] = None,
             target_directories: Optional[List[str]] = None,
+            max_issues: int = 1,
         ) -> str:
             """
             Run pylint on the project code and generate smart prompts for LLMs.
 
             Args:
-                extra_args: Optional list of additional pylint arguments.
-                    Examples:
-                    - ['--disable=C0114,C0116'] - Disable specific codes
-                    - ['--enable=W'] - Enable warning-level codes
-                target_directories: Optional list of directories to analyze relative to project_dir.
-                    Defaults to ["src"] and conditionally "tests" if it exists.
-                    Examples:
-                    - ["src"] - Analyze only source code
-                    - ["src", "tests"] - Analyze both source and tests (default)
-                    - ["mypackage", "tests"] - Custom package structure
-                    - ["."] - Analyze entire project (may be slow)
-
-            Returns:
-                A string containing either pylint results or a prompt for an LLM to interpret
+                extra_args: Additional pylint arguments.
+                target_directories: Directories to analyze relative to project_dir. Defaults to ["src"] and "tests" if it exists.
+                max_issues: Number of issue types to show in detail (default: 1). Remaining issues shown as summary counts.
             """
             if not self._tool_availability.get("pylint", False):
                 return (
@@ -224,6 +214,7 @@ class CodeCheckerServer:
                     project_dir=str(self.project_dir),
                     extra_args=extra_args,
                     target_directories=target_directories,
+                    max_issues=max_issues,
                 )
 
                 pylint_prompt = get_pylint_prompt(
@@ -231,6 +222,7 @@ class CodeCheckerServer:
                     python_executable=self._resolved_python,
                     extra_args=extra_args,
                     target_directories=target_directories,
+                    max_issues=max_issues,
                 )
 
                 result = self._format_pylint_result(pylint_prompt)

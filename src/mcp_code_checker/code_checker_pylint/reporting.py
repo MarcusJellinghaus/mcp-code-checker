@@ -4,14 +4,61 @@ Functions for generating reports and prompts from pylint analysis results.
 
 import json
 import logging
-from typing import Optional
+from collections import defaultdict
+from typing import NamedTuple, Optional
 
 import structlog
 
-from mcp_code_checker.code_checker_pylint.models import PylintResult
+from mcp_code_checker.code_checker_pylint.models import (
+    PylintMessage,
+    PylintResult,
+)
 from mcp_code_checker.code_checker_pylint.runners import get_pylint_results
 from mcp_code_checker.code_checker_pylint.utils import normalize_path
 from mcp_code_checker.log_utils import log_function_call
+
+MAX_LOCATIONS_PER_ISSUE = 50
+
+# Severity priority: lower = more severe
+SEVERITY_PRIORITY: dict[str, int] = {
+    "fatal": 0,
+    "error": 1,
+    "warning": 2,
+    "refactor": 3,
+    "convention": 4,
+}
+
+
+class IssueGroup(NamedTuple):
+    """A group of pylint messages sharing the same message_id."""
+
+    message_id: str
+    symbol: str
+    type: str
+    messages: list[PylintMessage]
+
+
+def _group_and_sort_issues(messages: list[PylintMessage]) -> list[IssueGroup]:
+    """Group messages by message_id, sort by severity then frequency (descending)."""
+    groups: dict[str, list[PylintMessage]] = defaultdict(list)
+    for msg in messages:
+        groups[msg.message_id].append(msg)
+
+    issue_groups = [
+        IssueGroup(
+            message_id=mid,
+            symbol=msgs[0].symbol,
+            type=msgs[0].type,
+            messages=msgs,
+        )
+        for mid, msgs in groups.items()
+    ]
+
+    issue_groups.sort(
+        key=lambda g: (SEVERITY_PRIORITY.get(g.type, 99), -len(g.messages))
+    )
+    return issue_groups
+
 
 logger = logging.getLogger(__name__)
 structured_logger = structlog.get_logger(__name__)
@@ -153,6 +200,7 @@ def get_pylint_prompt(
     python_executable: str,
     extra_args: Optional[list[str]] = None,
     target_directories: Optional[list[str]] = None,
+    max_issues: int = 1,
 ) -> Optional[str]:
     """
     Generate a prompt for fixing pylint issues based on the analysis of a project.
@@ -162,8 +210,7 @@ def get_pylint_prompt(
         extra_args: Optional list of extra arguments to pass to pylint.
         python_executable: Path to Python interpreter to use for running pylint. Already resolved by server.
         target_directories: Optional list of directories to analyze relative to project_dir.
-            Defaults to ["src"] and conditionally "tests" if it exists.
-            Examples: ["src"], ["src", "tests"], ["mypackage", "tests"], ["."]
+        max_issues: Number of issue types to show in detail (0 = stats only).
 
     Returns:
         A prompt string with issue details and instructions, or None if no issues were found.
@@ -189,26 +236,81 @@ def get_pylint_prompt(
             error=pylint_results.error,
             return_code=pylint_results.return_code,
         )
-        # Return the error as a prompt so the MCP client gets the error message
         return f"Pylint analysis failed: {pylint_results.error}"
 
-    codes = pylint_results.get_message_ids()
+    max_issues = max(0, max_issues)
+    groups = _group_and_sort_issues(pylint_results.messages)
 
-    if len(codes) > 0:
-        code = list(codes)[0]
-        structured_logger.info(
-            "Pylint issues found, generating prompt",
-            total_codes=len(codes),
-            first_code=code,
-        )
-        prompt = get_prompt_for_known_pylint_code(code, project_dir, pylint_results)
-        if prompt is not None:
-            return prompt
-        else:
-            prompt = get_prompt_for_unknown_pylint_code(
-                code, project_dir=project_dir, pylint_results=pylint_results
-            )
-            return prompt  # just for the first code
-    else:
+    if not groups:
         structured_logger.info("No pylint issues found", project_dir=project_dir)
         return None
+
+    total_types = len(groups)
+    total_occurrences = sum(len(g.messages) for g in groups)
+
+    # Stats-only mode
+    if max_issues == 0:
+        lines = [
+            f"pylint found {total_types} issue types "
+            f"({total_occurrences} total occurrences):",
+        ]
+        for group in groups:
+            lines.append(
+                f"- {group.message_id} {group.symbol}: "
+                f"{len(group.messages)} occurrences"
+            )
+        lines.append("\nUse max_issues>=1 to see details for one or more issue types.")
+        return "\n".join(lines)
+
+    structured_logger.info(
+        "Pylint issues found, generating prompt",
+        total_codes=total_types,
+        max_issues=max_issues,
+    )
+
+    # Detailed sections for top N issue types
+    sections: list[str] = []
+    for group in groups[:max_issues]:
+        capped_messages = group.messages[:MAX_LOCATIONS_PER_ISSUE]
+        overflow = len(group.messages) - len(capped_messages)
+
+        capped_result = PylintResult(
+            return_code=pylint_results.return_code,
+            messages=capped_messages,
+        )
+
+        prompt = get_prompt_for_known_pylint_code(
+            group.message_id, project_dir, capped_result
+        )
+        if prompt is None:
+            prompt = get_prompt_for_unknown_pylint_code(
+                group.message_id,
+                project_dir=project_dir,
+                pylint_results=capped_result,
+            )
+
+        if overflow > 0:
+            prompt += f"\n... and {overflow} more occurrences"
+
+        sections.append(prompt)
+
+    # Summary for remaining issue types
+    remaining = groups[max_issues:]
+    if remaining:
+        remaining_count = sum(len(g.messages) for g in remaining)
+        summary_lines = [
+            f"\n--- {len(remaining)} additional issue type"
+            f"{'s' if len(remaining) != 1 else ''} found "
+            f"({remaining_count} occurrences) ---",
+        ]
+        for group in remaining:
+            summary_lines.append(
+                f"- {group.message_id} {group.symbol}: "
+                f"{len(group.messages)} occurrences"
+            )
+        summary_lines.append(
+            f"\nUse max_issues={total_types} to see details for all issue types."
+        )
+        sections.append("\n".join(summary_lines))
+
+    return "\n\n".join(sections)
