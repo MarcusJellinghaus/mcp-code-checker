@@ -29,9 +29,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ### Step 2: Refactor `get_pylint_prompt()` with `max_issues` + location cap + summary — [step_2.md](./steps/step_2.md)
 
-- [ ] Refactor `get_pylint_prompt()` to accept `max_issues`, produce detailed output for top N issue types (capped at 50 locations each), and append summary of remaining issues; write tests first (TDD)
-- [ ] Run quality checks (pylint, pytest, mypy) and fix all issues
-- [ ] Prepare git commit message
+- [x] Refactor `get_pylint_prompt()` to accept `max_issues`, produce detailed output for top N issue types (capped at 50 locations each), and append summary of remaining issues; write tests first (TDD)
+- [x] Run quality checks (pylint, pytest, mypy) and fix all issues
+- [x] Prepare git commit message
 
 ### Step 3: Wire `max_issues` into `server.py`, slim docstring + integration test — [step_3.md](./steps/step_3.md)
 

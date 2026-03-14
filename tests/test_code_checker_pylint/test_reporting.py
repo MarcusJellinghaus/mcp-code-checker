@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from mcp_code_checker.code_checker_pylint.models import PylintMessage, PylintResult
 from mcp_code_checker.code_checker_pylint.reporting import (  # pylint: disable=no-name-in-module
+    MAX_LOCATIONS_PER_ISSUE,
     _group_and_sort_issues,
     get_direct_instruction_for_pylint_code,
     get_prompt_for_known_pylint_code,
@@ -324,3 +325,153 @@ class TestGetPylintPrompt:
 
         assert prompt is not None
         assert "W0613" in prompt
+
+
+class TestGetPylintPromptMaxIssues:
+    """Test cases for get_pylint_prompt with max_issues parameter."""
+
+    def _make_messages(
+        self,
+        specs: list[tuple[str, str, str, int]],
+    ) -> list[PylintMessage]:
+        """Create messages from specs: [(message_id, symbol, type, count), ...]."""
+        messages: list[PylintMessage] = []
+        for message_id, symbol, msg_type, count in specs:
+            for i in range(count):
+                messages.append(
+                    PylintMessage(
+                        type=msg_type,
+                        module="test_module",
+                        obj=f"func_{i}",
+                        line=10 + i,
+                        column=0,
+                        path=f"/project/src/file_{i}.py",
+                        symbol=symbol,
+                        message=f"Issue {message_id} occurrence {i}",
+                        message_id=message_id,
+                    )
+                )
+        return messages
+
+    def test_zero_issues_returns_none(self) -> None:
+        """No messages returns None (unchanged behavior)."""
+        mock_result = PylintResult(return_code=0, messages=[])
+        with patch(
+            "mcp_code_checker.code_checker_pylint.reporting.get_pylint_results",
+            return_value=mock_result,
+        ):
+            result = get_pylint_prompt("/project")
+        assert result is None
+
+    def test_max_issues_default_one_detail_plus_summary(self) -> None:
+        """Default max_issues=1: first type detailed, rest in summary."""
+        messages = self._make_messages(
+            [
+                ("E0602", "undefined-variable", "error", 3),
+                ("W0613", "unused-argument", "warning", 4),
+                ("C0411", "wrong-import-order", "convention", 2),
+            ]
+        )
+        mock_result = PylintResult(return_code=4, messages=messages)
+
+        with patch(
+            "mcp_code_checker.code_checker_pylint.reporting.get_pylint_results",
+            return_value=mock_result,
+        ):
+            prompt = get_pylint_prompt("/project")
+
+        assert prompt is not None
+        # First type (error, highest severity) should be detailed
+        assert "E0602" in prompt
+        # Summary section for remaining types
+        assert "W0613 unused-argument: 4 occurrences" in prompt
+        assert "C0411 wrong-import-order: 2 occurrences" in prompt
+        # Hint to see more
+        assert "max_issues=" in prompt
+
+    def test_max_issues_zero_stats_only(self) -> None:
+        """max_issues=0: only stats, no detailed output."""
+        messages = self._make_messages(
+            [
+                ("E0602", "undefined-variable", "error", 3),
+                ("W0613", "unused-argument", "warning", 4),
+            ]
+        )
+        mock_result = PylintResult(return_code=4, messages=messages)
+
+        with patch(
+            "mcp_code_checker.code_checker_pylint.reporting.get_pylint_results",
+            return_value=mock_result,
+        ):
+            prompt = get_pylint_prompt("/project", max_issues=0)
+
+        assert prompt is not None
+        # Stats header
+        assert "2 issue types" in prompt
+        assert "7 total occurrences" in prompt
+        # Per-type counts
+        assert "E0602 undefined-variable: 3 occurrences" in prompt
+        assert "W0613 unused-argument: 4 occurrences" in prompt
+        # Hint
+        assert "max_issues=" in prompt
+        # No detailed location data (no JSON blocks)
+        assert "locations in the source code" not in prompt
+
+    def test_max_issues_greater_than_types(self) -> None:
+        """max_issues exceeds type count: all detailed, no summary, no hint."""
+        messages = self._make_messages(
+            [
+                ("E0602", "undefined-variable", "error", 2),
+                ("W0613", "unused-argument", "warning", 1),
+            ]
+        )
+        mock_result = PylintResult(return_code=4, messages=messages)
+
+        with patch(
+            "mcp_code_checker.code_checker_pylint.reporting.get_pylint_results",
+            return_value=mock_result,
+        ):
+            prompt = get_pylint_prompt("/project", max_issues=5)
+
+        assert prompt is not None
+        # Both types should have detailed output
+        assert "E0602" in prompt
+        assert "W0613" in prompt
+        # No summary section
+        assert "additional issue type" not in prompt
+        # No hint
+        assert "Use max_issues=" not in prompt
+
+    def test_location_cap_at_50(self) -> None:
+        """Issue type with 60 occurrences: only 50 shown, overflow note appended."""
+        messages = self._make_messages(
+            [
+                ("W0613", "unused-argument", "warning", 60),
+            ]
+        )
+        mock_result = PylintResult(return_code=4, messages=messages)
+
+        with patch(
+            "mcp_code_checker.code_checker_pylint.reporting.get_pylint_results",
+            return_value=mock_result,
+        ):
+            prompt = get_pylint_prompt("/project", max_issues=1)
+
+        assert prompt is not None
+        assert "W0613" in prompt
+        # Overflow note
+        assert "10 more occurrences" in prompt
+        # Verify the cap constant is 50
+        assert MAX_LOCATIONS_PER_ISSUE == 50
+
+    def test_error_passthrough_unchanged(self) -> None:
+        """Pylint error returns error string (unchanged behavior)."""
+        mock_result = PylintResult(return_code=1, messages=[], error="Pylint timed out")
+        with patch(
+            "mcp_code_checker.code_checker_pylint.reporting.get_pylint_results",
+            return_value=mock_result,
+        ):
+            result = get_pylint_prompt("/project")
+
+        assert result is not None
+        assert "Pylint timed out" in result
