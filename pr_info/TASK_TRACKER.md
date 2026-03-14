@@ -35,9 +35,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ### Step 3: Wire `max_issues` into `server.py`, slim docstring + integration test — [step_3.md](./steps/step_3.md)
 
-- [ ] Add `max_issues` parameter to `run_pylint_check` in `server.py`, pass through to `get_pylint_prompt()`, slim docstring, simplify `_format_pylint_result`; write tests in `test_server_params.py`
-- [ ] Run quality checks (pylint, pytest, mypy) and fix all issues
-- [ ] Prepare git commit message
+- [x] Add `max_issues` parameter to `run_pylint_check` in `server.py`, pass through to `get_pylint_prompt()`, slim docstring, simplify `_format_pylint_result`; write tests in `test_server_params.py`
+- [x] Run quality checks (pylint, pytest, mypy) and fix all issues
+- [x] Prepare git commit message
 
 ## Pull Request
 
