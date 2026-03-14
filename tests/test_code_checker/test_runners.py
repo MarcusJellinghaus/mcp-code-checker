@@ -15,10 +15,7 @@ from mcp_code_checker.code_checker_pytest import (
     run_tests,
 )
 
-from .test_code_checker_pytest_common import (
-    _cleanup_test_project,
-    _create_test_project,
-)
+from .test_code_checker_pytest_common import _cleanup_test_project, _create_test_project
 
 
 def test_run_tests() -> None:
@@ -74,13 +71,15 @@ def test_run_tests_with_custom_parameters() -> None:
 
         # Create a test with a custom marker
         with open(test_dir / "tests" / "test_marked.py", "w") as f:
-            f.write("""
+            f.write(
+                """
 import pytest
 
 @pytest.mark.slow
 def test_slow():
     assert True
-""")
+"""
+            )
 
         try:
             # Run tests with markers filter

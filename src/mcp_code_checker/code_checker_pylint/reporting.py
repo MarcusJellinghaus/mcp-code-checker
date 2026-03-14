@@ -8,13 +8,9 @@ from typing import Optional
 
 import structlog
 
-from mcp_code_checker.code_checker_pylint.models import (
-    PylintResult,
-)
+from mcp_code_checker.code_checker_pylint.models import PylintResult
 from mcp_code_checker.code_checker_pylint.runners import get_pylint_results
-from mcp_code_checker.code_checker_pylint.utils import (
-    normalize_path,
-)
+from mcp_code_checker.code_checker_pylint.utils import normalize_path
 from mcp_code_checker.log_utils import log_function_call
 
 logger = logging.getLogger(__name__)

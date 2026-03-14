@@ -17,14 +17,10 @@ from mcp_code_checker.code_checker_pylint.reporting import (
     get_direct_instruction_for_pylint_code,
     get_pylint_prompt,
 )
-from mcp_code_checker.code_checker_pylint.runners import (
-    get_pylint_results,
-)
+from mcp_code_checker.code_checker_pylint.runners import get_pylint_results
 
 # Re-export utilities
-from mcp_code_checker.code_checker_pylint.utils import (
-    normalize_path,
-)
+from mcp_code_checker.code_checker_pylint.utils import normalize_path
 
 # Define the public API explicitly
 __all__ = [

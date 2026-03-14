@@ -44,9 +44,14 @@ async def test_run_pytest_check_parameters(mock_project_dir: Path) -> None:
         from mcp_code_checker.server import CodeCheckerServer
 
         # Create server with the static parameters
-        _server = CodeCheckerServer(
-            mock_project_dir, test_folder="custom_tests", keep_temp_files=True
-        )
+        with patch.object(
+            CodeCheckerServer,
+            "_check_tool_availability",
+            return_value={"pytest": True, "pylint": True, "mypy": True},
+        ):
+            _server = CodeCheckerServer(
+                mock_project_dir, test_folder="custom_tests", keep_temp_files=True
+            )
 
         assert (
             len(mock_tool.call_args_list) >= 2
@@ -88,7 +93,12 @@ async def test_run_pylint_check_signature() -> None:
 
         from mcp_code_checker.server import CodeCheckerServer
 
-        _server = CodeCheckerServer(project_dir=Path("/test/project"))
+        with patch.object(
+            CodeCheckerServer,
+            "_check_tool_availability",
+            return_value={"pytest": True, "pylint": True, "mypy": True},
+        ):
+            _server = CodeCheckerServer(project_dir=Path("/test/project"))
 
         # Look up run_pylint_check by name to avoid fragile index assumptions
         tools = {
@@ -119,7 +129,12 @@ def mock_server() -> Tuple[Any, MagicMock]:
 
         from mcp_code_checker.server import CodeCheckerServer
 
-        server = CodeCheckerServer(project_dir=Path("/test/project"))
+        with patch.object(
+            CodeCheckerServer,
+            "_check_tool_availability",
+            return_value={"pytest": True, "pylint": True, "mypy": True},
+        ):
+            server = CodeCheckerServer(project_dir=Path("/test/project"))
 
         # Return server and the mock tool for test access
         return server, mock_tool
@@ -248,7 +263,12 @@ async def test_run_pytest_check_show_details_default_value() -> None:
 
         from mcp_code_checker.server import CodeCheckerServer
 
-        server = CodeCheckerServer(project_dir=Path("/test/project"))
+        with patch.object(
+            CodeCheckerServer,
+            "_check_tool_availability",
+            return_value={"pytest": True, "pylint": True, "mypy": True},
+        ):
+            server = CodeCheckerServer(project_dir=Path("/test/project"))
 
         # Get the run_pytest_check function and inspect its signature
         run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
@@ -416,7 +436,12 @@ async def test_server_method_signature_includes_show_details() -> None:
 
         from mcp_code_checker.server import CodeCheckerServer
 
-        server = CodeCheckerServer(project_dir=Path("/test/project"))
+        with patch.object(
+            CodeCheckerServer,
+            "_check_tool_availability",
+            return_value={"pytest": True, "pylint": True, "mypy": True},
+        ):
+            server = CodeCheckerServer(project_dir=Path("/test/project"))
 
         # Get the run_pytest_check function
         run_pytest_check = _get_tool(mock_tool, "run_pytest_check")
@@ -450,7 +475,12 @@ async def test_mcp_tool_decorator_compatibility() -> None:
 
         from mcp_code_checker.server import CodeCheckerServer
 
-        server = CodeCheckerServer(project_dir=Path("/test/project"))
+        with patch.object(
+            CodeCheckerServer,
+            "_check_tool_availability",
+            return_value={"pytest": True, "pylint": True, "mypy": True},
+        ):
+            server = CodeCheckerServer(project_dir=Path("/test/project"))
 
         # Verify that tools were registered correctly
         assert (

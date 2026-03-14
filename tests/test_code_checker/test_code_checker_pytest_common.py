@@ -172,7 +172,8 @@ def _create_test_project(test_dir: Path) -> None:
     with open(test_dir / "tests" / "__init__.py", "w") as f:
         f.write("")
     with open(test_dir / "tests" / "test_sample.py", "w") as f:
-        f.write("""
+        f.write(
+            """
 import pytest
 
 def test_passing():
@@ -180,7 +181,8 @@ def test_passing():
 
 def test_failing():
     assert 1 == 2
-""")
+"""
+        )
 
 
 def _cleanup_test_project(test_dir: Path) -> None:

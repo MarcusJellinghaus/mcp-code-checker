@@ -16,10 +16,7 @@ from mcp_code_checker.code_checker_pytest.reporting import (
     create_prompt_for_failed_tests,
     get_test_summary,
 )
-from mcp_code_checker.code_checker_pytest.utils import (
-    create_error_context,
-    read_file,
-)
+from mcp_code_checker.code_checker_pytest.utils import create_error_context, read_file
 from mcp_code_checker.log_utils import log_function_call
 from mcp_code_checker.utils.subprocess_runner import (
     check_tool_missing_error,
@@ -386,9 +383,11 @@ def run_tests(
                 project_dir=project_dir,
                 command=command_line,
             )
-            print(f"""Error during pytest execution:
+            print(
+                f"""Error during pytest execution:
 - folder {project_dir}
-- {command_line}""")
+- {command_line}"""
+            )
             raise e
 
     except Exception as e:
